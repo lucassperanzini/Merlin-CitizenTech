@@ -10,6 +10,12 @@ def normalizar(texto: str) -> str:
     return "".join(c for c in sem_acento.lower() if c.isalnum())
 
 
+def com_artigo(nome: str) -> str:
+    """"o chrome", "a calculadora". Aproximação pela primeira palavra, para soar natural na fala."""
+    feminino = nome.split()[0].lower().endswith("a") if nome.strip() else False
+    return f"{'a' if feminino else 'o'} {nome}"
+
+
 def tem_palavra_ativacao(frase: str) -> bool:
     return any(palavra in frase for palavra in PALAVRAS_ATIVACAO)
 

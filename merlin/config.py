@@ -10,15 +10,20 @@ PRAZO_CONFIRMACAO = 20  # segundos para responder antes de uma pergunta de confi
 INTERROMPER_FATOR = 2.5  # quantas vezes mais forte que o eco da própria voz o som precisa ser para interromper
 INTERROMPER_DURACAO = 0.25  # segundos que esse som precisa durar (filtra estalos e batidas curtas)
 LIMITE_FRASE = 8  # duração máxima, em segundos, de uma frase ouvida
+MAX_TAREFAS_POR_FRASE = 3  # evita que uma transcrição errada dispare uma sequência longa de ações
 
 MODELO_IA = "qwen2.5:7b"
-MODELO_WHISPER = "small"  # "base" é mais rápido; "medium" é mais preciso
 
 PASTA_RAIZ = Path(__file__).resolve().parent.parent
+PASTA_MODELOS = PASTA_RAIZ / "modelos"  # modelos de reconhecimento de voz, cada um em uma subpasta
+MODELO_WHISPER_GPU = "large-v3-turbo"  # usado na placa de vídeo
+MODELO_WHISPER_CPU = "small"  # plano B, mais leve, caso a placa de vídeo falhe
 PASTA_VOZES = PASTA_RAIZ / "vozes"
 ARQ_PREFERENCIAS = PASTA_RAIZ / "merlin_config.json"
 ARQ_OLHO = PASTA_RAIZ / "recursos" / "olho.svg"
 ARQ_JANELA = PASTA_RAIZ / "recursos" / "janela.html"
+ARQ_SOM_ATIVACAO = PASTA_RAIZ / "recursos" / "ativacao.wav"
+VOLUME_SOM_ATIVACAO = 0.7  # de 0 (mudo) a 1
 
 JANELA_LARGURA, JANELA_ALTURA = 680, 820
 

@@ -4,6 +4,8 @@ import difflib
 from AppOpener import give_appnames, open as abrir_app
 
 from merlin.config import APELIDOS_PROGRAMAS
+from merlin.nucleo.resposta import Resultado
+from merlin.texto import com_artigo
 
 SEMELHANCA_MINIMA = 0.6
 
@@ -19,20 +21,18 @@ def encontrar_programa(nome: str, instalados: list[str]) -> str | None:
 
 
 class AbrirPrograma:
-    def __init__(self, locutor, pesquisa):
-        self._locutor = locutor
+    def __init__(self, pesquisa):
         self._pesquisa = pesquisa
 
-    def __call__(self, intencao) -> str:
+    def __call__(self, intencao) -> Resultado:
         nome = intencao.alvo
         programa = encontrar_programa(nome, [str(p).lower() for p in give_appnames()])
         if not programa:
-            self._locutor.falar(f"Não encontrei o programa {nome} instalado. Vou procurar na internet.")
-            return self._pesquisa.pesquisar(nome)
+            self._pesquisa.abrir_no_navegador(nome)
+            return Resultado(f"não encontrei o programa {nome} instalado, então pesquisei na internet",
+                             registro=f"Não instalado: {nome}")
         try:
-            self._locutor.falar(f"Abrindo {programa}.")
             abrir_app(programa, output=False)
-            return f"Sucesso: {programa} foi aberto."
         except Exception as erro:
-            self._locutor.falar(f"Não consegui abrir {programa}.")
-            return f"Erro ao abrir {programa}: {erro}"
+            return Resultado(f"não consegui abrir {com_artigo(programa)}", registro=f"Erro ao abrir {programa}: {erro}")
+        return Resultado(f"abri {com_artigo(programa)}", registro=f"Aberto: {programa}")

@@ -1,9 +1,15 @@
 import json
 import unittest
+from unittest import mock
 
+from merlin.acoes.sessao import Dispensar, Encerrar
+from merlin.estado import EstadoAssistente
 from merlin.ia.confirmacao import ClassificadorConfirmacao, RespostaConfirmacao
+from merlin.ia.despedida import GeradorDespedida, GeradorEncerramento
+from merlin.ia.frase_mago import frase_valida
+from merlin.ia.divisao import DivisorTarefas
 from merlin.ia.intencoes import ClassificadorIntencao, TipoIntencao
-from merlin.ia.prompts import SAUDACOES_RESERVA
+from merlin.ia.prompts import DESPEDIDAS_RESERVA, ENCERRAMENTOS_RESERVA, SAUDACOES_RESERVA
 from merlin.ia.saudacao import GeradorSaudacao, saudacao_valida
 from tests.falsos import ClienteFalso
 
@@ -65,6 +71,111 @@ class TestConfirmacao(unittest.TestCase):
         cliente = ClienteFalso('{"resposta": "sim"}')
         ClassificadorConfirmacao(cliente).classificar("Posso fechar chrome?", "pode")
         self.assertIn("Posso fechar chrome?", cliente.chamadas[0][0]["content"])
+
+
+class TestDivisao(unittest.TestCase):
+    def _dividir(self, comando, tarefas):
+        cliente = ClienteFalso(json.dumps({"tarefas": tarefas}))
+        return DivisorTarefas(cliente).dividir(comando), cliente
+
+    def test_sem_conectivo_nem_consulta_a_ia(self):
+        resultado, cliente = self._dividir("abre o chrome", ["inventada"])
+        self.assertEqual(resultado, ["abre o chrome"])
+        self.assertEqual(cliente.chamadas, [])
+
+    def test_palavra_que_contem_e_nao_e_conectivo(self):
+        _, cliente = self._dividir("pesquisa elefante", ["x"])
+        self.assertEqual(cliente.chamadas, [])
+
+    def test_divide(self):
+        resultado, _ = self._dividir("abre o chrome e pesquisa gatos", ["abre o chrome", "pesquisa gatos"])
+        self.assertEqual(resultado, ["abre o chrome", "pesquisa gatos"])
+
+    def test_verbo_repetido_e_aceito(self):
+        resultado, _ = self._dividir("abre o paint e o word", ["abre o paint", "abre o word"])
+        self.assertEqual(resultado, ["abre o paint", "abre o word"])
+
+    def test_tarefa_inventada_e_recusada(self):
+        frase = "abre o chrome e pesquisa gatos"
+        resultado, _ = self._dividir(frase, ["abre o chrome", "apaga meus documentos"])
+        self.assertEqual(resultado, [frase])
+
+    def test_resposta_invalida_mantem_a_frase(self):
+        frase = "abre o chrome e pesquisa gatos"
+        for resposta in ("lixo", "[]", '{"tarefas": []}', '{"tarefas": 3}', "", '{"tarefas": [""]}'):
+            self.assertEqual(DivisorTarefas(ClienteFalso(resposta)).dividir(frase), [frase], resposta)
+
+
+class TestDespedida(unittest.TestCase):
+    TEXTO = "Recolho meu cajado sob a lua. Basta chamar meu nome."
+
+    def test_usa_a_frase_do_modelo(self):
+        self.assertEqual(GeradorDespedida(ClienteFalso(self.TEXTO)).gerar(), self.TEXTO)
+
+    def test_nao_exige_o_nome_do_merlin(self):
+        self.assertNotIn("merlin", self.TEXTO.lower())
+        self.assertEqual(GeradorEncerramento(ClienteFalso(self.TEXTO)).gerar(), self.TEXTO)
+
+    def test_pergunta_e_lixo_viram_reserva(self):
+        for texto in ("Precisa de mais alguma coisa antes de eu ir?", 'vron {"name": "x"}', "", "Tchau."):
+            self.assertIn(GeradorDespedida(ClienteFalso(texto)).gerar(), DESPEDIDAS_RESERVA, texto)
+
+    def test_sem_ia_usa_reserva_sem_repetir_em_seguida(self):
+        for classe, reservas in ((GeradorDespedida, DESPEDIDAS_RESERVA), (GeradorEncerramento, ENCERRAMENTOS_RESERVA)):
+            gerador = classe(ClienteFalso(ConnectionError("fora do ar")))
+            frases = [gerador.gerar() for _ in range(30)]
+            self.assertTrue(all(f in reservas for f in frases))
+            self.assertTrue(all(a != b for a, b in zip(frases, frases[1:])))
+
+    def test_frase_repetida_do_modelo_vira_reserva(self):
+        gerador = GeradorDespedida(ClienteFalso(self.TEXTO))
+        gerador.gerar()
+        self.assertIn(gerador.gerar(), DESPEDIDAS_RESERVA)
+
+    def test_exemplo_sorteado_vai_no_pedido_e_varia(self):
+        cliente = ClienteFalso(ConnectionError("fora do ar"))
+        gerador = GeradorDespedida(cliente)
+        for _ in range(40):
+            gerador.gerar()
+        pedidos = [chamada[0]["content"] for chamada in cliente.chamadas]
+        self.assertNotIn("{exemplo}", pedidos[0])
+        usados = {e for e in GeradorDespedida.EXEMPLOS for p in pedidos if e in p}
+        self.assertGreater(len(usados), 1)
+
+    def test_palavrao_vira_reserva_em_todas_as_frases_do_mago(self):
+        texto = "Vou mijar perto do caldeirão, eu sou Merlin. Volto quando chamar."
+        self.assertIn(GeradorDespedida(ClienteFalso(texto)).gerar(), DESPEDIDAS_RESERVA)
+        self.assertIn(GeradorEncerramento(ClienteFalso(texto)).gerar(), ENCERRAMENTOS_RESERVA)
+        self.assertIn(GeradorSaudacao(ClienteFalso(texto)).gerar(), SAUDACOES_RESERVA)
+
+    def test_filtro_nao_barra_palavras_normais(self):
+        for texto in ("Consulto o grimório sob a lua. Basta chamar.", "Sigo para a floresta computada. Basta chamar.",
+                      "A cauda da coruja repousa no ramo. Basta chamar.", "Recolho o cajado de pau-brasil. Basta me chamar."):
+            self.assertEqual(frase_valida(texto), "pau" not in texto, texto)
+
+    def test_copia_do_exemplo_vira_reserva(self):
+        copia = GeradorDespedida.EXEMPLOS[0]
+        self.assertIn(GeradorDespedida(ClienteFalso(copia)).gerar(), DESPEDIDAS_RESERVA)
+
+    def test_reservas_sao_validas_e_nao_prometem_o_errado(self):
+        gerador = GeradorDespedida(ClienteFalso(""))
+        for frase in DESPEDIDAS_RESERVA + ENCERRAMENTOS_RESERVA:
+            self.assertTrue(gerador.valida(frase), frase)
+        for frase in ENCERRAMENTOS_RESERVA:
+            self.assertNotIn("chamar", frase.lower())
+
+    def test_acoes_usam_o_gerador_e_so_saem_depois(self):
+        sessao, estado = mock.Mock(), EstadoAssistente()
+        r = Dispensar(sessao, GeradorDespedida(ClienteFalso(self.TEXTO)))(None)
+        self.assertEqual(r.fala, self.TEXTO)
+        sessao.desativar.assert_not_called()
+        r.depois()
+        sessao.desativar.assert_called_once()
+
+        r = Encerrar(estado, GeradorEncerramento(ClienteFalso(self.TEXTO)))(None)
+        self.assertFalse(estado.encerrando.is_set())
+        r.depois()
+        self.assertTrue(estado.encerrando.is_set())
 
 
 class TestSaudacao(unittest.TestCase):

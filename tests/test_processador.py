@@ -5,9 +5,10 @@ from merlin.estado import EstadoAssistente
 from merlin.ia.confirmacao import RespostaConfirmacao
 from merlin.ia.intencoes import Intencao, TipoIntencao
 from merlin.nucleo.processador import ProcessadorComandos
+from merlin.nucleo.resposta import Resultado, montar_resposta
 from merlin.nucleo.sessao import Pendencia, Sessao
 from merlin.nucleo.trabalhador import TrabalhadorComandos
-from tests.falsos import CanalFalso, ClassificadorFalso, ConfirmadorFalso, LocutorFalso, SaudacaoFalsa
+from tests.falsos import CanalFalso, ClassificadorFalso, ConfirmadorFalso, DivisorFalso, LocutorFalso, SaudacaoFalsa
 
 
 class Base(unittest.TestCase):
@@ -18,16 +19,21 @@ class Base(unittest.TestCase):
         self.locutor = LocutorFalso()
         self.classificador = ClassificadorFalso(Intencao(TipoIntencao.CONVERSAR, "", "x"))
         self.confirmador = ConfirmadorFalso()
+        self.divisor = DivisorFalso()
         self.executadas = []
         acoes = {tipo: self._acao(tipo) for tipo in TipoIntencao}
         self.processador = ProcessadorComandos(
-            self.estado, self.sessao, self.canal, self.locutor, self.classificador,
+            self.estado, self.sessao, self.canal, self.locutor, self.divisor, self.classificador,
             self.confirmador, SaudacaoFalsa(), acoes,
         )
         self.confirmou = []
 
     def _acao(self, tipo):
-        return lambda intencao: self.executadas.append(tipo)
+        def acao(intencao):
+            self.executadas.append(tipo)
+            return Resultado(f"fiz {tipo.value}")
+
+        return acao
 
     def _pendencia(self, expira_em=None):
         return Pendencia("Posso?", lambda: self.confirmou.append(True), "Tudo bem.", expira_em or time.time() + 20)
@@ -54,12 +60,44 @@ class TestAtivacao(Base):
     def test_nome_junto_com_pedido_vai_direto(self):
         self.processador.processar("merlin, abre o chrome")
         self.assertEqual(self.classificador.comandos, ["abre o chrome"])
-        self.assertEqual(self.locutor.falas, [])
+        self.assertNotIn("saudação", self.locutor.falas)
 
     def test_ativo_nao_precisa_do_nome(self):
         self.sessao.ativar()
         self.processador.processar("abre o chrome")
         self.assertEqual(self.classificador.comandos, ["abre o chrome"])
+
+
+class TestSomDeAtivacao(unittest.TestCase):
+    def setUp(self):
+        self.estado = EstadoAssistente()
+        self.tocadas = []
+        self.sessao = Sessao(self.estado, CanalFalso(), self)
+
+    def tocar(self):
+        self.tocadas.append(True)
+
+    def test_toca_ao_ativar(self):
+        self.sessao.ativar()
+        self.assertEqual(len(self.tocadas), 1)
+
+    def test_nao_repete_se_ja_estiver_ativo(self):
+        self.sessao.ativar()
+        self.sessao.ativar()
+        self.assertEqual(len(self.tocadas), 1)
+
+    def test_toca_de_novo_depois_de_desativar(self):
+        self.sessao.ativar()
+        self.sessao.desativar()
+        self.sessao.ativar()
+        self.assertEqual(len(self.tocadas), 2)
+
+    def test_microfone_fica_mudo_so_durante_o_tempo_pedido(self):
+        self.assertFalse(self.estado.microfone_mudo())
+        self.estado.silenciar_microfone(0.05)
+        self.assertTrue(self.estado.microfone_mudo())
+        time.sleep(0.07)
+        self.assertFalse(self.estado.microfone_mudo())
 
 
 class TestRoteamento(Base):
@@ -75,6 +113,98 @@ class TestRoteamento(Base):
         self.classificador.erro = ConnectionError("fora do ar")
         self.processador.processar("frase")
         self.assertIn("Ollama", self.locutor.falas[0])
+
+
+class TestVariasTarefas(Base):
+    def setUp(self):
+        super().setUp()
+        self.sessao.ativar()
+        self.divisor.tarefas = ["abre o chrome", "fecha o telegram", "pesquisa gatos"]
+        self.feitas = []
+
+    def _acoes(self, *resultados):
+        """Cada chamada devolve o próximo resultado da lista."""
+        fila = list(resultados)
+
+        def acao(intencao):
+            self.feitas.append(intencao)
+            item = fila.pop(0)
+            if isinstance(item, Exception):
+                raise item
+            return item
+
+        self.processador._acoes = {tipo: acao for tipo in TipoIntencao}
+
+    def test_uma_unica_resposta_depois_de_tudo(self):
+        self._acoes(Resultado("abri o chrome"), Resultado("fechei o telegram"), Resultado("pesquisei por gatos"))
+        self.processador.processar("frase longa")
+        self.assertEqual(self.locutor.falas, ["Abri o chrome, fechei o telegram e pesquisei por gatos."])
+        self.assertEqual(self.classificador.comandos, ["abre o chrome", "fecha o telegram", "pesquisa gatos"])
+
+    def test_limite_avisa_e_faz_so_as_primeiras(self):
+        self.divisor.tarefas = [f"tarefa {i}" for i in range(5)]
+        self._acoes(*[Resultado("feito") for _ in range(3)])
+        self.processador.processar("frase longa")
+        self.assertEqual(len(self.classificador.comandos), 3)
+        self.assertIn("3 primeiras", self.locutor.falas[0])
+        self.assertEqual(len(self.locutor.falas), 1)
+
+    def test_finaliza_cancela_o_resto(self):
+        self._acoes(Resultado("Até mais.", frase_completa=True, finaliza=True))
+        self.processador.processar("frase longa")
+        self.assertEqual(len(self.classificador.comandos), 1)
+
+    def test_depois_roda_so_depois_de_falar(self):
+        ordem = []
+        self.locutor.falar = lambda texto: ordem.append("falou")
+        self._acoes(Resultado("Até mais.", frase_completa=True, depois=lambda: ordem.append("escondeu"), finaliza=True))
+        self.processador.processar("frase longa")
+        self.assertEqual(ordem, ["falou", "escondeu"])
+
+    def test_falha_no_meio_mantem_o_que_ja_foi_feito(self):
+        self._acoes(Resultado("abri o chrome"), ConnectionError("fora do ar"))
+        self.processador.processar("frase longa")
+        self.assertEqual(len(self.locutor.falas), 1)
+        self.assertIn("Abri o chrome.", self.locutor.falas[0])
+        self.assertIn("Ollama", self.locutor.falas[0])
+
+    def test_falha_ao_dividir_avisa(self):
+        class Quebrado:
+            def dividir(self, _comando):
+                raise ConnectionError("fora do ar")
+
+        self.processador._divisor = Quebrado()
+        self.processador.processar("frase longa")
+        self.assertIn("Ollama", self.locutor.falas[0])
+
+
+class TestMontarResposta(unittest.TestCase):
+    def test_uma_acao(self):
+        self.assertEqual(montar_resposta([Resultado("abri o chrome")]), "Abri o chrome.")
+
+    def test_duas_acoes_como_no_pedido(self):
+        r = [Resultado("abri o chrome"), Resultado("fechei o telegram")]
+        self.assertEqual(montar_resposta(r), "Abri o chrome e fechei o telegram.")
+
+    def test_tres_acoes(self):
+        r = [Resultado("abri a"), Resultado("fechei b"), Resultado("criei c")]
+        self.assertEqual(montar_resposta(r), "Abri a, fechei b e criei c.")
+
+    def test_sucesso_e_falha_juntos(self):
+        r = [Resultado("abri o chrome"), Resultado("não encontrei telegram aberto")]
+        self.assertEqual(montar_resposta(r), "Abri o chrome e não encontrei telegram aberto.")
+
+    def test_frase_completa_nao_se_junta(self):
+        r = [Resultado("A capital é Roma.", frase_completa=True), Resultado("abri o chrome"), Resultado("fechei o word")]
+        self.assertEqual(montar_resposta(r), "A capital é Roma. Abri o chrome e fechei o word.")
+
+    def test_acao_depois_de_frase_completa_recomeca_maiuscula(self):
+        r = [Resultado("abri o chrome"), Resultado("Roma.", frase_completa=True), Resultado("fechei o word")]
+        self.assertEqual(montar_resposta(r), "Abri o chrome. Roma. Fechei o word.")
+
+    def test_duas_respostas_da_ia(self):
+        r = [Resultado("Roma.", frase_completa=True), Resultado("Quatro.", frase_completa=True)]
+        self.assertEqual(montar_resposta(r), "Roma. Quatro.")
 
 
 class TestConfirmacao(Base):

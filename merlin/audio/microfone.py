@@ -26,7 +26,7 @@ class FluxoComMedidor:
 
     def read(self, tamanho):
         dados = self.fluxo.read(tamanho)
-        if self.estado.falando.is_set():
+        if self.estado.microfone_mudo():
             return self._durante_a_fala(dados)
 
         self.recognizer.dynamic_energy_threshold = True

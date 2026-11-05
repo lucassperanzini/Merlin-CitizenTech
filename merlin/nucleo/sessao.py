@@ -18,9 +18,10 @@ class Pendencia:
 
 
 class Sessao:
-    def __init__(self, estado, canal):
+    def __init__(self, estado, canal, som_ativacao=None):
         self._estado = estado
         self._canal = canal
+        self._som_ativacao = som_ativacao
         self._pendencia = None
 
     def ativar(self) -> None:
@@ -28,6 +29,8 @@ class Sessao:
         if not self._estado.ativo.is_set():
             self._estado.ativo.set()
             self._canal.mostrar()
+            if self._som_ativacao:
+                self._som_ativacao.tocar()
 
     def desativar(self) -> None:
         self._pendencia = None  # ao sair, nenhuma pergunta continua valendo

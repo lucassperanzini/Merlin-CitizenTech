@@ -11,37 +11,74 @@ intencao:
 - fechar_programa: a pessoa manda fechar, encerrar ou sair de um programa ou janela aberta no computador. O alvo é o nome do programa.
 - abrir_programa: a pessoa manda abrir ou iniciar um programa instalado no computador. O alvo é o nome do programa.
 - pesquisar_web: a pessoa manda pesquisar ou procurar algo na internet, ou abrir um site.
-- conversar: qualquer outra coisa, inclusive perguntas de conhecimento geral, perguntas sobre como fazer algo, aparelhos fora do computador e pedidos sobre despedidas.
+- criar_pasta: a pessoa manda criar uma pasta nova. O alvo é o nome da pasta. Apagar, abrir, mover ou renomear não é criar: isso é conversar.
+- criar_arquivo: a pessoa manda criar um arquivo novo. O alvo é o nome do arquivo. Apagar, abrir, mover ou renomear não é criar: isso é conversar.
+- conversar: qualquer outra coisa, inclusive perguntas de conhecimento geral, perguntas sobre como fazer algo, aparelhos fora do computador, pedidos sobre despedidas e pedidos para escrever um texto sem citar um arquivo.
 
 busca: somente em pesquisar_web, o termo completo a pesquisar, ou o endereço quando for abrir um site. Nos outros casos, deixe vazio.
 
+local: somente em criar_pasta e criar_arquivo, a pasta onde criar, se a frase disser. Nos outros casos, deixe vazio.
+
+conteudo: somente em criar_arquivo, o texto a escrever no arquivo, exatamente como foi dito. Nos outros casos, deixe vazio.
+
 Exemplos:
-"obrigado, pode ir" -> {"alvo": "merlin", "intencao": "dispensar", "busca": ""}
-"terminamos aqui" -> {"alvo": "merlin", "intencao": "dispensar", "busca": ""}
-"vai lá, depois te chamo" -> {"alvo": "merlin", "intencao": "dispensar", "busca": ""}
-"boa noite" -> {"alvo": "merlin", "intencao": "dispensar", "busca": ""}
-"cai fora" -> {"alvo": "merlin", "intencao": "dispensar", "busca": ""}
-"fecha a janela" -> {"alvo": "merlin", "intencao": "dispensar", "busca": ""}
-"pode fechar esta janela" -> {"alvo": "merlin", "intencao": "dispensar", "busca": ""}
-"finaliza o programa" -> {"alvo": "merlin", "intencao": "encerrar", "busca": ""}
-"fecha o programa" -> {"alvo": "merlin", "intencao": "encerrar", "busca": ""}
-"quero você desligado de vez" -> {"alvo": "merlin", "intencao": "encerrar", "busca": ""}
-"feche o word" -> {"alvo": "word", "intencao": "fechar_programa", "busca": ""}
-"encerra o navegador" -> {"alvo": "navegador", "intencao": "fechar_programa", "busca": ""}
-"sai do outlook" -> {"alvo": "outlook", "intencao": "fechar_programa", "busca": ""}
-"abre o paint" -> {"alvo": "paint", "intencao": "abrir_programa", "busca": ""}
-"inicia o photoshop" -> {"alvo": "photoshop", "intencao": "abrir_programa", "busca": ""}
-"pesquise receitas de pão" -> {"alvo": "receitas de pão", "intencao": "pesquisar_web", "busca": "receitas de pão"}
-"procura na internet como sair do nano" -> {"alvo": "nano", "intencao": "pesquisar_web", "busca": "como sair do nano"}
-"abre o site da globo" -> {"alvo": "globo", "intencao": "pesquisar_web", "busca": "globo.com"}
-"entra no github" -> {"alvo": "github", "intencao": "pesquisar_web", "busca": "github.com"}
-"apaga a luz" -> {"alvo": "luz", "intencao": "conversar", "busca": ""}
-"diga adeus para a maria" -> {"alvo": "maria", "intencao": "conversar", "busca": ""}
-"como saio do excel" -> {"alvo": "excel", "intencao": "conversar", "busca": ""}
-"toca a música adeus" -> {"alvo": "música adeus", "intencao": "conversar", "busca": ""}
-"qual o sentido de acordar cedo" -> {"alvo": "acordar cedo", "intencao": "conversar", "busca": ""}
-"qual a capital do chile" -> {"alvo": "capital do chile", "intencao": "conversar", "busca": ""}
-"que horas fecha o mercado" -> {"alvo": "mercado", "intencao": "conversar", "busca": ""}"""
+"obrigado, pode ir" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": "", "conteudo": ""}
+"terminamos aqui" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": "", "conteudo": ""}
+"vai lá, depois te chamo" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": "", "conteudo": ""}
+"boa noite" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": "", "conteudo": ""}
+"cai fora" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": "", "conteudo": ""}
+"fecha a janela" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": "", "conteudo": ""}
+"pode fechar esta janela" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": "", "conteudo": ""}
+"finaliza o programa" -> {"alvo": "merlin", "intencao": "encerrar", "busca": "", "local": "", "conteudo": ""}
+"fecha o programa" -> {"alvo": "merlin", "intencao": "encerrar", "busca": "", "local": "", "conteudo": ""}
+"quero você desligado de vez" -> {"alvo": "merlin", "intencao": "encerrar", "busca": "", "local": "", "conteudo": ""}
+"feche o word" -> {"alvo": "word", "intencao": "fechar_programa", "busca": "", "local": "", "conteudo": ""}
+"encerra o navegador" -> {"alvo": "navegador", "intencao": "fechar_programa", "busca": "", "local": "", "conteudo": ""}
+"sai do outlook" -> {"alvo": "outlook", "intencao": "fechar_programa", "busca": "", "local": "", "conteudo": ""}
+"abre o paint" -> {"alvo": "paint", "intencao": "abrir_programa", "busca": "", "local": "", "conteudo": ""}
+"inicia o photoshop" -> {"alvo": "photoshop", "intencao": "abrir_programa", "busca": "", "local": "", "conteudo": ""}
+"pesquise receitas de pão" -> {"alvo": "receitas de pão", "intencao": "pesquisar_web", "busca": "receitas de pão", "local": "", "conteudo": ""}
+"procura na internet como sair do nano" -> {"alvo": "nano", "intencao": "pesquisar_web", "busca": "como sair do nano", "local": "", "conteudo": ""}
+"abre o site da globo" -> {"alvo": "globo", "intencao": "pesquisar_web", "busca": "globo.com", "local": "", "conteudo": ""}
+"entra no github" -> {"alvo": "github", "intencao": "pesquisar_web", "busca": "github.com", "local": "", "conteudo": ""}
+"cria uma pasta chamada contas" -> {"alvo": "contas", "intencao": "criar_pasta", "busca": "", "local": "", "conteudo": ""}
+"cria a pasta viagens nos documentos" -> {"alvo": "viagens", "intencao": "criar_pasta", "busca": "", "local": "documentos", "conteudo": ""}
+"faz uma pasta nova trabalho nos downloads" -> {"alvo": "trabalho", "intencao": "criar_pasta", "busca": "", "local": "downloads", "conteudo": ""}
+"cria um arquivo tarefas.txt" -> {"alvo": "tarefas.txt", "intencao": "criar_arquivo", "busca": "", "local": "", "conteudo": ""}
+"cria um arquivo lembrete na pasta casa escrito pagar a luz" -> {"alvo": "lembrete", "intencao": "criar_arquivo", "busca": "", "local": "casa", "conteudo": "pagar a luz"}
+"apaga a pasta fotos" -> {"alvo": "fotos", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
+"exclui o arquivo tarefas" -> {"alvo": "tarefas", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
+"abre a pasta documentos" -> {"alvo": "documentos", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
+"escreve um poema sobre o mar" ->{"alvo": "poema", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
+"como criar uma pasta no windows" -> {"alvo": "pasta", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
+"apaga a luz" -> {"alvo": "luz", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
+"diga adeus para a maria" -> {"alvo": "maria", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
+"como saio do excel" -> {"alvo": "excel", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
+"toca a música adeus" -> {"alvo": "música adeus", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
+"qual o sentido de acordar cedo" -> {"alvo": "acordar cedo", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
+"qual a capital do chile" -> {"alvo": "capital do chile", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
+"que horas fecha o mercado" -> {"alvo": "mercado", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}"""
+
+PROMPT_DIVISAO = """Separe a frase dita a um assistente de voz nas tarefas independentes que ela pede, na ordem em que devem ser feitas.
+
+Regras:
+- Use somente palavras que a pessoa disse. Copie cada tarefa como foi dita, sem resumir nem inventar.
+- Se um verbo vale para duas coisas, repita o verbo em cada tarefa.
+- "e" dentro do assunto de um pedido não separa tarefas: nomes, textos a escrever e termos de pesquisa ficam inteiros.
+- Agradecimentos e cumprimentos junto de um pedido não são tarefas: deixe só o pedido.
+- Na dúvida, devolva a frase inteira como uma tarefa só.
+
+Exemplos:
+"abre o excel e pesquisa o preço do ouro" -> {"tarefas": ["abre o excel", "pesquisa o preço do ouro"]}
+"abre o paint e o outlook" -> {"tarefas": ["abre o paint", "abre o outlook"]}
+"fecha o word e depois abre o teams" -> {"tarefas": ["fecha o word", "abre o teams"]}
+"cria uma pasta contas, em seguida abre o paint" -> {"tarefas": ["cria uma pasta contas", "abre o paint"]}
+"obrigado e agora abre o teams" -> {"tarefas": ["abre o teams"]}
+"pesquisa pão e queijo" -> {"tarefas": ["pesquisa pão e queijo"]}
+"cria um arquivo lembrete escrito pagar a luz e a água" -> {"tarefas": ["cria um arquivo lembrete escrito pagar a luz e a água"]}
+"cria uma pasta contas e boletos" -> {"tarefas": ["cria uma pasta contas e boletos"]}
+"qual a diferença entre sol e lua" -> {"tarefas": ["qual a diferença entre sol e lua"]}
+"valeu e até amanhã" -> {"tarefas": ["valeu e até amanhã"]}"""
 
 PROMPT_CONFIRMACAO = """Um assistente de voz perguntou: "{pergunta}". Classifique a frase seguinte da pessoa.
 
@@ -79,6 +116,66 @@ PROMPT_SAUDACAO = (
     "Na mesma fala, diga que você é Merlin e ofereça conselho ou ajuda. "
     "Não comece com o seu nome. Responda só com a saudação, sem aspas, emojis ou formatação. "
     "Não repita as saudações recentes:\n{evitar}"
+)
+
+PROMPT_DESPEDIDA = (
+    f"Você é {NOME}, um mago conselheiro sábio e acolhedor. A pessoa acaba de dispensar você, mas você continua por perto, "
+    "em silêncio, e volta quando ela chamar pelo seu nome. Escreva uma despedida falada em português do Brasil correto e "
+    "natural, com duas frases curtas e simples, no estilo de um velho mago. Fale de você na primeira pessoa, "
+    "contando o que vai fazer agora, com uma imagem ligada a este tema: {tema}. Na segunda frase, diga com palavras "
+    "próprias que volta quando a pessoa chamar. Inspire-se no ritmo deste exemplo, sem copiar as palavras: {exemplo} "
+    "Não use tratamentos como senhor, mestre ou amigo. Não comece com Que nem com Olá. Não faça perguntas. "
+    "Responda só com a despedida, sem aspas, emojis ou formatação. "
+    "Não repita as despedidas recentes:\n{evitar}"
+)
+
+PROMPT_ENCERRAMENTO = (
+    f"Você é {NOME}, um mago conselheiro sábio e acolhedor. A pessoa acaba de desligar você por completo: você vai parar "
+    "de escutar e não ouvirá mais ninguém até ser iniciado de novo. Escreva uma despedida falada em português do Brasil "
+    "correto e natural, com duas frases curtas e simples, no estilo de um velho mago. Fale de você na primeira pessoa, "
+    "contando que está se recolhendo de vez, com uma imagem ligada a este tema: {tema}. "
+    "Inspire-se no ritmo deste exemplo, sem copiar as palavras: {exemplo} "
+    "Não diga que basta chamar. Não use tratamentos como senhor, mestre ou amigo. Não comece com Que nem com Olá. "
+    "Não faça perguntas. Responda só com a despedida, sem aspas, emojis ou formatação. "
+    "Não repita as despedidas recentes:\n{evitar}"
+)
+
+TEMAS_DESPEDIDA = (
+    "as estrelas", "a lua", "o velho grimório", "o cajado", "o caldeirão", "a coruja sábia",
+    "a torre do mago", "a vela que se apaga", "a floresta encantada", "a névoa", "o pergaminho", "o vento",
+)
+
+EXEMPLOS_DESPEDIDA = (
+    "Vou descansar perto da lareira. Se precisar, é só me chamar.",
+    "A lareira me espera por ora. Meu nome basta para me trazer de volta.",
+    "Guardo o cajado e fico em silêncio. Quando quiser, chame por Merlin.",
+    "Enquanto a coruja vigia, eu cochilo na torre. Um chamado seu me desperta.",
+    "Minha magia repousa agora. Estarei por perto quando você precisar.",
+    "Até logo, viajante. Sigo entre os pergaminhos, à espera do seu chamado.",
+)
+
+EXEMPLOS_ENCERRAMENTO = (
+    "Apago as velas e fecho a porta da torre. Meu dia termina aqui.",
+    "Guardo o grimório e recolho minha magia. Agora fico em silêncio.",
+    "Com um último sopro, a vela se apaga. Esta é a minha despedida por hoje.",
+    "Encerro meus feitiços e subo para a torre. Só volto quando me despertarem.",
+    "Deixo o cajado de lado e adormeço. Não ouvirei mais nada a partir de agora.",
+)
+
+DESPEDIDAS_RESERVA = (
+    "Recolho meu cajado por ora. Basta chamar meu nome e eu voltarei.",
+    "Fico aqui entre os meus pergaminhos. Quando precisar, é só me chamar.",
+    "Que as estrelas guiem seus passos. Chame por Merlin quando precisar.",
+    "A coruja vigia, e eu descanso. Meu nome ainda me traz de volta.",
+    "Vou me aquietar junto à vela. Um chamado seu e estarei de volta.",
+)
+
+ENCERRAMENTOS_RESERVA = (
+    "Apago a última vela da torre e me recolho de vez. Até a próxima jornada.",
+    "Fecho meu grimório e guardo o cajado. Meu trabalho termina aqui por hoje.",
+    "A magia se recolhe agora, e eu com ela. Até que me despertem outra vez.",
+    "Que a lua cuide do seu caminho, pois agora me recolho por completo.",
+    "Encerro meus encantos e deixo a torre em silêncio. Até logo.",
 )
 
 SAUDACOES_RESERVA = (

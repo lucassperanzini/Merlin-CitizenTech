@@ -14,6 +14,14 @@ class EstadoAssistente:
         self.fila_comandos = queue.Queue()  # frases reconhecidas, à espera de processamento
         self._ultima_atividade = time.time()
         self._nivel_voz = 0.0  # maior volume captado desde a última leitura da janela (0 a 1)
+        self._microfone_mudo_ate = 0.0
+
+    def silenciar_microfone(self, segundos: float) -> None:
+        self._microfone_mudo_ate = time.time() + segundos
+
+    def microfone_mudo(self) -> bool:
+        """Verdadeiro enquanto sai das caixas de som algo que o reconhecimento não deve ouvir."""
+        return self.falando.is_set() or time.time() < self._microfone_mudo_ate
 
     def registrar_atividade(self) -> None:
         self._ultima_atividade = time.time()

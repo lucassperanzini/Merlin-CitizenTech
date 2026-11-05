@@ -5,10 +5,7 @@ from merlin.acoes.abrir_programa import AbrirPrograma, encontrar_programa
 from merlin.acoes.fechar_programa import FecharPrograma, descrever_alvo
 from merlin.acoes.janelas import JanelaAberta, escolher_janelas
 from merlin.acoes.web import PesquisarWeb, montar_url
-from merlin.estado import EstadoAssistente
 from merlin.ia.intencoes import Intencao, TipoIntencao
-from merlin.nucleo.sessao import Sessao
-from tests.falsos import CanalFalso, LocutorFalso
 
 
 def janela(programa, titulo, hwnd=1):
@@ -59,14 +56,12 @@ class TestDescricao(unittest.TestCase):
     def test_descricoes(self):
         self.assertEqual(descrever_alvo([JANELAS[4]], True), "a janela Calculadora")
         self.assertEqual(descrever_alvo(JANELAS[:2], False), "as 2 janelas de chrome")
-        self.assertEqual(descrever_alvo([JANELAS[3]], False), "WINWORD")
+        self.assertEqual(descrever_alvo([JANELAS[3]], False), "o WINWORD")
 
 
 class TestFecharPrograma(unittest.TestCase):
     def setUp(self):
-        self.locutor = LocutorFalso()
-        self.sessao = Sessao(EstadoAssistente(), CanalFalso())
-        self.acao = FecharPrograma(self.locutor, self.sessao)
+        self.acao = FecharPrograma()
         listar = mock.patch("merlin.acoes.janelas.listar_janelas", return_value=JANELAS)
         listar.start()
         self.addCleanup(listar.stop)
@@ -74,39 +69,40 @@ class TestFecharPrograma(unittest.TestCase):
     def _intencao(self, alvo):
         return Intencao(TipoIntencao.FECHAR_PROGRAMA, alvo, "x")
 
-    def test_pergunta_e_nao_fecha(self):
+    def test_nao_encontrado_nao_fecha_nada(self):
         with mock.patch("merlin.acoes.janelas.pedir_fechamento") as pedir:
-            self.acao(self._intencao("word"))
+            r = self.acao(self._intencao("excel"))
         pedir.assert_not_called()
-        self.assertEqual(self.locutor.falas, ["Posso fechar WINWORD?"])
-        self.assertTrue(self.sessao.tem_pendencia())
+        self.assertIn("não encontrei", r.fala)
 
-    def test_nao_encontrado_nao_cria_pergunta(self):
-        self.acao(self._intencao("excel"))
-        self.assertFalse(self.sessao.tem_pendencia())
-        self.assertIn("Não encontrei", self.locutor.falas[0])
+    def test_ambiguo_pergunta_qual_e_nao_fecha_nada(self):
+        with mock.patch("merlin.acoes.janelas.pedir_fechamento") as pedir:
+            r = self.acao(self._intencao("discord"))
+        pedir.assert_not_called()
+        self.assertIn("Discord, Discord_helper", r.fala)
+        self.assertTrue(r.frase_completa)
 
-    def test_ambiguo_pergunta_qual_e_nao_cria_pendencia(self):
-        self.acao(self._intencao("discord"))
-        self.assertFalse(self.sessao.tem_pendencia())
-        self.assertIn("Discord, Discord_helper", self.locutor.falas[0])
-
-    def test_confirmar_fecha_e_avisa_resultado(self):
-        with mock.patch("merlin.acoes.fechar_programa.time.sleep"), \
-                mock.patch("merlin.acoes.janelas.pedir_fechamento", return_value=True) as pedir, \
+    def test_fecha_direto_sem_perguntar(self):
+        with mock.patch("merlin.acoes.janelas.pedir_fechamento", return_value=True) as pedir, \
                 mock.patch("merlin.acoes.janelas.ainda_aberta", return_value=False):
-            self.acao(self._intencao("word"))
-            self.sessao.pegar_pendencia().ao_confirmar()
+            r = self.acao(self._intencao("word"))
         pedir.assert_called_once_with(JANELAS[3])
-        self.assertEqual(self.locutor.falas[-1], "Pronto, fechei WINWORD.")
+        self.assertEqual(r.fala, "fechei o WINWORD")
 
     def test_programa_que_recusa_e_avisado(self):
         with mock.patch("merlin.acoes.fechar_programa.time.sleep"), \
+                mock.patch("merlin.acoes.fechar_programa.TEMPO_MAXIMO_PARA_FECHAR", 0), \
                 mock.patch("merlin.acoes.janelas.pedir_fechamento", return_value=True), \
                 mock.patch("merlin.acoes.janelas.ainda_aberta", return_value=True):
+            r = self.acao(self._intencao("word"))
+        self.assertIn("continua aberto", r.fala)
+
+    def test_nao_espera_o_tempo_todo_se_ja_fechou(self):
+        with mock.patch("merlin.acoes.fechar_programa.time.sleep") as espera, \
+                mock.patch("merlin.acoes.janelas.pedir_fechamento", return_value=True), \
+                mock.patch("merlin.acoes.janelas.ainda_aberta", return_value=False):
             self.acao(self._intencao("word"))
-            self.sessao.pegar_pendencia().ao_confirmar()
-        self.assertIn("continua aberto", self.locutor.falas[-1])
+        espera.assert_not_called()
 
 
 class TestAbrirPrograma(unittest.TestCase):
@@ -119,26 +115,33 @@ class TestAbrirPrograma(unittest.TestCase):
         for nome, esperado in casos:
             self.assertEqual(encontrar_programa(nome, self.INSTALADOS), esperado, nome)
 
-    def test_abre_e_anuncia_o_nome_real(self):
-        locutor = LocutorFalso()
+    def _abrir(self, alvo, pesquisa=None):
         with mock.patch("merlin.acoes.abrir_programa.give_appnames", return_value=self.INSTALADOS), \
                 mock.patch("merlin.acoes.abrir_programa.abrir_app") as abrir:
-            AbrirPrograma(locutor, None)(Intencao(TipoIntencao.ABRIR_PROGRAMA, "chrome", "x"))
+            return AbrirPrograma(pesquisa)(Intencao(TipoIntencao.ABRIR_PROGRAMA, alvo, "x")), abrir
+
+    def test_abre_e_informa_o_nome_real(self):
+        r, abrir = self._abrir("chrome")
         abrir.assert_called_once_with("google chrome", output=False)
-        self.assertEqual(locutor.falas, ["Abrindo google chrome."])
+        self.assertEqual(r.fala, "abri o google chrome")
+
+    def test_artigo_feminino(self):
+        self.assertEqual(self._abrir("calculadora")[0].fala, "abri a calculadora")
 
     def test_nao_instalado_avisa_e_pesquisa(self):
-        locutor = LocutorFalso()
-        with mock.patch("merlin.acoes.abrir_programa.give_appnames", return_value=self.INSTALADOS), \
-                mock.patch("merlin.acoes.abrir_programa.abrir_app") as abrir, \
-                mock.patch("merlin.acoes.web.os.startfile") as navegador:
-            AbrirPrograma(locutor, PesquisarWeb(locutor))(Intencao(TipoIntencao.ABRIR_PROGRAMA, "youtube", "x"))
+        with mock.patch("merlin.acoes.web.os.startfile") as navegador:
+            r, abrir = self._abrir("youtube", PesquisarWeb())
         abrir.assert_not_called()
         navegador.assert_called_once_with("https://www.google.com/search?q=youtube")
-        self.assertIn("Não encontrei", locutor.falas[0])
+        self.assertIn("não encontrei", r.fala)
 
 
 class TestWeb(unittest.TestCase):
+    def test_fala_no_passado(self):
+        with mock.patch("merlin.acoes.web.os.startfile"):
+            self.assertEqual(PesquisarWeb()(Intencao(TipoIntencao.PESQUISAR_WEB, "gatos", "x")).fala, "pesquisei por gatos")
+            self.assertEqual(PesquisarWeb()(Intencao(TipoIntencao.PESQUISAR_WEB, "github.com", "x")).fala, "abri o site github.com")
+
     def test_urls(self):
         casos = [("gatos", "https://www.google.com/search?q=gatos"),
                  ("youtube.com", "https://youtube.com"),

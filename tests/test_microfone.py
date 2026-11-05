@@ -66,6 +66,14 @@ class TestFluxoComMedidor(unittest.TestCase):
         self.assertEqual(self._ler(9000), 0)
         self.assertEqual(self.estado.consumir_nivel(), 0.0)
 
+    def test_durante_o_som_de_ativacao_entrega_silencio(self):
+        self.estado.ativo.set()
+        self.estado.microfone_mudo = lambda: True
+        self.assertEqual(self._ler(9000), 0)
+        self.assertEqual(self.estado.consumir_nivel(), 0.0)
+        self.estado.microfone_mudo = lambda: False
+        self.assertEqual(self._ler(1234), 1234)
+
     def test_limiar_automatico_congela_durante_a_fala_e_volta_depois(self):
         self.estado.falando.set()
         self._ler(0)

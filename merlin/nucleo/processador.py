@@ -1,24 +1,29 @@
-"""Decide o que fazer com cada frase: ativar, resolver uma confirmação ou encaminhar à ação da intenção."""
+"""Decide o que fazer com cada frase: ativar, resolver uma confirmação ou executar as tarefas pedidas."""
 import logging
 from typing import Callable, Mapping
 
+from merlin.config import MAX_TAREFAS_POR_FRASE
 from merlin.ia.confirmacao import RespostaConfirmacao
 from merlin.ia.intencoes import Intencao, TipoIntencao
 from merlin.interface.eventos import EstadoVisual
+from merlin.nucleo.resposta import Resultado, montar_resposta
 from merlin.texto import remover_palavra_ativacao, tem_palavra_ativacao
 
 logger = logging.getLogger(__name__)
 
-Acao = Callable[[Intencao], str | None]
+Acao = Callable[[Intencao], Resultado]
+
+AVISO_SEM_IA = "Não consegui falar com o meu cérebro. Verifique se o Ollama está rodando."
 
 
 class ProcessadorComandos:
-    def __init__(self, estado, sessao, canal, locutor, classificador, confirmador, saudacao,
+    def __init__(self, estado, sessao, canal, locutor, divisor, classificador, confirmador, saudacao,
                  acoes: Mapping[TipoIntencao, Acao]):
         self._estado = estado
         self._sessao = sessao
         self._canal = canal
         self._locutor = locutor
+        self._divisor = divisor
         self._classificador = classificador
         self._confirmador = confirmador
         self._saudacao = saudacao
@@ -44,10 +49,12 @@ class ProcessadorComandos:
         try:
             if pendencia and self._resolver_pendencia(pendencia, comando):
                 return
-            self._executar_intencao(comando)
+            tarefas = self._divisor.dividir(comando)
         except Exception as erro:
             logger.error("[IA] Erro: %s", erro)
-            self._locutor.falar("Não consegui falar com o meu cérebro. Verifique se o Ollama está rodando.")
+            self._locutor.falar(AVISO_SEM_IA)
+            return
+        self._responder(self._executar_tarefas(tarefas))
 
     def _resolver_pendencia(self, pendencia, comando) -> bool:
         """Retorna True se a frase respondeu à pergunta; caso contrário, ela segue como um comando normal."""
@@ -61,9 +68,37 @@ class ProcessadorComandos:
             return True
         return False
 
-    def _executar_intencao(self, comando):
+    def _executar_tarefas(self, tarefas: list[str]) -> list[Resultado]:
+        if len(tarefas) > 1:
+            logger.info("[TAREFAS]: %s", tarefas)
+        resultados = []
+        if len(tarefas) > MAX_TAREFAS_POR_FRASE:
+            resultados.append(Resultado(f"Vou fazer só as {MAX_TAREFAS_POR_FRASE} primeiras tarefas.", frase_completa=True))
+            tarefas = tarefas[:MAX_TAREFAS_POR_FRASE]
+
+        for tarefa in tarefas:
+            try:
+                resultado = self._executar_intencao(tarefa)
+            except Exception as erro:
+                # O que já foi feito continua na resposta
+                logger.error("[IA] Erro: %s", erro)
+                resultados.append(Resultado(AVISO_SEM_IA, frase_completa=True))
+                break
+            resultados.append(resultado)
+            if resultado.finaliza:
+                break
+        return resultados
+
+    def _executar_intencao(self, comando: str) -> Resultado:
         intencao = self._classificador.classificar(comando)
-        logger.info("[INTENÇÃO]: %s (alvo: %s)", intencao.tipo.value, intencao.alvo)
+        logger.info("[INTENÇÃO]: %s (alvo: %s, local: %s)", intencao.tipo.value, intencao.alvo, intencao.local)
         resultado = self._acoes[intencao.tipo](intencao)
-        if resultado:
-            logger.info("[LOG]: %s", resultado)
+        if resultado.registro:
+            logger.info("[LOG]: %s", resultado.registro)
+        return resultado
+
+    def _responder(self, resultados: list[Resultado]) -> None:
+        self._locutor.falar(montar_resposta(resultados))
+        for resultado in resultados:
+            if resultado.depois:
+                resultado.depois()

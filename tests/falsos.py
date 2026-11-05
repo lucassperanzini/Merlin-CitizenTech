@@ -41,6 +41,16 @@ class ClienteFalso:
         return self.resposta
 
 
+class DivisorFalso:
+    """Por padrão, a frase inteira é uma tarefa só."""
+
+    def __init__(self, tarefas=None):
+        self.tarefas = tarefas
+
+    def dividir(self, comando):
+        return self.tarefas if self.tarefas is not None else [comando]
+
+
 class ClassificadorFalso:
     def __init__(self, intencao=None, erro=None):
         self.intencao = intencao
