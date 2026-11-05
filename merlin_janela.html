@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Merlin</title>
+<style>
+  :root {
+    --fundo: #05070c;
+    --ouro: #d9ac5a;
+    --texto: #dbe6ff;
+    /* Cores da íris: mudam conforme o estado (ver body.pensando e body.falando) */
+    --brilho: #2bd3f2;
+    --fibra: #5fe6ff;
+    --medio: #0d7fa6;
+    --base: #0b5e78;
+    --escuro: #06344f;
+    --aura: #2fd4ff;
+    --aura2: #1b6fa8;
+    --nivel: 0; /* volume da voz captada, de 0 a 1 */
+  }
+  /* Voz sendo captada */
+  body.ouvindo.voz {
+    --brilho: #b18cff; --fibra: #dcc8ff; --medio: #6a3fc4; --base: #4b2a96;
+    --escuro: #24124f; --aura: #a87bff; --aura2: #5a2fb0;
+  }
+  body.pensando {
+    --brilho: #ffb648; --fibra: #ffd98a; --medio: #b5701a; --base: #7a4a10;
+    --escuro: #3f2506; --aura: #ffb020; --aura2: #a8651b;
+  }
+  body.falando {
+    --brilho: #52f2a8; --fibra: #a4ffd2; --medio: #128a5c; --base: #0d6647;
+    --escuro: #063a29; --aura: #5dffb2; --aura2: #1ba873;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  body {
+    display: flex; flex-direction: column; align-items: center;
+    background: var(--fundo); color: var(--texto);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    user-select: none;
+  }
+  h1 {
+    margin: 18px 0 4px; font-size: 20px; font-weight: 600;
+    letter-spacing: .5em; text-indent: .5em; color: var(--ouro);
+  }
+  #palco { width: 100%; flex: 0 1 auto; min-height: 0; }
+  #palco.abrindo { animation: abrir .7s cubic-bezier(.2, .8, .2, 1); }
+  @keyframes abrir { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+  svg { display: block; width: 100%; height: auto; max-height: 56vh; }
+
+  /* O fundo do SVG sai para o olho se misturar com a janela */
+  #fundo { display: none; }
+
+  /* Liga as cores fixas do SVG às variáveis acima */
+  stop[stop-color="#2bd3f2"] { stop-color: var(--brilho); }
+  stop[stop-color="#0d7fa6"] { stop-color: var(--medio); }
+  stop[stop-color="#06344f"] { stop-color: var(--escuro); }
+  stop[stop-color="#2fd4ff"] { stop-color: var(--aura); }
+  stop[stop-color="#1b6fa8"] { stop-color: var(--aura2); }
+  line[stroke="#5fe6ff"] { stroke: var(--fibra); }
+  line[stroke="#0b5e78"] { stroke: var(--base); }
+  circle[fill="#25cdf5"] { fill: var(--brilho); }
+  circle[stroke="#66e8ff"] { stroke: var(--fibra); }
+
+  /* A aura pulsa enquanto ele fala */
+  circle[fill="url(#auraGrad)"] { transform-box: fill-box; transform-origin: center; }
+  body.falando circle[fill="url(#auraGrad)"] { animation: pulsar .7s ease-in-out infinite alternate; }
+  @keyframes pulsar { from { transform: scale(.94); } to { transform: scale(1.04); } }
+
+  /* A pupila dilata e o brilho da íris cresce com o volume da voz */
+  #pupila { transform-box: fill-box; transform-origin: center; transition: transform .09s linear; }
+  body.ouvindo.voz #pupila { transform: scale(calc(1 + var(--nivel) * .55)); }
+  body.ouvindo.voz circle[fill="#25cdf5"] { opacity: calc(.6 + var(--nivel) * .4); }
+
+  #ondas { display: block; width: 100%; height: 110px; flex: none; }
+  #status {
+    flex: none; font-size: 14px; letter-spacing: .04em; color: #8a97b3; text-align: center;
+  }
+  body.ouvindo.voz #status { color: var(--fibra); }
+
+  #legenda {
+    flex: 1; width: 100%; padding: 10px 36px 0; overflow: hidden;
+    font-size: 18px; line-height: 1.45; text-align: center;
+  }
+  #voz {
+    display: flex; align-items: center; gap: 8px; padding: 0 0 14px;
+    font-size: 14px; color: #8a97b3;
+  }
+  select {
+    padding: 4px 8px; border: 1px solid #3a3320; border-radius: 6px;
+    background: #0d111b; color: var(--texto); font: inherit;
+  }
+  select:focus-visible { outline: 2px solid var(--ouro); outline-offset: 1px; }
+</style>
+</head>
+<body>
+  <h1>MERLIN</h1>
+  <div id="palco"><!--OLHO--></div>
+  <canvas id="ondas" aria-hidden="true"></canvas>
+  <div id="status">Aguardando sua voz</div>
+  <div id="legenda" aria-live="polite"></div>
+  <label id="voz">Voz <select id="seletor"></select></label>
+
+<script>
+  const palco = document.getElementById("palco");
+  const legenda = document.getElementById("legenda");
+  const seletor = document.getElementById("seletor");
+  const dados = /*DADOS*/;
+
+  for (const rotulo of dados.vozes) seletor.add(new Option(rotulo, rotulo));
+  seletor.value = dados.atual;
+  seletor.addEventListener("change", () => window.pywebview.api.trocar_voz(seletor.value));
+
+  const statusTexto = document.getElementById("status");
+  let estadoAtual = "ouvindo";
+  let nivelAtual = 0;
+
+  function atualizarStatus() {
+    const textos = { pensando: "Processando", falando: "Falando" };
+    statusTexto.textContent = textos[estadoAtual]
+      || (nivelAtual > 0 ? "Ouvindo sua voz" : "Aguardando sua voz");
+  }
+  function definirEstado(estado) {
+    estadoAtual = estado;
+    document.body.className = estado;
+    document.body.classList.toggle("voz", nivelAtual > 0);
+    atualizarStatus();
+  }
+  function definirNivel(nivel) {
+    nivelAtual = nivel;
+    document.documentElement.style.setProperty("--nivel", nivel);
+    document.body.classList.toggle("voz", nivel > 0);
+    atualizarStatus();
+    iniciarOndas();
+  }
+
+  // Ondas: a altura acompanha os decibéis da voz captada pelo microfone
+  const ondas = document.getElementById("ondas");
+  const pincel = ondas.getContext("2d");
+  const CAMADAS = [
+    { ciclos: 2.0, velocidade: 4.5, altura: 1.0, opacidade: 1, espessura: 2.5 },
+    { ciclos: 3.1, velocidade: -3.2, altura: 0.68, opacidade: 0.55, espessura: 1.8 },
+    { ciclos: 4.4, velocidade: 6.1, altura: 0.42, opacidade: 0.3, espessura: 1.4 },
+  ];
+  let amplitude = 0;
+  let fase = 0;
+  let ultimoQuadro = 0;
+  let ondasRodando = false;
+
+  function desenharOndas(agora) {
+    const dt = Math.min((agora - ultimoQuadro) / 1000, 0.05);
+    ultimoQuadro = agora;
+    const alvo = estadoAtual === "ouvindo" ? nivelAtual : 0;
+    amplitude += (alvo - amplitude) * Math.min(1, dt * 14);
+    fase += dt;
+
+    const escala = window.devicePixelRatio || 1;
+    const largura = ondas.clientWidth;
+    const altura = ondas.clientHeight;
+    if (ondas.width !== Math.round(largura * escala)) {
+      ondas.width = Math.round(largura * escala);
+      ondas.height = Math.round(altura * escala);
+    }
+    pincel.setTransform(escala, 0, 0, escala, 0, 0);
+    pincel.clearRect(0, 0, largura, altura);
+    pincel.strokeStyle = getComputedStyle(document.body).getPropertyValue("--brilho");
+    pincel.lineCap = "round";
+
+    const margem = largura * 0.08;
+    const util = largura - margem * 2;
+    for (const c of CAMADAS) {
+      pincel.globalAlpha = c.opacidade;
+      pincel.lineWidth = c.espessura;
+      pincel.beginPath();
+      for (let x = 0; x <= util; x += 3) {
+        const p = x / util;
+        const envelope = Math.sin(Math.PI * p) ** 2; // as pontas ficam presas ao centro
+        const y = altura / 2 + Math.sin(p * c.ciclos * 2 * Math.PI + fase * c.velocidade)
+          * envelope * amplitude * c.altura * (altura / 2 - 4);
+        if (x === 0) pincel.moveTo(margem + x, y);
+        else pincel.lineTo(margem + x, y);
+      }
+      pincel.stroke();
+    }
+
+    // Em silêncio a linha fica parada e o desenho para, para não gastar processamento à toa
+    if (alvo > 0 || amplitude > 0.004) {
+      requestAnimationFrame(desenharOndas);
+    } else {
+      amplitude = 0;
+      ondasRodando = false;
+    }
+  }
+  function iniciarOndas() {
+    if (ondasRodando) return;
+    ondasRodando = true;
+    ultimoQuadro = performance.now();
+    requestAnimationFrame(desenharOndas);
+  }
+  iniciarOndas();
+  function definirLegenda(texto) {
+    legenda.textContent = texto;
+  }
+  function aoMostrar() {
+    legenda.textContent = "";
+    definirNivel(0);
+    definirEstado("ouvindo");
+    // Reinicia as animações do SVG para o olho não abrir no meio de uma piscada
+    palco.querySelector("svg").setCurrentTime(0);
+    palco.classList.remove("abrindo");
+    void palco.offsetWidth;
+    palco.classList.add("abrindo");
+  }
+</script>
+</body>
+</html>
