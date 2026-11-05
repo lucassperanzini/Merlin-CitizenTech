@@ -4,7 +4,7 @@ from typing import Callable, Mapping
 
 from merlin.config import MAX_TAREFAS_POR_FRASE
 from merlin.ia.confirmacao import RespostaConfirmacao
-from merlin.ia.intencoes import Intencao, TipoIntencao
+from merlin.ia.intencoes import ACOES_NO_COMPUTADOR, Intencao, TipoIntencao
 from merlin.interface.eventos import EstadoVisual
 from merlin.nucleo.resposta import Resultado, montar_resposta
 from merlin.texto import remover_palavra_ativacao, tem_palavra_ativacao
@@ -55,7 +55,7 @@ class ProcessadorComandos:
             logger.error("[IA] Erro: %s", erro)
             self._locutor.falar(AVISO_SEM_IA)
             return
-        self._responder(self._executar_tarefas(tarefas), comando)
+        self._responder(self._executar_tarefas(comando, tarefas), comando)
 
     def _resolver_pendencia(self, pendencia, comando) -> bool:
         """Retorna True se a frase respondeu à pergunta; caso contrário, ela segue como um comando normal."""
@@ -69,17 +69,22 @@ class ProcessadorComandos:
             return True
         return False
 
-    def _executar_tarefas(self, tarefas: list[str]) -> list[Resultado]:
-        if len(tarefas) > 1:
-            logger.info("[TAREFAS]: %s", tarefas)
+    def _executar_tarefas(self, comando: str, tarefas: list[str]) -> list[Resultado]:
         resultados = []
         if len(tarefas) > MAX_TAREFAS_POR_FRASE:
             resultados.append(Resultado(f"Vou fazer só as {MAX_TAREFAS_POR_FRASE} primeiras tarefas.", frase_completa=True))
             tarefas = tarefas[:MAX_TAREFAS_POR_FRASE]
+        try:
+            intencoes = self._entender(comando, tarefas)
+        except Exception as erro:
+            logger.error("[IA] Erro: %s", erro)
+            return [Resultado(AVISO_SEM_IA, frase_completa=True)]
+        if len(intencoes) == 1:
+            resultados = []  # a frase voltou a ser um pedido só: o aviso de limite não vale mais
 
-        for tarefa in tarefas:
+        for intencao in intencoes:
             try:
-                resultado = self._executar_intencao(tarefa)
+                resultado = self._executar_intencao(intencao)
             except Exception as erro:
                 # O que já foi feito continua na resposta
                 logger.error("[IA] Erro: %s", erro)
@@ -90,9 +95,24 @@ class ProcessadorComandos:
                 break
         return resultados
 
-    def _executar_intencao(self, comando: str) -> Resultado:
+    def _entender(self, comando: str, tarefas: list[str]) -> list[Intencao]:
+        """Só vale separar a frase se alguma parte mexer no computador. "Fala aí, tudo bem?" é uma conversa só:
+        separada, o "tudo bem" sozinho chegou a ser entendido como despedida."""
+        intencoes = [self._classificar(tarefa) for tarefa in tarefas]
+        if len(intencoes) == 1:
+            return intencoes
+        logger.info("[TAREFAS]: %s", tarefas)
+        if any(i.tipo in ACOES_NO_COMPUTADOR for i in intencoes):
+            return intencoes
+        logger.info("[TAREFAS]: nenhuma parte é uma ação; a frase segue inteira")
+        return [self._classificar(comando)]
+
+    def _classificar(self, comando: str) -> Intencao:
         intencao = self._classificador.classificar(comando)
         logger.info("[INTENÇÃO]: %s (alvo: %s, local: %s)", intencao.tipo.value, intencao.alvo, intencao.local)
+        return intencao
+
+    def _executar_intencao(self, intencao: Intencao) -> Resultado:
         resultado = self._acoes[intencao.tipo](intencao)
         if resultado.registro:
             logger.info("[LOG]: %s", resultado.registro)

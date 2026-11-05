@@ -118,6 +118,7 @@ class TestRoteamento(Base):
 class TestVariasTarefas(Base):
     def setUp(self):
         super().setUp()
+        self.classificador.intencao = Intencao(TipoIntencao.ABRIR_PROGRAMA, "x", "x")
         self.sessao.ativar()
         self.divisor.tarefas = ["abre o chrome", "fecha o telegram", "pesquisa gatos"]
         self.feitas = []
@@ -152,7 +153,7 @@ class TestVariasTarefas(Base):
     def test_finaliza_cancela_o_resto(self):
         self._acoes(Resultado("Até mais.", frase_completa=True, finaliza=True))
         self.processador.processar("frase longa")
-        self.assertEqual(len(self.classificador.comandos), 1)
+        self.assertEqual(len(self.feitas), 1)  # todas foram entendidas, mas só a primeira foi executada
 
     def test_depois_roda_so_depois_de_falar(self):
         ordem = []
@@ -176,6 +177,43 @@ class TestVariasTarefas(Base):
         self.processador._divisor = Quebrado()
         self.processador.processar("frase longa")
         self.assertIn("Ollama", self.locutor.falas[0])
+
+
+class ClassificadorPorFrase:
+    def __init__(self, tipos):
+        self.tipos = tipos
+        self.comandos = []
+
+    def classificar(self, comando):
+        self.comandos.append(comando)
+        return Intencao(self.tipos.get(comando, TipoIntencao.CONVERSAR), comando, comando)
+
+
+class TestSoSeparaComAcao(Base):
+    def setUp(self):
+        super().setUp()
+        self.sessao.ativar()
+
+    def _processar(self, partes, tipos):
+        self.divisor.tarefas = partes
+        self.processador._classificador = ClassificadorPorFrase(tipos)
+        self.processador.processar("frase inteira")
+        return self.processador._classificador.comandos
+
+    def test_conversa_e_despedida_juntas_viram_uma_frase_so(self):
+        comandos = self._processar(["fala aí", "tudo bem"], {"tudo bem": TipoIntencao.DISPENSAR})
+        self.assertEqual(comandos, ["fala aí", "tudo bem", "frase inteira"])
+        self.assertEqual(self.executadas, [TipoIntencao.CONVERSAR])
+        self.assertTrue(self.estado.ativo.is_set())
+
+    def test_com_uma_acao_separa(self):
+        self._processar(["fecha o chrome", "pode ir"], {"fecha o chrome": TipoIntencao.FECHAR_PROGRAMA,
+                                                        "pode ir": TipoIntencao.DISPENSAR})
+        self.assertEqual(self.executadas, [TipoIntencao.FECHAR_PROGRAMA, TipoIntencao.DISPENSAR])
+
+    def test_pergunta_e_acao_separam(self):
+        self._processar(["qual a capital", "abre o chrome"], {"abre o chrome": TipoIntencao.ABRIR_PROGRAMA})
+        self.assertEqual(self.executadas, [TipoIntencao.CONVERSAR, TipoIntencao.ABRIR_PROGRAMA])
 
 
 class TestMontarResposta(unittest.TestCase):

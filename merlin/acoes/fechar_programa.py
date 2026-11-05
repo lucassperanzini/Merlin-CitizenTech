@@ -1,7 +1,7 @@
 """Fecha programas abertos, da mesma forma que o botão X."""
 import time
 
-from merlin.acoes import janelas as sistema_janelas
+from merlin.acoes import janelas as sistema_janelas, navegador
 from merlin.nucleo.resposta import Resultado
 from merlin.texto import com_artigo
 
@@ -21,7 +21,11 @@ def descrever_alvo(janelas, pelo_titulo: bool) -> str:
 class FecharPrograma:
     def __call__(self, intencao) -> Resultado:
         nome = intencao.alvo
-        janelas, pelo_titulo = sistema_janelas.escolher_janelas(nome, sistema_janelas.listar_janelas())
+        busca = nome
+        if navegador.e_navegador_generico(nome):
+            padrao = navegador.navegador_padrao()
+            busca = padrao.processo if padrao else nome
+        janelas, pelo_titulo = sistema_janelas.escolher_janelas(busca, sistema_janelas.listar_janelas())
         if not janelas:
             return Resultado(f"não encontrei {nome} aberto", registro=f"Nada encontrado para '{nome}'.")
 

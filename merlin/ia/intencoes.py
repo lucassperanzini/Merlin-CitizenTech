@@ -33,6 +33,13 @@ class TipoIntencao(str, Enum):
     CONVERSAR = "conversar"
 
 
+# Pedidos que fazem algo no computador. Conversa, despedida e encerramento não entram aqui.
+ACOES_NO_COMPUTADOR = frozenset({
+    TipoIntencao.FECHAR_PROGRAMA, TipoIntencao.ABRIR_PROGRAMA, TipoIntencao.PESQUISAR_WEB,
+    TipoIntencao.VER_BOTOES, TipoIntencao.CLICAR_BOTAO,
+})
+
+
 @dataclass(frozen=True)
 class Intencao:
     tipo: TipoIntencao
