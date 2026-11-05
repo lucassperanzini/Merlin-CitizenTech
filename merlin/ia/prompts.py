@@ -11,53 +11,56 @@ intencao:
 - fechar_programa: a pessoa manda fechar, encerrar ou sair de um programa ou janela aberta no computador. O alvo é o nome do programa.
 - abrir_programa: a pessoa manda abrir ou iniciar um programa instalado no computador. O alvo é o nome do programa.
 - pesquisar_web: a pessoa manda pesquisar ou procurar algo na internet, ou abrir um site.
-- criar_pasta: a pessoa manda criar uma pasta nova. O alvo é o nome da pasta. Apagar, abrir, mover ou renomear não é criar: isso é conversar.
-- criar_arquivo: a pessoa manda criar um arquivo novo. O alvo é o nome do arquivo. Apagar, abrir, mover ou renomear não é criar: isso é conversar.
+- ver_botoes: a pessoa pergunta quais botões ou opções aparecem na tela ou em um programa aberto. O alvo é o programa citado, ou "merlin" se não citar nenhum.
+- clicar_botao: a pessoa manda clicar, apertar ou pressionar um botão ou opção de um programa. O alvo é o nome do botão, sem a palavra botão. Em local, o programa, se ela citar.
 - conversar: qualquer outra coisa, inclusive perguntas de conhecimento geral, perguntas sobre como fazer algo, aparelhos fora do computador, pedidos sobre despedidas e pedidos para escrever um texto sem citar um arquivo.
 
 busca: somente em pesquisar_web, o termo completo a pesquisar, ou o endereço quando for abrir um site. Nos outros casos, deixe vazio.
 
-local: somente em criar_pasta e criar_arquivo, a pasta onde criar, se a frase disser. Nos outros casos, deixe vazio.
-
-conteudo: somente em criar_arquivo, o texto a escrever no arquivo, exatamente como foi dito. Nos outros casos, deixe vazio.
+local: somente em clicar_botao, o programa onde clicar, se a frase disser. Nos outros casos, deixe vazio.
 
 Exemplos:
-"obrigado, pode ir" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": "", "conteudo": ""}
-"terminamos aqui" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": "", "conteudo": ""}
-"vai lá, depois te chamo" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": "", "conteudo": ""}
-"boa noite" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": "", "conteudo": ""}
-"cai fora" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": "", "conteudo": ""}
-"fecha a janela" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": "", "conteudo": ""}
-"pode fechar esta janela" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": "", "conteudo": ""}
-"finaliza o programa" -> {"alvo": "merlin", "intencao": "encerrar", "busca": "", "local": "", "conteudo": ""}
-"fecha o programa" -> {"alvo": "merlin", "intencao": "encerrar", "busca": "", "local": "", "conteudo": ""}
-"quero você desligado de vez" -> {"alvo": "merlin", "intencao": "encerrar", "busca": "", "local": "", "conteudo": ""}
-"feche o word" -> {"alvo": "word", "intencao": "fechar_programa", "busca": "", "local": "", "conteudo": ""}
-"encerra o navegador" -> {"alvo": "navegador", "intencao": "fechar_programa", "busca": "", "local": "", "conteudo": ""}
-"sai do outlook" -> {"alvo": "outlook", "intencao": "fechar_programa", "busca": "", "local": "", "conteudo": ""}
-"abre o paint" -> {"alvo": "paint", "intencao": "abrir_programa", "busca": "", "local": "", "conteudo": ""}
-"inicia o photoshop" -> {"alvo": "photoshop", "intencao": "abrir_programa", "busca": "", "local": "", "conteudo": ""}
-"pesquise receitas de pão" -> {"alvo": "receitas de pão", "intencao": "pesquisar_web", "busca": "receitas de pão", "local": "", "conteudo": ""}
-"procura na internet como sair do nano" -> {"alvo": "nano", "intencao": "pesquisar_web", "busca": "como sair do nano", "local": "", "conteudo": ""}
-"abre o site da globo" -> {"alvo": "globo", "intencao": "pesquisar_web", "busca": "globo.com", "local": "", "conteudo": ""}
-"entra no github" -> {"alvo": "github", "intencao": "pesquisar_web", "busca": "github.com", "local": "", "conteudo": ""}
-"cria uma pasta chamada contas" -> {"alvo": "contas", "intencao": "criar_pasta", "busca": "", "local": "", "conteudo": ""}
-"cria a pasta viagens nos documentos" -> {"alvo": "viagens", "intencao": "criar_pasta", "busca": "", "local": "documentos", "conteudo": ""}
-"faz uma pasta nova trabalho nos downloads" -> {"alvo": "trabalho", "intencao": "criar_pasta", "busca": "", "local": "downloads", "conteudo": ""}
-"cria um arquivo tarefas.txt" -> {"alvo": "tarefas.txt", "intencao": "criar_arquivo", "busca": "", "local": "", "conteudo": ""}
-"cria um arquivo lembrete na pasta casa escrito pagar a luz" -> {"alvo": "lembrete", "intencao": "criar_arquivo", "busca": "", "local": "casa", "conteudo": "pagar a luz"}
-"apaga a pasta fotos" -> {"alvo": "fotos", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
-"exclui o arquivo tarefas" -> {"alvo": "tarefas", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
-"abre a pasta documentos" -> {"alvo": "documentos", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
-"escreve um poema sobre o mar" ->{"alvo": "poema", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
-"como criar uma pasta no windows" -> {"alvo": "pasta", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
-"apaga a luz" -> {"alvo": "luz", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
-"diga adeus para a maria" -> {"alvo": "maria", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
-"como saio do excel" -> {"alvo": "excel", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
-"toca a música adeus" -> {"alvo": "música adeus", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
-"qual o sentido de acordar cedo" -> {"alvo": "acordar cedo", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
-"qual a capital do chile" -> {"alvo": "capital do chile", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}
-"que horas fecha o mercado" -> {"alvo": "mercado", "intencao": "conversar", "busca": "", "local": "", "conteudo": ""}"""
+"obrigado, pode ir" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": ""}
+"terminamos aqui" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": ""}
+"vai lá, depois te chamo" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": ""}
+"boa noite" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": ""}
+"cai fora" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": ""}
+"fecha a janela" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": ""}
+"pode fechar esta janela" -> {"alvo": "merlin", "intencao": "dispensar", "busca": "", "local": ""}
+"finaliza o programa" -> {"alvo": "merlin", "intencao": "encerrar", "busca": "", "local": ""}
+"fecha o programa" -> {"alvo": "merlin", "intencao": "encerrar", "busca": "", "local": ""}
+"quero você desligado de vez" -> {"alvo": "merlin", "intencao": "encerrar", "busca": "", "local": ""}
+"feche o word" -> {"alvo": "word", "intencao": "fechar_programa", "busca": "", "local": ""}
+"encerra o navegador" -> {"alvo": "navegador", "intencao": "fechar_programa", "busca": "", "local": ""}
+"sai do outlook" -> {"alvo": "outlook", "intencao": "fechar_programa", "busca": "", "local": ""}
+"abre o paint" -> {"alvo": "paint", "intencao": "abrir_programa", "busca": "", "local": ""}
+"inicia o photoshop" -> {"alvo": "photoshop", "intencao": "abrir_programa", "busca": "", "local": ""}
+"pesquise receitas de pão" -> {"alvo": "receitas de pão", "intencao": "pesquisar_web", "busca": "receitas de pão", "local": ""}
+"procura na internet como sair do nano" -> {"alvo": "nano", "intencao": "pesquisar_web", "busca": "como sair do nano", "local": ""}
+"abre o site da globo" -> {"alvo": "globo", "intencao": "pesquisar_web", "busca": "globo.com", "local": ""}
+"entra no github" -> {"alvo": "github", "intencao": "pesquisar_web", "busca": "github.com", "local": ""}
+"clica em imprimir" -> {"alvo": "imprimir", "intencao": "clicar_botao", "busca": "", "local": ""}
+"aperta o botão cancelar no paint" -> {"alvo": "cancelar", "intencao": "clicar_botao", "busca": "", "local": "paint"}
+"apaga a pasta fotos" ->{"alvo": "fotos", "intencao": "conversar", "busca": "", "local": ""}
+"exclui o arquivo tarefas" -> {"alvo": "tarefas", "intencao": "conversar", "busca": "", "local": ""}
+"abre a pasta documentos" -> {"alvo": "documentos", "intencao": "conversar", "busca": "", "local": ""}
+"escreve um poema sobre o mar" ->{"alvo": "poema", "intencao": "conversar", "busca": "", "local": ""}
+"como criar uma pasta no windows" -> {"alvo": "pasta", "intencao": "conversar", "busca": "", "local": ""}
+"apaga a luz" -> {"alvo": "luz", "intencao": "conversar", "busca": "", "local": ""}
+"diga adeus para a maria" -> {"alvo": "maria", "intencao": "conversar", "busca": "", "local": ""}
+"como saio do excel" -> {"alvo": "excel", "intencao": "conversar", "busca": "", "local": ""}
+"toca a música adeus" -> {"alvo": "música adeus", "intencao": "conversar", "busca": "", "local": ""}
+"qual o sentido de acordar cedo" -> {"alvo": "acordar cedo", "intencao": "conversar", "busca": "", "local": ""}
+"qual a capital do chile" -> {"alvo": "capital do chile", "intencao": "conversar", "busca": "", "local": ""}
+"que horas fecha o mercado" -> {"alvo": "mercado", "intencao": "conversar", "busca": "", "local": ""}"""
+
+PROMPT_ESCOLHA_BOTAO = """A pessoa pediu a um assistente de voz para clicar em um botão, dizendo o nome do jeito dela. A fala pode ter erros de transcrição.
+
+Botões que existem na janela:
+{botoes}
+
+Escolha o botão que ela mais provavelmente quis, pelo sentido e por sinônimos (por exemplo: gravar é salvar, X é fechar, voltar é anterior).
+Se nenhum botão servir para o que ela pediu, responda nenhum. Não escolha um botão só por ter letras parecidas."""
 
 PROMPT_DIVISAO = """Separe a frase dita a um assistente de voz nas tarefas independentes que ela pede, na ordem em que devem ser feitas.
 

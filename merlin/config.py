@@ -10,6 +10,7 @@ PRAZO_CONFIRMACAO = 20  # segundos para responder antes de uma pergunta de confi
 INTERROMPER_FATOR = 2.5  # quantas vezes mais forte que o eco da própria voz o som precisa ser para interromper
 INTERROMPER_DURACAO = 0.25  # segundos que esse som precisa durar (filtra estalos e batidas curtas)
 LIMITE_FRASE = 8  # duração máxima, em segundos, de uma frase ouvida
+MAX_TROCAS_LEMBRADAS = 6  # quantas perguntas e respostas da conversa atual o Merlin lembra
 MAX_TAREFAS_POR_FRASE = 3  # evita que uma transcrição errada dispare uma sequência longa de ações
 
 MODELO_IA = "qwen2.5:7b"

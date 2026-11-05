@@ -38,13 +38,21 @@ def listar_janelas() -> list[JanelaAberta]:
     janelas = []
 
     def visitar(hwnd, _):
-        janela = _ler_janela(hwnd)
+        try:
+            janela = _ler_janela(hwnd)
+        except win32gui.error:
+            return True  # a janela fechou no meio da leitura: só não entra na lista
         if janela:
             janelas.append(janela)
         return True
 
     win32gui.EnumWindows(visitar, None)
     return janelas
+
+
+def janela_em_uso() -> JanelaAberta | None:
+    """A janela logo atrás do Merlin. O Windows lista as janelas da frente para trás, e o Merlin já fica de fora."""
+    return next((j for j in listar_janelas() if not win32gui.IsIconic(j.hwnd)), None)
 
 
 def escolher_janelas(nome: str, janelas: list[JanelaAberta]) -> tuple[list[JanelaAberta], bool]:

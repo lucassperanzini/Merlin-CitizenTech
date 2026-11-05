@@ -18,7 +18,8 @@ AVISO_SEM_IA = "Não consegui falar com o meu cérebro. Verifique se o Ollama es
 
 class ProcessadorComandos:
     def __init__(self, estado, sessao, canal, locutor, divisor, classificador, confirmador, saudacao,
-                 acoes: Mapping[TipoIntencao, Acao]):
+                 acoes: Mapping[TipoIntencao, Acao], memoria=None):
+        self._memoria = memoria
         self._estado = estado
         self._sessao = sessao
         self._canal = canal
@@ -54,14 +55,14 @@ class ProcessadorComandos:
             logger.error("[IA] Erro: %s", erro)
             self._locutor.falar(AVISO_SEM_IA)
             return
-        self._responder(self._executar_tarefas(tarefas))
+        self._responder(self._executar_tarefas(tarefas), comando)
 
     def _resolver_pendencia(self, pendencia, comando) -> bool:
         """Retorna True se a frase respondeu à pergunta; caso contrário, ela segue como um comando normal."""
         resposta = self._confirmador.classificar(pendencia.pergunta, comando)
         logger.info("[CONFIRMAÇÃO]: %s", resposta.value)
         if resposta is RespostaConfirmacao.SIM:
-            pendencia.ao_confirmar()
+            self._responder([pendencia.ao_confirmar()], comando)
             return True
         if resposta is RespostaConfirmacao.NAO:
             self._locutor.falar(pendencia.resposta_recusa)
@@ -97,8 +98,11 @@ class ProcessadorComandos:
             logger.info("[LOG]: %s", resultado.registro)
         return resultado
 
-    def _responder(self, resultados: list[Resultado]) -> None:
-        self._locutor.falar(montar_resposta(resultados))
+    def _responder(self, resultados: list[Resultado], comando: str) -> None:
+        resposta = montar_resposta(resultados)
+        if self._memoria:
+            self._memoria.registrar(comando, resposta)
+        self._locutor.falar(resposta)
         for resultado in resultados:
             if resultado.depois:
                 resultado.depois()

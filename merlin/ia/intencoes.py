@@ -14,7 +14,12 @@ ALVOS_JANELA_DO_MERLIN = {"janela", "essajanela", "estajanela", "ajanela"}
 # Elas não decidem a intenção, só vetam o resultado quando a frase começa com o verbo contrário.
 _INICIO_DA_FRASE = r"^(?:por favor,?\s+|agora\s+|e\s+)*"
 VERBO_ABRIR = re.compile(_INICIO_DA_FRASE + r"(?:abr[ea]|abrir|inici[ae]|iniciar|lig[au]e?|ligar|execut[ae]|executar)\b", re.IGNORECASE)
-VERBO_APAGAR = re.compile(_INICIO_DA_FRASE + r"(?:apag[au]e?|apagar|exclu[ai]|excluir|delet[ae]|deletar|remov[ae]|remover)\b", re.IGNORECASE)
+# Clicar exige uma ordem: a frase precisa começar pelo verbo, e não por uma pergunta
+VERBO_CLICAR = re.compile(
+    _INICIO_DA_FRASE + r"(?:clic[ae]|clique|clicar|apert[ae]|apertar|pression[ae]|pressionar|"
+    r"d[aá] um clique|toc[ae]|toque|tocar|selecion[ae]|selecionar|marc[ae]|marcar|aciona|acione|acionar)\b",
+    re.IGNORECASE,
+)
 
 
 class TipoIntencao(str, Enum):
@@ -23,8 +28,8 @@ class TipoIntencao(str, Enum):
     FECHAR_PROGRAMA = "fechar_programa"
     ABRIR_PROGRAMA = "abrir_programa"
     PESQUISAR_WEB = "pesquisar_web"
-    CRIAR_PASTA = "criar_pasta"
-    CRIAR_ARQUIVO = "criar_arquivo"
+    VER_BOTOES = "ver_botoes"
+    CLICAR_BOTAO = "clicar_botao"
     CONVERSAR = "conversar"
 
 
@@ -33,8 +38,7 @@ class Intencao:
     tipo: TipoIntencao
     alvo: str  # em PESQUISAR_WEB, é o termo a pesquisar
     comando: str  # a frase original, já sem o nome do Merlin
-    local: str = ""  # onde criar a pasta ou o arquivo; vazio = pasta padrão
-    conteudo: str = ""  # o que escrever no arquivo
+    local: str = ""  # em CLICAR_BOTAO, o programa onde clicar; vazio = a janela em uso
 
 
 ESQUEMA_INTENCAO = {
@@ -44,9 +48,8 @@ ESQUEMA_INTENCAO = {
         "intencao": {"type": "string", "enum": [tipo.value for tipo in TipoIntencao]},
         "busca": {"type": "string"},
         "local": {"type": "string"},
-        "conteudo": {"type": "string"},
     },
-    "required": ["alvo", "intencao", "busca", "local", "conteudo"],
+    "required": ["alvo", "intencao", "busca", "local"],
 }
 
 
@@ -67,19 +70,15 @@ class ClassificadorIntencao:
             alvo = str(dados.get("alvo", "")).strip()
             busca = str(dados.get("busca", "")).strip()
             local = str(dados.get("local", "")).strip()
-            conteudo = str(dados.get("conteudo", "")).strip()
         except (ValueError, AttributeError):
             return Intencao(TipoIntencao.CONVERSAR, "", comando)
-        if tipo in (TipoIntencao.CRIAR_PASTA, TipoIntencao.CRIAR_ARQUIVO):
-            return self._regras_de_criacao(tipo, alvo, comando, local, conteudo)
+        if tipo is TipoIntencao.CLICAR_BOTAO:
+            if not VERBO_CLICAR.match(comando):
+                return Intencao(TipoIntencao.CONVERSAR, alvo, comando)  # "o que acontece se eu clicar em..." é pergunta
+            if not alvo or alvo.lower() == ALVO_MERLIN:
+                return Intencao(TipoIntencao.VER_BOTOES, ALVO_MERLIN, comando)  # "clica num botão" sem dizer qual
+            return Intencao(tipo, alvo, comando, local)
         return self._aplicar_regras(tipo, alvo, busca, comando)
-
-    @staticmethod
-    def _regras_de_criacao(tipo, alvo, comando, local, conteudo) -> Intencao:
-        vetado = VERBO_ABRIR.match(comando) or VERBO_APAGAR.match(comando)
-        if vetado or not alvo or alvo.lower() == ALVO_MERLIN:
-            return Intencao(TipoIntencao.CONVERSAR, alvo, comando)
-        return Intencao(tipo, alvo, comando, local, conteudo)
 
     @staticmethod
     def _aplicar_regras(tipo, alvo, busca, comando) -> Intencao:

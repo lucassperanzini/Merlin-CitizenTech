@@ -6,11 +6,11 @@ from dataclasses import dataclass
 
 import merlin  # noqa: F401  (ativa o modo offline antes de importar as bibliotecas de modelos)
 from merlin.acoes.abrir_programa import AbrirPrograma
+from merlin.acoes.clicar import ClicarBotao
 from merlin.acoes.conversar import Conversar
-from merlin.acoes.criar import CriarArquivo, CriarPasta
 from merlin.acoes.fechar_programa import FecharPrograma
-from merlin.acoes.locais import LocaisPermitidos, pastas_do_usuario
 from merlin.acoes.sessao import Dispensar, Encerrar
+from merlin.acoes.ver_botoes import VerBotoes
 from merlin.acoes.web import PesquisarWeb
 from merlin.audio.ouvinte import Ouvinte
 from merlin.audio.transcricao import Transcritor
@@ -20,11 +20,13 @@ from merlin.ia.cliente import ClienteIA
 from merlin.ia.confirmacao import ClassificadorConfirmacao
 from merlin.ia.conversa import Conversa
 from merlin.ia.despedida import GeradorDespedida, GeradorEncerramento
+from merlin.ia.escolha_botao import EscolhedorBotao
 from merlin.ia.divisao import DivisorTarefas
 from merlin.ia.intencoes import ClassificadorIntencao, TipoIntencao
 from merlin.ia.saudacao import GeradorSaudacao
 from merlin.interface.eventos import CanalInterface
 from merlin.interface.janela import JanelaMerlin
+from merlin.nucleo.memoria_conversa import MemoriaConversa
 from merlin.nucleo.processador import ProcessadorComandos
 from merlin.nucleo.sessao import Sessao
 from merlin.nucleo.trabalhador import TrabalhadorComandos
@@ -50,22 +52,21 @@ class Aplicacao:
     janela: JanelaMerlin
 
 
-def construir_acoes(sessao, estado, cliente_ia):
+def construir_acoes(sessao, estado, cliente_ia, memoria):
     """Para o Merlin aprender algo novo: crie a ação em merlin/acoes, registre aqui e descreva a intenção à IA.
 
     Cada ação só executa e devolve um Resultado; o processador monta a resposta falada de todas as tarefas.
     """
     pesquisa = PesquisarWeb()
-    locais = LocaisPermitidos(pastas_do_usuario())
     return {
         TipoIntencao.DISPENSAR: Dispensar(sessao, GeradorDespedida(cliente_ia)),
         TipoIntencao.ENCERRAR: Encerrar(estado, GeradorEncerramento(cliente_ia)),
         TipoIntencao.FECHAR_PROGRAMA: FecharPrograma(),
         TipoIntencao.ABRIR_PROGRAMA: AbrirPrograma(pesquisa),
         TipoIntencao.PESQUISAR_WEB: pesquisa,
-        TipoIntencao.CRIAR_PASTA: CriarPasta(locais),
-        TipoIntencao.CRIAR_ARQUIVO: CriarArquivo(locais),
-        TipoIntencao.CONVERSAR: Conversar(Conversa(cliente_ia)),
+        TipoIntencao.VER_BOTOES: VerBotoes(),
+        TipoIntencao.CLICAR_BOTAO: ClicarBotao(sessao, EscolhedorBotao(cliente_ia)),
+        TipoIntencao.CONVERSAR: Conversar(Conversa(cliente_ia, memoria)),
     }
 
 
@@ -73,7 +74,8 @@ def construir_aplicacao() -> Aplicacao:
     estado = EstadoAssistente()
     canal = CanalInterface()
     preferencias = Preferencias(ARQ_PREFERENCIAS)
-    sessao = Sessao(estado, canal, SomAtivacao(estado))
+    memoria = MemoriaConversa()
+    sessao = Sessao(estado, canal, SomAtivacao(estado), memoria)
     sintetizador = Sintetizador()
     locutor = Locutor(estado, canal, sintetizador, preferencias)
     transcritor = Transcritor()
@@ -85,7 +87,8 @@ def construir_aplicacao() -> Aplicacao:
         classificador=ClassificadorIntencao(cliente_ia),
         confirmador=ClassificadorConfirmacao(cliente_ia),
         saudacao=GeradorSaudacao(cliente_ia),
-        acoes=construir_acoes(sessao, estado, cliente_ia),
+        acoes=construir_acoes(sessao, estado, cliente_ia, memoria),
+        memoria=memoria,
     )
     return Aplicacao(
         estado=estado,

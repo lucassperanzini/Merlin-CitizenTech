@@ -52,6 +52,24 @@ class TestEscolherJanelas(unittest.TestCase):
         self.assertEqual([j.hwnd for j in achadas], [1])
 
 
+class TestListarJanelas(unittest.TestCase):
+    def test_janela_que_fecha_no_meio_da_leitura_e_ignorada(self):
+        from merlin.acoes import janelas
+        import pywintypes
+
+        def enumerar(visitar, extra):
+            for hwnd in (1, 2):
+                visitar(hwnd, extra)
+
+        def ler(hwnd):
+            if hwnd == 1:
+                raise pywintypes.error(1400, "GetClassName", "identificador inválido")
+            return JanelaAberta(2, 2, "x", "y")
+
+        with mock.patch.object(janelas.win32gui, "EnumWindows", enumerar), mock.patch.object(janelas, "_ler_janela", ler):
+            self.assertEqual([j.hwnd for j in janelas.listar_janelas()], [2])
+
+
 class TestDescricao(unittest.TestCase):
     def test_descricoes(self):
         self.assertEqual(descrever_alvo([JANELAS[4]], True), "a janela Calculadora")

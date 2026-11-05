@@ -12,15 +12,16 @@ class Pendencia:
     """Uma ação que só acontece se a pessoa autorizar. Qualquer ação nova pode usar este mesmo mecanismo."""
 
     pergunta: str
-    ao_confirmar: Callable[[], None]
+    ao_confirmar: Callable[[], object]  # executa a ação e devolve o Resultado a ser falado
     resposta_recusa: str
     expira_em: float
 
 
 class Sessao:
-    def __init__(self, estado, canal, som_ativacao=None):
+    def __init__(self, estado, canal, som_ativacao=None, memoria=None):
         self._estado = estado
         self._canal = canal
+        self._memoria = memoria
         self._som_ativacao = som_ativacao
         self._pendencia = None
 
@@ -34,6 +35,8 @@ class Sessao:
 
     def desativar(self) -> None:
         self._pendencia = None  # ao sair, nenhuma pergunta continua valendo
+        if self._memoria:
+            self._memoria.limpar()  # a próxima ativação começa uma conversa nova
         self._estado.ativo.clear()
         self._canal.esconder()
 
