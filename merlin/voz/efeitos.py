@@ -7,6 +7,22 @@ FREQUENCIA_TREMOR = 5.5
 PICO_MAXIMO = 0.95
 
 
+LIMITE_SILENCIO = 0.02  # fração do pico abaixo da qual o áudio conta como silêncio
+MARGEM_INICIO, MARGEM_FIM = 0.04, 0.12  # segundos mantidos nas pontas, para não cortar o começo ou o fim da palavra
+
+
+def cortar_silencio(amostras: np.ndarray, taxa: int) -> np.ndarray:
+    """Remove o silêncio do começo e do fim do áudio."""
+    if not len(amostras):
+        return amostras
+    audivel = np.flatnonzero(np.abs(amostras) > np.max(np.abs(amostras)) * LIMITE_SILENCIO)
+    if not len(audivel):
+        return amostras
+    inicio = max(0, audivel[0] - int(MARGEM_INICIO * taxa))
+    fim = min(len(amostras), audivel[-1] + int(MARGEM_FIM * taxa))
+    return amostras[inicio:fim]
+
+
 def aplicar_efeito(amostras: np.ndarray, taxa: int, efeito: EfeitoVoz) -> np.ndarray:
     """Recebe áudio em float (-1 a 1) e devolve o áudio com tom, tremor e eco aplicados."""
     audio = _mudar_tom(amostras, efeito.tom)

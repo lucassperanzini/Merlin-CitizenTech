@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Raciocínio</title>
+<style>
+  :root {
+    --fundo: #05070c;
+    --painel: #0b1019;
+    --borda: #1b2638;
+    --texto: #dbe6ff;
+    --suave: #8a97b3;
+    --ouvi: #dbe6ff;
+    --tarefas: #9fb4d9;
+    --intencao: #35d6ff;
+    --regra: #ffb648;
+    --janela: #b18cff;
+    --escolha: #52f2a8;
+    --acao: #dbe6ff;
+    --fala: #52f2a8;
+    --erro: #ff8a7a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; flex-direction: column;
+    background: var(--fundo); color: var(--texto);
+    font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; gap: 10px; flex: none;
+    padding: 14px 18px; border-bottom: 1px solid var(--borda);
+  }
+  h1 { margin: 0; font-size: 16px; font-weight: 600; flex: 1; }
+  label.seguir { font-size: 13px; color: var(--suave); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  button {
+    padding: 6px 12px; border-radius: 7px; border: 1px solid var(--borda);
+    background: #0e1522; color: var(--texto); font: inherit; font-size: 13px; cursor: pointer;
+  }
+  button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--intencao); outline-offset: 1px; }
+
+  #lista { flex: 1; overflow-y: auto; padding: 14px 18px 24px; }
+  #vazio { color: var(--suave); text-align: center; margin-top: 60px; line-height: 1.7; }
+
+  .pedido {
+    background: var(--painel); border: 1px solid var(--borda); border-radius: 10px;
+    padding: 10px 14px 12px; margin-bottom: 12px;
+  }
+  .passo { display: grid; grid-template-columns: 82px 1fr; gap: 2px 10px; padding: 5px 0; }
+  .passo + .passo { border-top: 1px solid #121a28; }
+  .rotulo { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding-top: 2px; }
+  .texto { overflow-wrap: anywhere; }
+  .hora { color: var(--suave); font-size: 12px; margin-left: 6px; }
+  .detalhes { grid-column: 2; display: grid; grid-template-columns: max-content 1fr; gap: 1px 10px; font-size: 13px; }
+  .detalhes dt { color: var(--suave); }
+  .detalhes dd { margin: 0; overflow-wrap: anywhere; }
+  details summary { cursor: pointer; color: var(--suave); }
+  details[open] summary { margin-bottom: 4px; }
+  .nomes { display: flex; flex-wrap: wrap; gap: 4px; }
+  .nomes span { background: #0e1522; border: 1px solid var(--borda); border-radius: 5px; padding: 0 6px; font-size: 12.5px; }
+
+  .ouvi .rotulo { color: var(--ouvi); }
+  .ouvi .texto { font-size: 15px; font-weight: 600; }
+  .confirmacao .rotulo, .tarefas .rotulo { color: var(--tarefas); }
+  .intencao .rotulo { color: var(--intencao); }
+  .regra .rotulo { color: var(--regra); }
+  .janela .rotulo, .botoes .rotulo { color: var(--janela); }
+  .escolha .rotulo { color: var(--escolha); }
+  .acao .rotulo { color: var(--acao); }
+  .fala .rotulo { color: var(--fala); }
+  .fala .texto { font-style: italic; }
+  .erro .rotulo, .erro .texto { color: var(--erro); }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Raciocínio da IA</h1>
+    <label class="seguir"><input type="checkbox" id="seguir" checked> Acompanhar o mais recente</label>
+    <button id="pasta" type="button" title="Os registros de cada dia ficam guardados nesta pasta" hidden>Abrir pasta</button>
+    <button id="limpar" type="button" title="Limpa a tela; os registros guardados continuam na pasta">Limpar</button>
+  </header>
+  <main id="lista" aria-live="polite">
+    <p id="vazio">Nada ainda.<br>Fale com o assistente e cada passo aparece aqui:<br>
+      o que ele ouviu, a intenção que identificou, os botões que viu e o que fez.</p>
+  </main>
+
+<script>
+  const ROTULOS = {
+    ouvi: "Ouvi", confirmacao: "Resposta", tarefas: "Tarefas", intencao: "Intenção", regra: "Regra",
+    janela: "Janela", botoes: "Botões", escolha: "Escolha", acao: "Fiz", fala: "Falei", erro: "Erro",
+  };
+  const LISTAS = new Set(["nomes", "candidatos", "partes"]);  // viram etiquetas; a de botões fica recolhida
+  const lista = document.getElementById("lista");
+  const vazio = document.getElementById("vazio");
+  const seguir = document.getElementById("seguir");
+  let ultimo = 0;
+  let pedidoAtual = null;
+
+  function elemento(tag, classe, texto) {
+    const e = document.createElement(tag);
+    if (classe) e.className = classe;
+    if (texto !== undefined) e.textContent = texto;  // sempre texto: nada vindo de fora vira HTML
+    return e;
+  }
+
+  function valor(nome, texto) {
+    if (!LISTAS.has(nome)) return elemento("dd", "", texto);
+    const itens = texto.split(", ");
+    const caixa = elemento("div", "nomes");
+    for (const item of itens) caixa.append(elemento("span", "", item));
+    if (nome !== "nomes" || itens.length <= 6) return dentroDeDd(caixa);
+    const detalhes = elemento("details");
+    detalhes.append(elemento("summary", "", `ver os ${itens.length}`), caixa);
+    return dentroDeDd(detalhes);
+  }
+  function dentroDeDd(filho) {
+    const dd = elemento("dd");
+    dd.append(filho);
+    return dd;
+  }
+
+  function desenhar(p) {
+    if (p.tipo === "ouvi" || !pedidoAtual) {
+      pedidoAtual = elemento("section", "pedido");
+      lista.append(pedidoAtual);
+    }
+    const linha = elemento("div", `passo ${p.tipo}`);
+    const rotulo = elemento("div", "rotulo", ROTULOS[p.tipo] || p.tipo);
+    const texto = elemento("div", "texto", p.texto);
+    if (p.tipo === "ouvi") texto.append(elemento("span", "hora", p.hora));
+    linha.append(rotulo, texto);
+    if (p.detalhes.length) {
+      const dl = elemento("dl", "detalhes");
+      for (const [nome, v] of p.detalhes) dl.append(elemento("dt", "", nome), valor(nome, v));
+      linha.append(dl);
+    }
+    pedidoAtual.append(linha);
+  }
+
+  async function buscar() {
+    try {
+      const novos = await window.pywebview.api.novos(ultimo);
+      if (novos.length) {
+        vazio.hidden = true;
+        for (const p of novos) desenhar(p);
+        ultimo = novos[novos.length - 1].numero;
+        if (seguir.checked) lista.scrollTop = lista.scrollHeight;
+      }
+    } catch (erro) {
+      console.error(erro);
+    }
+    setTimeout(buscar, 500);
+  }
+
+  document.getElementById("limpar").addEventListener("click", async () => {
+    await window.pywebview.api.limpar();
+    lista.replaceChildren(vazio);
+    vazio.hidden = false;
+    pedidoAtual = null;
+  });
+  const botaoPasta = document.getElementById("pasta");
+  botaoPasta.addEventListener("click", () => window.pywebview.api.abrir_pasta());
+  window.addEventListener("pywebviewready", async () => {
+    botaoPasta.hidden = !(await window.pywebview.api.tem_pasta());
+    buscar();
+  });
+</script>
+</body>
+</html>

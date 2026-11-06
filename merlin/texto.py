@@ -1,7 +1,5 @@
-"""Tratamento de texto usado em mais de uma parte do Merlin."""
+"""Tratamento de texto usado em mais de uma parte do assistente."""
 import unicodedata
-
-from merlin.config import PALAVRAS_ATIVACAO
 
 
 def normalizar(texto: str) -> str:
@@ -16,12 +14,12 @@ def com_artigo(nome: str) -> str:
     return f"{'a' if feminino else 'o'} {nome}"
 
 
-def tem_palavra_ativacao(frase: str) -> bool:
-    return any(palavra in frase for palavra in PALAVRAS_ATIVACAO)
+def tem_palavra_ativacao(frase: str, palavras: tuple[str, ...]) -> bool:
+    return any(palavra in frase.lower() for palavra in palavras)
 
 
-def remover_palavra_ativacao(frase: str) -> str:
+def remover_palavra_ativacao(frase: str, palavras: tuple[str, ...]) -> str:
     frase = frase.lower()
-    for palavra in PALAVRAS_ATIVACAO:
+    for palavra in palavras:
         frase = frase.replace(palavra, "")
     return frase.strip(" ,.!?")

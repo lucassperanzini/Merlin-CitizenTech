@@ -6,7 +6,7 @@ import numpy as np
 from piper import PiperVoice, SynthesisConfig
 
 from merlin.config import EFEITOS_VOZ, PASTA_VOZES
-from merlin.voz.efeitos import aplicar_efeito
+from merlin.voz.efeitos import aplicar_efeito, cortar_silencio
 
 
 class Sintetizador:
@@ -17,22 +17,20 @@ class Sintetizador:
         self._obter_modelo(voz)
 
     def gerar(self, texto: str, voz: str, arquivo: str) -> None:
-        """Sintetiza o texto em um WAV, aplicando o efeito quando a voz tiver um."""
+        """Sintetiza o texto em um WAV, sem o silêncio das pontas, aplicando o efeito quando a voz tiver um."""
         efeito = EFEITOS_VOZ.get(voz)
-        modelo = self._obter_modelo(voz)
-        if not efeito:
-            with wave.open(arquivo, "wb") as saida:
-                modelo.synthesize_wav(texto, saida)
-            return
-
+        configuracao = SynthesisConfig(length_scale=efeito.lentidao) if efeito else None
         memoria = io.BytesIO()
         with wave.open(memoria, "wb") as saida:
-            modelo.synthesize_wav(texto, saida, syn_config=SynthesisConfig(length_scale=efeito.lentidao))
+            self._obter_modelo(voz).synthesize_wav(texto, saida, syn_config=configuracao)
         memoria.seek(0)
         with wave.open(memoria, "rb") as entrada:
             taxa = entrada.getframerate()
             amostras = np.frombuffer(entrada.readframes(entrada.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
-        self._gravar(arquivo, aplicar_efeito(amostras, taxa, efeito), taxa)
+        # Algumas vozes (Cadu, Jeff) começam com quase 1 s de silêncio: atrasava a resposta e confundia o
+        # detector de interrupção, que tomava o silêncio como o eco da voz e depois cortava a própria fala
+        amostras = cortar_silencio(amostras, taxa)
+        self._gravar(arquivo, aplicar_efeito(amostras, taxa, efeito) if efeito else amostras, taxa)
 
     def _obter_modelo(self, voz):
         nome = EFEITOS_VOZ[voz].modelo if voz in EFEITOS_VOZ else voz
@@ -46,4 +44,4 @@ class Sintetizador:
             saida.setnchannels(1)
             saida.setsampwidth(2)
             saida.setframerate(taxa)
-            saida.writeframes((audio * 32767).astype(np.int16).tobytes())
+            saida.writeframes((np.clip(audio, -1, 1) * 32767).astype(np.int16).tobytes())

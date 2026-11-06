@@ -73,8 +73,8 @@ class FluxoComMedidor:
 class MicrofoneComMedidor(sr.Microphone):
     """O listen_in_background só avisa ao fim da frase; o medidor permite reagir enquanto a pessoa fala."""
 
-    def __init__(self, recognizer, estado):
-        super().__init__()
+    def __init__(self, recognizer, estado, sample_rate=None, chunk_size=1024):
+        super().__init__(sample_rate=sample_rate, chunk_size=chunk_size)
         self.recognizer = recognizer
         self.estado = estado
 

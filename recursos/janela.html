@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<title>Merlin</title>
+<title>Assistente</title>
 <style>
   :root {
     --fundo: #05070c;
@@ -18,6 +18,9 @@
     --aura2: #1b6fa8;
     --nivel: 0; /* volume da voz captada, de 0 a 1 */
   }
+  /* Jarvis: destaque azul em vez de dourado */
+  html[data-visual="esfera"] { --ouro: #35d6ff; }
+
   /* Voz sendo captada */
   body.ouvindo.voz {
     --brilho: #b18cff; --fibra: #dcc8ff; --medio: #6a3fc4; --base: #4b2a96;
@@ -48,6 +51,9 @@
   #palco.abrindo { animation: abrir .7s cubic-bezier(.2, .8, .2, 1); }
   @keyframes abrir { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
   svg { display: block; width: 100%; height: auto; max-height: 56vh; }
+  #esfera { display: none; width: 100%; height: 52vh; }
+  html[data-visual="esfera"] #palco svg { display: none; }
+  html[data-visual="esfera"] #esfera { display: block; }
 
   /* O fundo do SVG sai para o olho se misturar com a janela */
   #fundo { display: none; }
@@ -83,34 +89,74 @@
     flex: 1; width: 100%; padding: 10px 36px 0; overflow: hidden;
     font-size: 18px; line-height: 1.45; text-align: center;
   }
-  #voz {
-    display: flex; align-items: center; gap: 8px; padding: 0 0 14px;
-    font-size: 14px; color: #8a97b3;
+  .icone {
+    position: fixed; top: 12px; right: 14px; width: 34px; height: 34px; padding: 6px;
+    border: 0; border-radius: 8px; background: transparent; color: #8a97b3; cursor: pointer;
   }
-  select {
-    padding: 4px 8px; border: 1px solid #3a3320; border-radius: 6px;
-    background: #0d111b; color: var(--texto); font: inherit;
-  }
-  select:focus-visible { outline: 2px solid var(--ouro); outline-offset: 1px; }
+  #raciocinio { right: 54px; }
+  .icone:hover { color: var(--texto); background: #0d111b; }
+  .icone:focus-visible { outline: 2px solid var(--ouro); outline-offset: 1px; }
+  .icone svg { width: 100%; height: 100%; max-height: none; }
+
+  /* Em espera, numa bolinha no canto da tela: só a esfera, que ativa o assistente com um clique */
+  html.compacto body { justify-content: center; cursor: pointer; }
+  html.compacto :is(h1, #ondas, #status, #legenda, .icone) { display: none; }
+  html.compacto #palco { height: 100%; }
+  html.compacto #esfera { height: 100%; }
+  html.compacto #palco svg { height: 100%; max-height: none; }
 </style>
 </head>
 <body>
-  <h1>MERLIN</h1>
-  <div id="palco"><!--OLHO--></div>
+  <h1 id="titulo"></h1>
+  <div id="palco"><!--OLHO--><canvas id="esfera" aria-label="Esfera do assistente"></canvas></div>
   <canvas id="ondas" aria-hidden="true"></canvas>
   <div id="status">Aguardando sua voz</div>
   <div id="legenda" aria-live="polite"></div>
-  <label id="voz">Voz <select id="seletor"></select></label>
+  <button id="raciocinio" class="icone" type="button" title="Raciocínio da IA" aria-label="Abrir o raciocínio da IA">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M4 6h16M4 12h10M4 18h7"/>
+      <circle cx="17.5" cy="16.5" r="3"/>
+      <path d="m19.7 18.7 2 2"/>
+    </svg>
+  </button>
+  <button id="engrenagem" class="icone" type="button" title="Configurações" aria-label="Abrir configurações">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.08a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
+
+<!--SCRIPTS-->
 
 <script>
   const palco = document.getElementById("palco");
   const legenda = document.getElementById("legenda");
-  const seletor = document.getElementById("seletor");
   const dados = /*DADOS*/;
 
-  for (const rotulo of dados.vozes) seletor.add(new Option(rotulo, rotulo));
-  seletor.value = dados.atual;
-  seletor.addEventListener("change", () => window.pywebview.api.trocar_voz(seletor.value));
+  const titulo = document.getElementById("titulo");
+  const canvasEsfera = document.getElementById("esfera");
+  let visual = "olho";
+  let janelaVisivel = false;
+
+  document.getElementById("engrenagem").addEventListener("click", () => window.pywebview.api.abrir_configuracoes());
+  document.getElementById("raciocinio").addEventListener("click", () => window.pywebview.api.abrir_raciocinio());
+
+  function definirPersonalidade(p) {
+    visual = p.visual;
+    document.documentElement.dataset.visual = p.visual;
+    titulo.textContent = p.nome.toUpperCase();
+    document.title = p.nome;
+    if (visual === "esfera" && !window.Esfera.ok) window.Esfera.iniciar(canvasEsfera);
+    atualizarAnimacao();
+  }
+  // A esfera só é desenhada quando aparece na tela
+  function atualizarAnimacao() {
+    if (visual === "esfera" && janelaVisivel) window.Esfera.ligar();
+    else window.Esfera.desligar();
+  }
+  function falarComVolume(volumes, passo) {
+    window.Esfera.falar(volumes, passo);
+  }
 
   const statusTexto = document.getElementById("status");
   let estadoAtual = "ouvindo";
@@ -123,12 +169,14 @@
   }
   function definirEstado(estado) {
     estadoAtual = estado;
+    window.Esfera.definirEstado(estado);
     document.body.className = estado;
     document.body.classList.toggle("voz", nivelAtual > 0);
     atualizarStatus();
   }
   function definirNivel(nivel) {
     nivelAtual = nivel;
+    window.Esfera.definirVolume(nivel);
     document.documentElement.style.setProperty("--nivel", nivel);
     document.body.classList.toggle("voz", nivel > 0);
     atualizarStatus();
@@ -202,16 +250,39 @@
   function definirLegenda(texto) {
     legenda.textContent = texto;
   }
+  const raiz = document.documentElement;
+  document.body.addEventListener("click", () => {
+    if (raiz.classList.contains("compacto")) window.pywebview.api.ativar();
+  });
+
+  function aoCompactar() {
+    raiz.classList.add("compacto");
+    janelaVisivel = true;
+    window.Esfera.limitarQuadros(30);
+    window.Esfera.definirEstado("espera");
+    document.body.className = "espera";  // o olho volta às cores calmas
+    atualizarAnimacao();
+  }
   function aoMostrar() {
+    raiz.classList.remove("compacto");
+    window.Esfera.limitarQuadros(60);
     legenda.textContent = "";
     definirNivel(0);
     definirEstado("ouvindo");
+    janelaVisivel = true;
+    atualizarAnimacao();
     // Reinicia as animações do SVG para o olho não abrir no meio de uma piscada
     palco.querySelector("svg").setCurrentTime(0);
     palco.classList.remove("abrindo");
     void palco.offsetWidth;
     palco.classList.add("abrindo");
   }
+  function aoEsconder() {
+    raiz.classList.remove("compacto");
+    janelaVisivel = false;
+    atualizarAnimacao();
+  }
+  definirPersonalidade(dados.personalidade);
 </script>
 </body>
 </html>

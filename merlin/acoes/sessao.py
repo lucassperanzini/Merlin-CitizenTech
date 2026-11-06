@@ -11,6 +11,15 @@ class Dispensar:
         return Resultado(self._despedida.gerar(), frase_completa=True, depois=self._sessao.desativar, finaliza=True)
 
 
+class AbrirConfiguracoes:
+    def __init__(self, canal):
+        self._canal = canal
+
+    def __call__(self, _intencao) -> Resultado:
+        self._canal.abrir_configuracoes()
+        return Resultado("abri as configurações", registro="Configurações abertas")
+
+
 class Encerrar:
     def __init__(self, estado, encerramento):
         self._estado = estado

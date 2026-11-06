@@ -65,6 +65,14 @@ class TestDetectorInterrupcao(unittest.TestCase):
     def test_sem_eco_voz_normal_interrompe(self):
         self.assertTrue(detectar([30] * blocos(2) + [1500] * blocos(1)))
 
+    def test_voz_que_comeca_em_silencio_nao_se_interrompe(self):
+        # Como as vozes Cadu e Jeff: quase 0,8 s de silêncio antes da primeira palavra
+        silencio = [3.0] * blocos(0.8)
+        self.assertFalse(detectar(silencio + self.eco[:blocos(6)]))
+
+    def test_depois_do_silencio_a_pessoa_ainda_interrompe(self):
+        self.assertTrue(detectar([3.0] * blocos(0.8) + self.eco[:blocos(2)] + [6000] * blocos(1)))
+
     def test_durante_o_aprendizado_nao_interrompe(self):
         self.assertFalse(detectar([9000] * blocos(0.4)))
 

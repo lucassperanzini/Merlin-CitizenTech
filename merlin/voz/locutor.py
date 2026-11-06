@@ -6,8 +6,8 @@ import time
 
 import pygame
 
-from merlin.config import NOME
 from merlin.interface.eventos import EstadoVisual
+from merlin.voz.envelope import PASSO, envelope_do_audio
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +24,13 @@ class Locutor:
 
     def falar(self, texto: str) -> None:
         """Fala em voz alta (e registra no terminal para debug)."""
-        logger.info("%s: %s", NOME, texto)
-        self._canal.legenda(texto)
+        logger.info("%s: %s", self._preferencias.personalidade.nome, texto)  # a fala aparece só no terminal
         self._canal.estado(EstadoVisual.FALANDO)
         self._estado.interromper.clear()
         arquivo = os.path.join(tempfile.gettempdir(), f"merlin_{os.getpid()}_{time.time_ns()}.wav")
         try:
             self._sintetizador.gerar(texto, self._preferencias.voz, arquivo)
+            self._canal.envelope_fala(envelope_do_audio(arquivo), PASSO)
             self._estado.falando.set()
             self._tocar(arquivo)
         except Exception as erro:

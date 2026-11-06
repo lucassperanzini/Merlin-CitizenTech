@@ -12,7 +12,8 @@ intencao:
 - abrir_programa: a pessoa manda abrir ou iniciar um programa instalado no computador. O alvo é o nome do programa.
 - pesquisar_web: a pessoa manda pesquisar ou procurar algo na internet, ou abrir um site.
 - ver_botoes: a pessoa pergunta quais botões ou opções aparecem na tela ou em um programa aberto. O alvo é o programa citado, ou "merlin" se não citar nenhum.
-- clicar_botao: a pessoa manda clicar, apertar ou pressionar um botão ou opção de um programa. O alvo é o nome do botão, sem a palavra botão. Em local, o programa, se ela citar.
+- clicar_botao: a pessoa manda clicar, apertar ou pressionar um botão ou opção de um programa, ou manda fazer algo que é apertar um botão (dar play, pausar, salvar, confirmar, enviar, pular, avançar, voltar). O alvo é o nome do botão, sem a palavra botão. Em local, o programa, se ela citar; se não citar, deixe vazio: o clique é no programa que está em uso.
+- abrir_configuracoes: a pessoa pede para abrir as configurações do próprio assistente, como as suas configurações ou os ajustes. Configurações do Windows ou de outro programa são abrir_programa.
 - conversar: qualquer outra coisa, inclusive perguntas de conhecimento geral, perguntas sobre como fazer algo, aparelhos fora do computador, pedidos sobre despedidas e pedidos para escrever um texto sem citar um arquivo.
 
 busca: somente em pesquisar_web, o termo completo a pesquisar, ou o endereço quando for abrir um site. Nos outros casos, deixe vazio.
@@ -41,6 +42,18 @@ Exemplos:
 "entra no github" -> {"alvo": "github", "intencao": "pesquisar_web", "busca": "github.com", "local": ""}
 "clica em imprimir" -> {"alvo": "imprimir", "intencao": "clicar_botao", "busca": "", "local": ""}
 "aperta o botão cancelar no paint" -> {"alvo": "cancelar", "intencao": "clicar_botao", "busca": "", "local": "paint"}
+"dá play" -> {"alvo": "play", "intencao": "clicar_botao", "busca": "", "local": ""}
+"pausa a música no spotify" -> {"alvo": "pausar", "intencao": "clicar_botao", "busca": "", "local": "spotify"}
+"pula pra próxima" -> {"alvo": "próxima", "intencao": "clicar_botao", "busca": "", "local": ""}
+"salva o arquivo" -> {"alvo": "salvar", "intencao": "clicar_botao", "busca": "", "local": ""}
+"pode clicar em enviar" -> {"alvo": "enviar", "intencao": "clicar_botao", "busca": "", "local": ""}
+"seleciona a opção não salvar" -> {"alvo": "não salvar", "intencao": "clicar_botao", "busca": "", "local": ""}
+"confirma no whatsapp" -> {"alvo": "confirmar", "intencao": "clicar_botao", "busca": "", "local": "whatsapp"}
+"volta pra página anterior no chrome" -> {"alvo": "voltar", "intencao": "clicar_botao", "busca": "", "local": "chrome"}
+"o que acontece se eu clicar em formatar" -> {"alvo": "formatar", "intencao": "conversar", "busca": "", "local": ""}
+"vale a pena salvar em pdf" -> {"alvo": "pdf", "intencao": "conversar", "busca": "", "local": ""}
+"abre as suas configurações" -> {"alvo": "merlin", "intencao": "abrir_configuracoes", "busca": "", "local": ""}
+"abre as configurações do windows" -> {"alvo": "configurações", "intencao": "abrir_programa", "busca": "", "local": ""}
 "apaga a pasta fotos" ->{"alvo": "fotos", "intencao": "conversar", "busca": "", "local": ""}
 "exclui o arquivo tarefas" -> {"alvo": "tarefas", "intencao": "conversar", "busca": "", "local": ""}
 "abre a pasta documentos" -> {"alvo": "documentos", "intencao": "conversar", "busca": "", "local": ""}
@@ -144,8 +157,8 @@ PROMPT_ENCERRAMENTO = (
 )
 
 TEMAS_DESPEDIDA = (
-    "as estrelas", "a lua", "o velho grimório", "o cajado", "o caldeirão", "a coruja sábia",
-    "a torre do mago", "a vela que se apaga", "a floresta encantada", "a névoa", "o pergaminho", "o vento",
+    "as estrelas", "a lua", "o lord de dragão", "o cajado", "o caldeirão", "a coruja sábia",
+    "a torre do mago", "rei arthur me aguarda, "o Elixir", "a névoa", "o pergaminho", "o vento",
 )
 
 EXEMPLOS_DESPEDIDA = (

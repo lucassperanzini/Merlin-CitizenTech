@@ -9,25 +9,28 @@ from merlin.acoes.abrir_programa import AbrirPrograma
 from merlin.acoes.clicar import ClicarBotao
 from merlin.acoes.conversar import Conversar
 from merlin.acoes.fechar_programa import FecharPrograma
-from merlin.acoes.sessao import Dispensar, Encerrar
+from merlin.acoes.sessao import AbrirConfiguracoes, Dispensar, Encerrar
 from merlin.acoes.ver_botoes import VerBotoes
 from merlin.acoes.web import PesquisarWeb
 from merlin.audio.ouvinte import Ouvinte
 from merlin.audio.transcricao import Transcritor
-from merlin.config import ARQ_PREFERENCIAS, MODELO_IA, NOME, PALAVRAS_ATIVACAO
+from merlin.config import ARQ_PREFERENCIAS, DIAS_DE_REGISTRO, PASTA_REGISTROS
 from merlin.estado import EstadoAssistente
 from merlin.ia.cliente import ClienteIA
 from merlin.ia.confirmacao import ClassificadorConfirmacao
 from merlin.ia.conversa import Conversa
-from merlin.ia.despedida import GeradorDespedida, GeradorEncerramento
 from merlin.ia.escolha_botao import EscolhedorBotao
 from merlin.ia.divisao import DivisorTarefas
 from merlin.ia.intencoes import ClassificadorIntencao, TipoIntencao
-from merlin.ia.saudacao import GeradorSaudacao
+from merlin.ia.frases import GeradorFrases
+from merlin.interface.configuracoes import JanelaConfiguracoes, ServicoConfiguracoes
 from merlin.interface.eventos import CanalInterface
 from merlin.interface.janela import JanelaMerlin
+from merlin.interface.janela_raciocinio import JanelaRaciocinio
 from merlin.nucleo.memoria_conversa import MemoriaConversa
 from merlin.nucleo.processador import ProcessadorComandos
+from merlin.nucleo.gravador_raciocinio import GravadorRaciocinio
+from merlin.nucleo.raciocinio import Raciocinio
 from merlin.nucleo.sessao import Sessao
 from merlin.nucleo.trabalhador import TrabalhadorComandos
 from merlin.preferencias import Preferencias
@@ -52,21 +55,22 @@ class Aplicacao:
     janela: JanelaMerlin
 
 
-def construir_acoes(sessao, estado, cliente_ia, memoria):
+def construir_acoes(sessao, estado, cliente_ia, memoria, preferencias, canal, raciocinio):
     """Para o Merlin aprender algo novo: crie a ação em merlin/acoes, registre aqui e descreva a intenção à IA.
 
     Cada ação só executa e devolve um Resultado; o processador monta a resposta falada de todas as tarefas.
     """
     pesquisa = PesquisarWeb()
     return {
-        TipoIntencao.DISPENSAR: Dispensar(sessao, GeradorDespedida(cliente_ia)),
-        TipoIntencao.ENCERRAR: Encerrar(estado, GeradorEncerramento(cliente_ia)),
+        TipoIntencao.DISPENSAR: Dispensar(sessao, GeradorFrases(cliente_ia, lambda: preferencias.personalidade.despedida)),
+        TipoIntencao.ENCERRAR: Encerrar(estado, GeradorFrases(cliente_ia, lambda: preferencias.personalidade.encerramento)),
         TipoIntencao.FECHAR_PROGRAMA: FecharPrograma(),
         TipoIntencao.ABRIR_PROGRAMA: AbrirPrograma(pesquisa),
         TipoIntencao.PESQUISAR_WEB: pesquisa,
-        TipoIntencao.VER_BOTOES: VerBotoes(),
-        TipoIntencao.CLICAR_BOTAO: ClicarBotao(sessao, EscolhedorBotao(cliente_ia)),
-        TipoIntencao.CONVERSAR: Conversar(Conversa(cliente_ia, memoria)),
+        TipoIntencao.VER_BOTOES: VerBotoes(raciocinio),
+        TipoIntencao.CLICAR_BOTAO: ClicarBotao(sessao, EscolhedorBotao(cliente_ia), raciocinio),
+        TipoIntencao.ABRIR_CONFIGURACOES: AbrirConfiguracoes(canal),
+        TipoIntencao.CONVERSAR: Conversar(Conversa(cliente_ia, memoria, preferencias)),
     }
 
 
@@ -75,20 +79,27 @@ def construir_aplicacao() -> Aplicacao:
     canal = CanalInterface()
     preferencias = Preferencias(ARQ_PREFERENCIAS)
     memoria = MemoriaConversa()
-    sessao = Sessao(estado, canal, SomAtivacao(estado), memoria)
+    sessao = Sessao(estado, canal, SomAtivacao(estado, preferencias), memoria)
     sintetizador = Sintetizador()
     locutor = Locutor(estado, canal, sintetizador, preferencias)
     transcritor = Transcritor()
-    cliente_ia = ClienteIA(MODELO_IA)
+    cliente_ia = ClienteIA(lambda: preferencias.modelo_ia)
+    # O que a IA entendeu e fez: na memória para a janela de raciocínio, e no arquivo do dia em registros/
+    gravador = GravadorRaciocinio(PASTA_REGISTROS, DIAS_DE_REGISTRO)
+    gravador.apagar_antigos()
+    raciocinio = Raciocinio(gravador=gravador)
+    janela_raciocinio = JanelaRaciocinio(raciocinio, gravador.pasta)
 
     processador = ProcessadorComandos(
         estado, sessao, canal, locutor,
         divisor=DivisorTarefas(cliente_ia),
         classificador=ClassificadorIntencao(cliente_ia),
         confirmador=ClassificadorConfirmacao(cliente_ia),
-        saudacao=GeradorSaudacao(cliente_ia),
-        acoes=construir_acoes(sessao, estado, cliente_ia, memoria),
+        saudacao=GeradorFrases(cliente_ia, lambda: preferencias.personalidade.saudacao),
+        acoes=construir_acoes(sessao, estado, cliente_ia, memoria, preferencias, canal, raciocinio),
         memoria=memoria,
+        preferencias=preferencias,
+        raciocinio=raciocinio,
     )
     return Aplicacao(
         estado=estado,
@@ -97,10 +108,15 @@ def construir_aplicacao() -> Aplicacao:
         locutor=locutor,
         sintetizador=sintetizador,
         transcritor=transcritor,
-        ouvinte=Ouvinte(estado, canal, transcritor),
+        ouvinte=Ouvinte(estado, canal, transcritor, preferencias),
         processador=processador,
         trabalhador=TrabalhadorComandos(estado, sessao, canal, processador),
-        janela=JanelaMerlin(estado, canal, sessao, preferencias, locutor),
+        janela=JanelaMerlin(
+            estado, canal, sessao, preferencias,
+            JanelaConfiguracoes(ServicoConfiguracoes(preferencias, locutor, canal, memoria, cliente_ia),
+                                abrir_raciocinio=janela_raciocinio.abrir),
+            janela_raciocinio,
+        ),
     )
 
 
@@ -109,7 +125,8 @@ def iniciar_escuta(app: Aplicacao) -> None:
     logger.info("Carregando modelos offline...")
     app.transcritor.precarregar()
     app.sintetizador.precarregar(app.preferencias.voz)
-    logger.info("%s em modo de espera. Diga '%s' para ativar.", NOME, PALAVRAS_ATIVACAO[0])
+    personalidade = app.preferencias.personalidade
+    logger.info("%s em modo de espera. Diga '%s' para ativar.", personalidade.nome, personalidade.palavras_ativacao[0])
     threading.Thread(target=app.trabalhador.executar, daemon=True).start()
     app.ouvinte.escutar()
 

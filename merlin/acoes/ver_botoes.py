@@ -2,6 +2,7 @@
 import logging
 
 from merlin.acoes import controles, janelas as sistema_janelas
+from merlin.nucleo.raciocinio import Raciocinio, TipoPasso
 from merlin.nucleo.resposta import Resultado
 from merlin.texto import com_artigo, normalizar
 
@@ -45,14 +46,23 @@ def descrever_leitura(onde: str, leitura) -> str:
 
 
 class VerBotoes:
+    def __init__(self, raciocinio=None):
+        self._raciocinio = raciocinio or Raciocinio()
+
     def __call__(self, intencao) -> Resultado:
         janela = self._escolher(intencao.alvo)
         if not janela:
             return Resultado(f"Não encontrei {intencao.alvo} aberto." if citou_programa(intencao.alvo)
                              else "Não encontrei nenhuma janela aberta.", frase_completa=True)
+        self._raciocinio.registrar(
+            TipoPasso.JANELA, f"Janela: {janela.programa}", titulo=janela.titulo,
+            como_escolhi="o programa citado" if citou_programa(intencao.alvo) else "a janela em uso, atrás do assistente")
         leitura = controles.ler_botoes(janela.hwnd, janela.titulo)
         logger.info("[BOTÕES] %s: %s (sem nome: %d, incompleta: %s)",
                     janela.programa, leitura.nomes, leitura.sem_nome, leitura.incompleta)
+        self._raciocinio.registrar(TipoPasso.BOTOES, f"{len(leitura.nomes)} botões com nome", nomes=leitura.nomes,
+                                   sem_nome=leitura.sem_nome or "",
+                                   leitura_incompleta="sim, o tempo acabou" if leitura.incompleta else "")
         return Resultado(descrever_leitura(nome_para_falar(janela), leitura), frase_completa=True)
 
     def _escolher(self, alvo):

@@ -10,6 +10,7 @@ from merlin.ia.confirmacao import RespostaConfirmacao
 from merlin.ia.escolha_botao import EscolhedorBotao
 from merlin.ia.intencoes import Intencao, TipoIntencao
 from merlin.nucleo.processador import ProcessadorComandos
+from merlin.nucleo.raciocinio import Raciocinio, TipoPasso
 from merlin.nucleo.sessao import Sessao
 from tests.falsos import CanalFalso, ClienteFalso, ClassificadorFalso, ConfirmadorFalso, DivisorFalso, LocutorFalso, SaudacaoFalsa
 
@@ -121,6 +122,24 @@ class TestClicarBotao(unittest.TestCase):
 
     def _pedir(self, botao, programa=""):
         return self.acao(Intencao(TipoIntencao.CLICAR_BOTAO, botao, "x", programa))
+
+    def test_raciocinio_mostra_janela_botoes_e_escolha(self):
+        raciocinio = Raciocinio()
+        self.acao = ClicarBotao(self.sessao, self.escolhedor, raciocinio)
+        self._pedir("imprimir")
+        passos = raciocinio.desde(0)
+        self.assertEqual([p.tipo for p in passos], [TipoPasso.JANELA, TipoPasso.BOTOES, TipoPasso.ESCOLHA])
+        self.assertIn(("nomes", ", ".join(BOTOES)), passos[1].detalhes)
+        self.assertIn("pelo nome", dict(passos[2].detalhes)["como escolhi"])
+
+    def test_raciocinio_mostra_quando_a_ia_escolheu(self):
+        raciocinio = Raciocinio()
+        self.escolhedor.resposta = "Salvar"
+        self.acao = ClicarBotao(self.sessao, self.escolhedor, raciocinio)
+        self._pedir("gravar")
+        escolha, regra = raciocinio.desde(0)[2:4]
+        self.assertIn("a IA escolheu", dict(escolha.detalhes)["como escolhi"])
+        self.assertIs(regra.tipo, TipoPasso.REGRA)
 
     def test_botao_comum_clica_direto(self):
         r = self._pedir("imprimir")

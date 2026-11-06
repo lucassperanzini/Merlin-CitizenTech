@@ -10,6 +10,7 @@ import time
 from merlin.acoes import controles, janelas as sistema_janelas
 from merlin.acoes.ver_botoes import citou_programa
 from merlin.config import PRAZO_CONFIRMACAO
+from merlin.nucleo.raciocinio import Raciocinio, TipoPasso
 from merlin.nucleo.resposta import Resultado
 from merlin.nucleo.sessao import Pendencia
 from merlin.texto import normalizar
@@ -32,31 +33,49 @@ def e_perigoso(nome: str) -> bool:
 
 
 class ClicarBotao:
-    def __init__(self, sessao, escolhedor):
+    def __init__(self, sessao, escolhedor, raciocinio=None):
         self._sessao = sessao
         self._escolhedor = escolhedor
+        self._raciocinio = raciocinio or Raciocinio()
 
     def __call__(self, intencao) -> Resultado:
         pedido = intencao.alvo
         janela = self._escolher_janela(intencao.local)
         if not janela:
             return Resultado("não encontrei a janela onde clicar", registro=f"Sem janela para '{pedido}'")
+        self._raciocinio.registrar(
+            TipoPasso.JANELA, f"Janela: {janela.programa}", titulo=janela.titulo,
+            como_escolhi="o programa citado" if citou_programa(intencao.local) else "a janela em uso, atrás do assistente")
 
         nomes = controles.nomes_clicaveis(janela.hwnd, janela.titulo)
+        self._raciocinio.registrar(TipoPasso.BOTOES, f"{len(nomes)} botões clicáveis", nomes=list(dict.fromkeys(nomes)))
         escolha = controles.escolher_controle(pedido, nomes)
         # Vários botões com o mesmo nome (como os Play do Spotify): o clique decide qual, pela posição na janela
         repetido = escolha.opcoes[0] if escolha.opcoes and len(set(escolha.opcoes)) == 1 else None
         nome = escolha.nome or repetido
         if nome:
+            self._raciocinio.registrar(
+                TipoPasso.ESCOLHA, f"“{pedido}” → {nome}",
+                como_escolhi="o código achou pelo nome" + (" (há vários iguais; desempate pela posição)" if repetido else ""))
             if e_perigoso(nome):
+                self._raciocinio.registrar(TipoPasso.REGRA, "Vou perguntar antes de clicar",
+                                           motivo="o nome do botão indica algo difícil de desfazer")
                 return self._pedir_confirmacao(janela, nome, f"Tem certeza de que quer que eu clique em {nome}?")
             return self._clicar(janela, nome)
 
         # Empate entre nomes diferentes: a IA decide só entre eles. Nada parecido: entre todos os botões.
-        sugerido = self._escolhedor.escolher(pedido, escolha.opcoes or nomes)
+        candidatos = escolha.opcoes or nomes
+        sugerido = self._escolhedor.escolher(pedido, candidatos)
         logger.info("[CLIQUE] IA sugeriu %r para %r", sugerido, pedido)
+        self._raciocinio.registrar(
+            TipoPasso.ESCOLHA, f"“{pedido}” → {sugerido or 'nenhum'}",
+            como_escolhi=f"a IA escolheu entre {'os empatados' if escolha.opcoes else 'todos os botões'}, "
+                         "porque o código não achou o nome",
+            candidatos=list(dict.fromkeys(escolha.opcoes)) if escolha.opcoes else "")
         if not sugerido:
             return Resultado(f"não encontrei o botão {pedido}", registro=f"Botão não encontrado: {pedido}")
+        self._raciocinio.registrar(TipoPasso.REGRA, "Vou perguntar antes de clicar",
+                                   motivo="foi a IA que escolheu o botão, não o nome exato")
         return self._pedir_confirmacao(janela, sugerido, f"Não achei {pedido}. Você quer que eu clique em {sugerido}?")
 
     @staticmethod

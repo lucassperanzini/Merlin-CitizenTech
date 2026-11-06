@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 TAXA_WHISPER = 16000
 LARGURA_AMOSTRA = 2
 PROBABILIDADE_MAX_SEM_FALA = 0.6
-DICA_DE_VOCABULARIO = "Merlin, abra o navegador. Merlin, pesquise na internet."
 
 
 def registrar_bibliotecas_nvidia() -> None:
@@ -46,12 +45,13 @@ class Transcritor:
     def precarregar(self) -> None:
         self._obter_modelo()
 
-    def transcrever(self, audio: sr.AudioData) -> str:
+    def transcrever(self, audio: sr.AudioData, dica: str = "") -> str:
+        """A dica (frases com o nome do assistente) ajuda o Whisper a reconhecer palavras incomuns."""
         bruto = audio.get_raw_data(convert_rate=TAXA_WHISPER, convert_width=LARGURA_AMOSTRA)
         amostras = np.frombuffer(bruto, dtype=np.int16).astype(np.float32) / 32768.0
         segmentos, _ = self._obter_modelo().transcribe(
             amostras, language="pt", beam_size=1, vad_filter=True,
-            initial_prompt=DICA_DE_VOCABULARIO, condition_on_previous_text=False,
+            initial_prompt=dica or None, condition_on_previous_text=False,
         )
         partes = (s.text.strip() for s in segmentos if s.no_speech_prob < PROBABILIDADE_MAX_SEM_FALA)
         return " ".join(partes).strip().lower()

@@ -39,6 +39,23 @@ class Base(unittest.TestCase):
         return Pendencia("Posso?", lambda: self.confirmou.append(True), "Tudo bem.", expira_em or time.time() + 20)
 
 
+class TestLegenda(Base):
+    def test_mostra_o_que_a_pessoa_disse_depois_de_abrir_a_janela(self):
+        self.processador.processar("merlin, abre o chrome")
+        eventos = self.canal.eventos
+        self.assertIn("Merlin, abre o chrome", eventos)
+        self.assertLess(eventos.index("mostrar"), eventos.index("Merlin, abre o chrome"))  # aoMostrar limpa a legenda
+
+    def test_nao_mostra_a_fala_do_assistente(self):
+        self.sessao.ativar()
+        self.processador.processar("qual a capital da itália")
+        self.assertEqual([e for e in self.canal.eventos if e[:1].isupper()], ["Qual a capital da itália"])
+
+    def test_frase_que_nao_e_para_o_assistente_nao_aparece(self):
+        self.processador.processar("conversa com outra pessoa")
+        self.assertEqual(self.canal.eventos, [])
+
+
 class TestAtivacao(Base):
     def test_em_espera_sem_o_nome_ignora(self):
         self.processador.processar("qual a capital da itália")
@@ -142,13 +159,12 @@ class TestVariasTarefas(Base):
         self.assertEqual(self.locutor.falas, ["Abri o chrome, fechei o telegram e pesquisei por gatos."])
         self.assertEqual(self.classificador.comandos, ["abre o chrome", "fecha o telegram", "pesquisa gatos"])
 
-    def test_limite_avisa_e_faz_so_as_primeiras(self):
+    def test_sem_limite_de_tarefas(self):
         self.divisor.tarefas = [f"tarefa {i}" for i in range(5)]
-        self._acoes(*[Resultado("feito") for _ in range(3)])
+        self._acoes(*[Resultado(f"fiz a {i}") for i in range(5)])
         self.processador.processar("frase longa")
-        self.assertEqual(len(self.classificador.comandos), 3)
-        self.assertIn("3 primeiras", self.locutor.falas[0])
-        self.assertEqual(len(self.locutor.falas), 1)
+        self.assertEqual(len(self.classificador.comandos), 5)
+        self.assertEqual(self.locutor.falas, ["Fiz a 0, fiz a 1, fiz a 2, fiz a 3 e fiz a 4."])
 
     def test_finaliza_cancela_o_resto(self):
         self._acoes(Resultado("Até mais.", frase_completa=True, finaliza=True))

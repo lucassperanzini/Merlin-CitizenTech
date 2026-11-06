@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from merlin.config import EFEITOS_VOZ, VOZES, EfeitoVoz
-from merlin.voz.efeitos import aplicar_efeito
+from merlin.voz.efeitos import aplicar_efeito, cortar_silencio
 
 TAXA = 22050
 
@@ -21,6 +21,15 @@ class TestEfeitos(unittest.TestCase):
         forte = self.audio * 2
         saida = aplicar_efeito(forte, TAXA, self.efeito)
         self.assertLessEqual(np.max(np.abs(saida)), 0.951)
+
+    def test_corta_silencio_das_pontas(self):
+        silencio = np.zeros(TAXA)  # 1 s
+        cortado = cortar_silencio(np.concatenate([silencio, self.audio, silencio]), TAXA)
+        self.assertLess(len(cortado), len(self.audio) + 0.2 * TAXA)
+        self.assertGreater(len(cortado), len(self.audio))
+
+    def test_silencio_total_fica_como_esta(self):
+        self.assertEqual(len(cortar_silencio(np.zeros(100), TAXA)), 100)
 
     def test_toda_voz_com_efeito_esta_no_seletor(self):
         for voz in EFEITOS_VOZ:

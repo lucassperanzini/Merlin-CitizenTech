@@ -17,6 +17,9 @@ class TipoEvento(Enum):
     ESCONDER = "esconder"
     ESTADO = "estado"
     LEGENDA = "legenda"
+    ENVELOPE_FALA = "envelope_fala"
+    PERSONALIDADE = "personalidade"
+    ABRIR_CONFIGURACOES = "abrir_configuracoes"
 
 
 class CanalInterface:
@@ -34,6 +37,16 @@ class CanalInterface:
 
     def legenda(self, texto: str) -> None:
         self._fila.put((TipoEvento.LEGENDA, texto))
+
+    def envelope_fala(self, volumes: list[float], passo: float) -> None:
+        """Volume da fala que vai começar, para a aparência acompanhar a voz."""
+        self._fila.put((TipoEvento.ENVELOPE_FALA, {"volumes": volumes, "passo": passo}))
+
+    def personalidade(self) -> None:
+        self._fila.put((TipoEvento.PERSONALIDADE, None))
+
+    def abrir_configuracoes(self) -> None:
+        self._fila.put((TipoEvento.ABRIR_CONFIGURACOES, None))
 
     def proximo(self, tempo_limite: float):
         """Retorna (tipo, dado), ou (None, None) se nada chegar dentro do tempo limite."""

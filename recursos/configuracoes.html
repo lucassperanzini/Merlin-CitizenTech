@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Configurações</title>
+<style>
+  :root {
+    --fundo: #05070c;
+    --painel: #0b1019;
+    --borda: #1b2638;
+    --texto: #dbe6ff;
+    --suave: #8a97b3;
+    --destaque: #35d6ff;
+    --erro: #ff8a7a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--fundo); color: var(--texto);
+    font: 15px/1.45 "Segoe UI", system-ui, sans-serif;
+    padding: 22px 24px; user-select: none;
+  }
+  h1 { margin: 0 0 18px; font-size: 18px; font-weight: 600; letter-spacing: .02em; }
+  .campo {
+    display: grid; gap: 6px; padding: 14px 16px; margin-bottom: 12px;
+    background: var(--painel); border: 1px solid var(--borda); border-radius: 10px;
+  }
+  .campo label { font-size: 13px; color: var(--suave); }
+  .linha { display: flex; gap: 8px; }
+  select {
+    flex: 1; min-width: 0; padding: 8px 10px; border-radius: 7px;
+    border: 1px solid var(--borda); background: #0e1522; color: var(--texto); font: inherit;
+  }
+  button {
+    padding: 8px 12px; border-radius: 7px; border: 1px solid var(--borda);
+    background: #0e1522; color: var(--texto); font: inherit; cursor: pointer;
+  }
+  select:focus-visible, button:focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
+  .ajuda { font-size: 12.5px; color: var(--suave); }
+  #status { min-height: 20px; font-size: 13px; color: var(--suave); }
+  #status.erro { color: var(--erro); }
+</style>
+</head>
+<body>
+  <h1>Configurações</h1>
+
+  <div class="campo">
+    <label for="assistente">Assistente</label>
+    <select id="assistente"></select>
+    <span class="ajuda">Muda o nome usado para chamar, o jeito de falar, a voz e a aparência.</span>
+  </div>
+
+  <div class="campo">
+    <label for="voz">Voz do assistente escolhido</label>
+    <select id="voz"></select>
+  </div>
+
+  <div class="campo">
+    <label for="modelo">Modelo de IA (Ollama)</label>
+    <div class="linha">
+      <select id="modelo"></select>
+      <button id="atualizar" type="button" title="Atualizar a lista de modelos">Atualizar</button>
+    </div>
+    <span class="ajuda">Modelos maiores costumam entender melhor, mas respondem mais devagar e usam mais memória.</span>
+  </div>
+
+  <div class="campo">
+    <label for="ver-raciocinio">Raciocínio da IA</label>
+    <div class="linha"><button id="ver-raciocinio" type="button">Ver o que a IA entendeu e fez</button></div>
+    <span class="ajuda">Intenção identificada, regras aplicadas, botões que ela viu e o que escolheu.</span>
+  </div>
+
+  <div id="status" role="status" aria-live="polite"></div>
+
+<script>
+  const assistente = document.getElementById("assistente");
+  const voz = document.getElementById("voz");
+  const modelo = document.getElementById("modelo");
+  const status = document.getElementById("status");
+  const api = () => window.pywebview.api;
+
+  function avisar(texto, erro = false) {
+    status.textContent = texto;
+    status.classList.toggle("erro", erro);
+  }
+
+  function preencher(select, itens, valor) {
+    select.replaceChildren(...itens.map(([v, rotulo]) => new Option(rotulo, v)));
+    select.value = valor;
+  }
+
+  // Cada mudança conta como um pedido novo; uma resposta que chega depois de outro pedido está velha
+  // e não pode desfazer a escolha que a pessoa acabou de fazer.
+  let ultimoPedido = 0;
+  const novoPedido = () => ++ultimoPedido;
+
+  function mostrar(dados, pedido) {
+    if (pedido !== ultimoPedido) return;
+    preencher(assistente, dados.personalidades.map(p => [p.id, p.nome]), dados.personalidade);
+    preencher(voz, dados.vozes.map(v => [v, v]), dados.voz);
+    preencher(modelo, dados.modelos.map(m => [m.nome, m.detalhe ? `${m.nome}  (${m.detalhe})` : m.nome]), dados.modelo);
+    if (dados.erro_modelos) avisar(dados.erro_modelos, true);
+  }
+
+  async function carregar() {
+    const pedido = novoPedido();
+    avisar("");
+    mostrar(await api().carregar(), pedido);
+  }
+
+  assistente.addEventListener("change", async () => {
+    const pedido = novoPedido(), nome = assistente.selectedOptions[0].text;
+    mostrar(await api().trocar_personalidade(assistente.value), pedido);
+    if (pedido === ultimoPedido) avisar(`Assistente: ${nome}.`);
+  });
+  voz.addEventListener("change", async () => {
+    const pedido = novoPedido(), escolhida = voz.value;
+    await api().trocar_voz(escolhida);
+    if (pedido === ultimoPedido) avisar(`Voz: ${escolhida}.`);
+  });
+  modelo.addEventListener("change", async () => {
+    const pedido = novoPedido(), escolhido = modelo.value;
+    avisar("Carregando o modelo...");
+    const erro = await api().trocar_modelo(escolhido);
+    if (pedido !== ultimoPedido) return;
+    if (erro) { await carregar(); avisar(erro, true); }  // volta a lista para o modelo que ficou valendo
+    else avisar(`Modelo: ${escolhido}. A primeira resposta pode demorar um pouco mais.`);
+  });
+  document.getElementById("atualizar").addEventListener("click", carregar);
+  document.getElementById("ver-raciocinio").addEventListener("click", () => api().abrir_raciocinio());
+
+  window.addEventListener("pywebviewready", carregar);
+</script>
+</body>
+</html>
