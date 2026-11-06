@@ -3,6 +3,6 @@ from merlin.habilidades.base import Grupo
 
 ASSISTENTE = Grupo("assistente", "falar com o próprio assistente: despedir-se, desligá-lo ou abrir os ajustes dele", 10)
 PROGRAMAS = Grupo("programas", "abrir ou fechar um programa do computador", 20)
-TELA = Grupo("tela", "perguntar quais botões ou opções aparecem na janela, ou mandar apertar um deles: clicar, confirmar, cancelar, tocar, pausar, pular, salvar, enviar", 30)
+TELA = Grupo("tela", "mandar apertar um botão ou opção da janela de um programa: clicar, confirmar, cancelar, tocar, pausar, pular, salvar, enviar", 30)
 INTERNET = Grupo("internet", "pesquisar na internet ou abrir um site", 40)
 CONVERSA = Grupo("conversa", "qualquer outra coisa: perguntas, conversa, pedidos de texto e coisas fora do computador", 99)

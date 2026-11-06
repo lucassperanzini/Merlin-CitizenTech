@@ -75,7 +75,7 @@ class TestRegistro(unittest.TestCase):
     def test_encontra_todas_as_habilidades_com_conversar_por_ultimo(self):
         nomes = [h.nome for h in HABILIDADES]
         self.assertEqual(set(nomes), {"dispensar", "encerrar", "abrir_configuracoes", "fechar_programa",
-                                      "abrir_programa", "pesquisar_web", "ver_botoes", "clicar_botao", "conversar"})
+                                      "abrir_programa", "pesquisar_web", "clicar_botao", "conversar"})
         self.assertEqual(nomes[-1], NOME_CONVERSAR)
 
     def test_tipo_intencao_e_gerado_das_habilidades(self):
@@ -164,6 +164,12 @@ class TestRegras(unittest.TestCase):
         self.assertIn("verbo de abrir", intencao.motivo_regra)
         self.assertIn("não o próprio assistente", intencao.motivo_regra)
 
+    def test_clique_sem_dizer_qual_botao_fica_sem_alvo(self):
+        intencao, _ = self._classificar([{"alvo": "merlin", "intencao": "clicar_botao", "busca": "", "local": ""}],
+                                        "clica num botão")
+        self.assertEqual((intencao.tipo, intencao.alvo), (TipoIntencao.CLICAR_BOTAO, ""))
+        self.assertIn("sem dizer qual botão", intencao.motivo_regra)
+
     def test_campo_de_outra_habilidade_nao_sobra(self):
         resposta = {"alvo": "chrome", "intencao": "abrir_programa", "busca": "", "local": "word"}
         intencao, _ = self._classificar([resposta], "abre o chrome")
@@ -185,7 +191,7 @@ class TestDuasEtapas(unittest.TestCase):
         prompt_grupos, esquema_grupos = cliente.chamadas[0]
         self.assertIn("- programas:", prompt_grupos)
         prompt, esquema = cliente.chamadas[1]
-        self.assertEqual(esquema["properties"]["intencao"]["enum"], ["ver_botoes", "clicar_botao", "conversar"])
+        self.assertEqual(esquema["properties"]["intencao"]["enum"], ["clicar_botao", "conversar"])
         self.assertNotIn("abrir_programa", prompt)  # a segunda pergunta é curta: só o que importa
         self.assertNotIn("busca", esquema["properties"])
 
@@ -205,7 +211,7 @@ class TestDuasEtapas(unittest.TestCase):
         self.assertIs(ClassificadorIntencao(cliente, duas_etapas=True).classificar("x").tipo, TipoIntencao.CONVERSAR)
 
     def test_decide_sozinho_pelo_numero_de_habilidades(self):
-        self.assertFalse(ClassificadorIntencao(None).duas_etapas)  # 9 habilidades hoje
+        self.assertFalse(ClassificadorIntencao(None).duas_etapas)  # 8 habilidades hoje
         muitas = (*[habilidade_nova(nome=f"extra_{i}") for i in range(10)], *HABILIDADES)
         self.assertTrue(ClassificadorIntencao(None, muitas).duas_etapas)
 

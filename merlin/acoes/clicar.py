@@ -8,7 +8,7 @@ import re
 import time
 
 from merlin.acoes import controles, janelas as sistema_janelas
-from merlin.acoes.ver_botoes import citou_programa
+from merlin.acoes.janelas import citou_programa
 from merlin.config import PRAZO_CONFIRMACAO
 from merlin.nucleo.raciocinio import Raciocinio, TipoPasso
 from merlin.nucleo.resposta import Resultado
@@ -40,6 +40,9 @@ class ClicarBotao:
 
     def __call__(self, intencao) -> Resultado:
         pedido = intencao.alvo
+        if not pedido.strip():
+            return Resultado("Em qual botão você quer que eu clique?", registro="Clique sem nome de botão",
+                             frase_completa=True)
         janela = self._escolher_janela(intencao.local)
         if not janela:
             return Resultado("não encontrei a janela onde clicar", registro=f"Sem janela para '{pedido}'")

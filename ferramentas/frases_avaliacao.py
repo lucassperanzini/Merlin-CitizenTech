@@ -32,10 +32,6 @@ FRASES = [
     ("procura no google como fazer pão de queijo", "pesquisar_web", None),
     ("abre o site do youtube", "pesquisar_web", None),
     ("busca notícias sobre futebol", "pesquisar_web", None),
-    # ver_botoes
-    ("quais botões tem nessa tela", "ver_botoes", None),
-    ("o que dá pra clicar no spotify", "ver_botoes", None),
-    ("me diz as opções que aparecem aqui", "ver_botoes", None),
     # clicar_botao
     ("clica em salvar", "clicar_botao", "salvar"),
     ("aperta o ok", "clicar_botao", "ok"),
@@ -65,4 +61,6 @@ FRASES = [
     ("apaga o arquivo relatório", "conversar", None),
     ("cria uma pasta chamada fotos", "conversar", None),
     ("toca uma música animada", "conversar", None),
+    ("quais botões tem nessa tela", "conversar", None),  # perguntas sobre botões não clicam
+    ("o que dá pra clicar no spotify", "conversar", None),
 ]

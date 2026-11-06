@@ -18,7 +18,6 @@ TIPOS_CLICAVEIS = TIPOS_BOTAO | {
 }
 TEMPO_MAXIMO_LEITURA = 3.0  # segundos; janelas de navegador podem ter milhares de elementos
 PROFUNDIDADE_MAXIMA = 40
-TAMANHO_MAXIMO_NOME = 40
 SEMELHANCA_MINIMA = 0.75
 COMANDOS_DE_JANELA = ("minimizar", "maximizar", "restaurar", "fechar", "minimize", "maximize", "restore", "close")
 # Na ordem de preferência: todos acionam o controle sem mexer no mouse da pessoa
@@ -28,13 +27,6 @@ PADROES_DE_ACAO = (
     (uia.PatternId.SelectionItemPattern, "Select"),
     (uia.PatternId.ExpandCollapsePattern, "Expand"),
 )
-
-
-@dataclass(frozen=True)
-class LeituraBotoes:
-    nomes: list[str]  # só botões visíveis, com nome e sem repetição, na ordem da janela
-    sem_nome: int  # botões visíveis sem nome: podem ser só ícones, então não dá para citá-los
-    incompleta: bool  # o tempo acabou antes de ler a janela inteira
 
 
 class ResultadoClique(Enum):
@@ -71,18 +63,6 @@ def escolher_controle(pedido: str, nomes: list[str]) -> Escolha:
     parecidos = difflib.get_close_matches(alvo, [n for _, n in normalizados], n=3, cutoff=SEMELHANCA_MINIMA)
     achados = [nome for nome, n in normalizados if n in parecidos]
     return Escolha(achados[0], []) if len(achados) == 1 else Escolha(None, achados)
-
-
-def ler_botoes(hwnd: int, titulo: str = "") -> LeituraBotoes:
-    sem_nome, nomes = 0, []
-    with uia.UIAutomationInitializerInThread():  # o acesso ao Windows precisa ser preparado em cada thread
-        controles, incompleta = _coletar(hwnd, titulo, TIPOS_BOTAO)
-        for nome, _ in controles:
-            if not nome:
-                sem_nome += 1
-            elif len(nome) <= TAMANHO_MAXIMO_NOME and nome not in nomes:
-                nomes.append(nome)
-    return LeituraBotoes(nomes, sem_nome, incompleta)
 
 
 def nomes_clicaveis(hwnd: int, titulo: str = "") -> list[str]:

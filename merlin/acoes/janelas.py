@@ -50,6 +50,15 @@ def listar_janelas() -> list[JanelaAberta]:
     return janelas
 
 
+# Palavras que não são nome de programa: "clica em salvar aqui" vai para a janela em uso
+ALVOS_GENERICOS = {"", "merlin", "aqui", "botoes", "botao", "tela", "janela", "essajanela", "estatela", "programa",
+                   "app", "aplicativo"}
+
+
+def citou_programa(alvo: str) -> bool:
+    return normalizar(alvo) not in ALVOS_GENERICOS
+
+
 def janela_em_uso() -> JanelaAberta | None:
     """A janela logo atrás do Merlin. O Windows lista as janelas da frente para trás, e o Merlin já fica de fora."""
     return next((j for j in listar_janelas() if not win32gui.IsIconic(j.hwnd)), None)

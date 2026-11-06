@@ -3,7 +3,7 @@ import unittest
 from unittest import mock
 
 from merlin.acoes.clicar import ClicarBotao, e_perigoso
-from merlin.acoes.controles import ResultadoClique, desempatar, escolher_controle
+from merlin.acoes.controles import ResultadoClique, desempatar, e_botao_da_barra_de_titulo, escolher_controle
 from merlin.acoes.janelas import JanelaAberta
 from merlin.estado import EstadoAssistente
 from merlin.ia.confirmacao import RespostaConfirmacao
@@ -105,6 +105,16 @@ class TestPerigo(unittest.TestCase):
             self.assertFalse(e_perigoso(nome), nome)
 
 
+class TestBarraDeTitulo(unittest.TestCase):
+    def test_comandos_da_janela_sao_ignorados(self):
+        for nome in ("Minimizar Calculadora", "Maximizar Calculadora", "Fechar Calculadora", "Close Calculadora"):
+            self.assertTrue(e_botao_da_barra_de_titulo(nome, "Calculadora"), nome)
+
+    def test_botoes_de_verdade_sao_mantidos(self):
+        for nome in ("Fechar", "Fechar aba", "Fechar Calculadora científica", "Limpar", "Minimizar tudo"):
+            self.assertFalse(e_botao_da_barra_de_titulo(nome, "Calculadora"), nome)
+
+
 class TestClicarBotao(unittest.TestCase):
     def setUp(self):
         self.sessao = Sessao(EstadoAssistente(), CanalFalso())
@@ -140,6 +150,13 @@ class TestClicarBotao(unittest.TestCase):
         escolha, regra = raciocinio.desde(0)[2:4]
         self.assertIn("a IA escolheu", dict(escolha.detalhes)["como escolhi"])
         self.assertIs(regra.tipo, TipoPasso.REGRA)
+
+    def test_sem_nome_de_botao_pergunta_qual_sem_ler_a_janela(self):
+        with mock.patch("merlin.acoes.controles.nomes_clicaveis") as ler:
+            r = self._pedir("")
+        self.assertEqual(r.fala, "Em qual botão você quer que eu clique?")
+        ler.assert_not_called()
+        self.clicar.assert_not_called()
 
     def test_botao_comum_clica_direto(self):
         r = self._pedir("imprimir")

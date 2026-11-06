@@ -2,6 +2,6 @@
   "vozes": {
     "merlin": "pt_BR-faber-medium"
   },
-  "personalidade": "merlin",
+  "personalidade": "jarvis",
   "modelo_ia": "qwen3:8b"
 }

@@ -1,6 +1,6 @@
 """Clicar em botão: aperta um botão ou opção de um programa aberto (pergunta antes nos perigosos)."""
 from merlin.habilidades import grupos
-from merlin.habilidades.base import ALVO_ASSISTENTE, Campo, Correcao, Exemplo, Habilidade
+from merlin.habilidades.base import Campo, Correcao, Exemplo, Habilidade
 from merlin.habilidades.frases import comeca_com
 from merlin.personalidades import NOMES_DO_ASSISTENTE
 
@@ -19,9 +19,9 @@ VERBO_CLICAR = comeca_com(
 def regra(leitura):
     if not VERBO_CLICAR.match(leitura.comando):
         return Correcao("conversar", "a frase não começa com uma ordem de clicar: é pergunta ou comentário")
-    if not leitura.alvo or leitura.alvo.lower() in NOMES_DO_ASSISTENTE:
-        return Correcao("ver_botoes", "pediu um clique sem dizer qual botão: vou listar os botões",
-                        alvo=ALVO_ASSISTENTE)
+    if leitura.alvo.lower() in NOMES_DO_ASSISTENTE:
+        # "clica num botão" sem dizer qual: a ação pergunta qual é, em vez de deixar a IA adivinhar
+        return Correcao("clicar_botao", "pediu um clique sem dizer qual botão", alvo="")
     return None
 
 
@@ -53,7 +53,6 @@ HABILIDADE = Habilidade(
         Exemplo("volta pra página anterior no chrome", "voltar", campos={"local": "chrome"}),
         Exemplo("o que acontece se eu clicar em formatar", "formatar", intencao="conversar"),
         Exemplo("vale a pena salvar em pdf", "pdf", intencao="conversar"),
-        Exemplo("toca a música adeus", "música adeus", intencao="conversar"),
     ),
     regra=regra,
     mexe_no_computador=True,
