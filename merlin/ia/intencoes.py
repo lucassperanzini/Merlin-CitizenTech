@@ -1,157 +1,115 @@
-"""Descobre o que a pessoa quer. O modelo escreve primeiro o alvo da frase, e as regras daqui têm a palavra final."""
+"""Descobre o que a pessoa quer. A IA responde a intenção e o alvo; as regras de cada habilidade têm a palavra final.
+
+Tudo o que é específico de um pedido (descrição, exemplos, regras) fica no arquivo da habilidade, em
+merlin/habilidades/. Aqui só há o mecanismo, que funciona igual para qualquer número de habilidades.
+
+Com poucas habilidades, a IA escolhe entre todas de uma vez. Com muitas (ver LIMITE_UMA_ETAPA no config), escolhe
+em duas etapas: primeiro o grupo (programas, tela, internet…) e depois a intenção dentro dele. Assim cada pergunta
+à IA continua curta e com poucas opções parecidas, mesmo que o assistente aprenda muitas coisas.
+"""
 import json
-import re
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from enum import Enum
 
-from merlin.ia.prompts import PROMPT_INTENCAO
-from merlin.personalidades import NOMES_DO_ASSISTENTE
-from merlin.texto import normalizar
+from merlin.config import LIMITE_UMA_ETAPA
+from merlin.habilidades import HABILIDADES, NOME_CONVERSAR
+from merlin.habilidades.base import Leitura
+from merlin.ia import prompt_intencao
 
-ALVO_MERLIN = "merlin"  # o prompt pede este alvo quando a frase é dirigida ao próprio assistente
-ALVOS_JANELA_DO_MERLIN = {"janela", "essajanela", "estajanela", "ajanela"}
-
-# Travas contra a ação oposta: o modelo às vezes confunde "abre" com "cria" e "liga" com "fecha".
-# Elas não decidem a intenção, só vetam o resultado quando a frase começa com o verbo contrário.
-_INICIO_DA_FRASE = (r"^(?:por favor,?\s+|agora\s+|e\s+|(?:voc[eê]\s+)?pode\s+|"
-                    r"(?:eu\s+)?(?:quero|preciso)\s+que\s+(?:voc[eê]\s+)?)*")
-VERBO_ABRIR = re.compile(_INICIO_DA_FRASE + r"(?:abr[ea]|abrir|inici[ae]|iniciar|lig[au]e?|ligar|execut[ae]|executar)\b", re.IGNORECASE)
-# Clicar exige uma ordem: a frase precisa começar pelo verbo, e não por uma pergunta.
-# Além de "clica" e "aperta", valem os verbos que já dizem qual botão é ("dá play", "salva", "pula").
-VERBO_CLICAR = re.compile(
-    _INICIO_DA_FRASE + r"(?:clic[ae]|clique|clicar|apert[ae]|apertar|pression[ae]|pressionar|"
-    r"d[aá] um clique|toc[ae]|toque|tocar|selecion[ae]|selecionar|marc[ae]|marcar|aciona|acione|acionar|"
-    r"d[aá]\s+(?:um\s+)?(?:play|pause|pausa|ok|enter)|play|pause|paus[ae]|pausar|"
-    r"salv[ae]|salvar|confirm[ae]|confirmar|cancel[ae]|cancelar|envi[ae]|enviar|"
-    r"avan[cç][ae]|avan[cç]ar|pul[ae]|pular|volt[ae]|voltar|aceit[ae]|aceitar|continu[ae]|continuar|"
-    r"escolh[ae]|escolher)\b",
-    re.IGNORECASE,
-)
-
-
-# Abrir as configurações do assistente também exige uma ordem, e não pode ser de outra coisa
-PERGUNTA = re.compile(
-    _INICIO_DA_FRASE + r"(?:como|onde|qual|quais|o que|oque|por ?que|cad[eê]|ser[aá] que|d[aá] pra|tem como)\b",
-    re.IGNORECASE,
-)
-CONFIGURACOES_DE_OUTRO = re.compile(
-    r"(?:configura\w*|ajustes?|op[cç][oõ]es|prefer[eê]ncias)\s+d[oae]s?\s+(?!seu\b|sua\b|voc)(\w+)", re.IGNORECASE
-)
-DONOS_DO_SISTEMA = {"windows", "pc", "computador", "sistema", "notebook"}
-
-
-class TipoIntencao(str, Enum):
-    DISPENSAR = "dispensar"
-    ENCERRAR = "encerrar"
-    FECHAR_PROGRAMA = "fechar_programa"
-    ABRIR_PROGRAMA = "abrir_programa"
-    PESQUISAR_WEB = "pesquisar_web"
-    VER_BOTOES = "ver_botoes"
-    CLICAR_BOTAO = "clicar_botao"
-    ABRIR_CONFIGURACOES = "abrir_configuracoes"
-    CONVERSAR = "conversar"
-
+# Gerado a partir das habilidades: TipoIntencao.ABRIR_PROGRAMA, TipoIntencao.CONVERSAR, ...
+TipoIntencao = Enum("TipoIntencao", [(h.nome.upper(), h.nome) for h in HABILIDADES], type=str)
 
 # Pedidos que fazem algo no computador. Conversa, despedida e encerramento não entram aqui.
-ACOES_NO_COMPUTADOR = frozenset({
-    TipoIntencao.FECHAR_PROGRAMA, TipoIntencao.ABRIR_PROGRAMA, TipoIntencao.PESQUISAR_WEB,
-    TipoIntencao.VER_BOTOES, TipoIntencao.CLICAR_BOTAO,
-})
+ACOES_NO_COMPUTADOR = frozenset(TipoIntencao(h.nome) for h in HABILIDADES if h.mexe_no_computador)
+
+MAX_CORRECOES = 4  # uma regra pode levar a outra habilidade, que tem as próprias regras; isto evita ciclos
 
 
 @dataclass(frozen=True)
 class Intencao:
     tipo: TipoIntencao
     alvo: str  # em PESQUISAR_WEB, é o termo a pesquisar
-    comando: str  # a frase original, já sem o nome do Merlin
+    comando: str  # a frase original, já sem o nome do assistente
     local: str = ""  # em CLICAR_BOTAO, o programa onde clicar; vazio = a janela em uso
     # Para a janela de raciocínio: o que o modelo respondeu e, se uma regra do código mudou a decisão, por quê
     resposta_modelo: dict = field(default_factory=dict, compare=False)
     motivo_regra: str = field(default="", compare=False)
-
-
-ESQUEMA_INTENCAO = {
-    "type": "object",
-    "properties": {
-        "alvo": {"type": "string"},
-        "intencao": {"type": "string", "enum": [tipo.value for tipo in TipoIntencao]},
-        "busca": {"type": "string"},
-        "local": {"type": "string"},
-    },
-    "required": ["alvo", "intencao", "busca", "local"],
-}
+    campos: dict = field(default_factory=dict, compare=False)  # dados extras declarados pela habilidade
 
 
 class ClassificadorIntencao:
-    def __init__(self, cliente):
+    def __init__(self, cliente, habilidades=HABILIDADES, duas_etapas: bool | None = None):
+        """duas_etapas=None decide sozinho pelo número de habilidades."""
         self._cliente = cliente
+        self._habilidades = tuple(habilidades)
+        self._por_nome = {h.nome: h for h in self._habilidades}
+        self.duas_etapas = len(self._habilidades) > LIMITE_UMA_ETAPA if duas_etapas is None else duas_etapas
+        self._uma_etapa = self._preparar(self._habilidades)
+        if self.duas_etapas:
+            self._prompt_grupos = prompt_intencao.montar_prompt_grupos(self._habilidades)
+            self._esquema_grupos = prompt_intencao.montar_esquema_grupos(self._habilidades)
+            self._por_grupo = {g.nome: self._preparar(prompt_intencao.habilidades_do_grupo(self._habilidades, g.nome))
+                               for g in prompt_intencao.grupos_em_uso(self._habilidades)}
 
     def classificar(self, comando: str) -> Intencao:
         """Resposta inválida do modelo vira CONVERSAR, para nunca executar uma ação por engano."""
-        resposta = self._cliente.perguntar(
-            [{"role": "system", "content": PROMPT_INTENCAO}, {"role": "user", "content": comando}],
-            formato=ESQUEMA_INTENCAO,
-            opcoes={"temperature": 0},
-        )
+        prompt, esquema, extra = self._uma_etapa[0], self._uma_etapa[1], {}
+        if self.duas_etapas:
+            grupo = self._escolher_grupo(comando)
+            extra = {"grupo": grupo}
+            if grupo is None:
+                return Intencao(TipoIntencao.CONVERSAR, "", comando, motivo_regra="o modelo deu uma resposta inválida")
+            habilidades_do_grupo = self._por_grupo[grupo][2]
+            if [h.nome for h in habilidades_do_grupo] == [NOME_CONVERSAR]:
+                return Intencao(TipoIntencao.CONVERSAR, "", comando, resposta_modelo=extra)  # nada a perguntar
+            prompt, esquema, _ = self._por_grupo[grupo]
+        resposta = self._perguntar(prompt, esquema, comando)
         try:
             dados = json.loads(resposta)
-            tipo = TipoIntencao(dados.get("intencao", TipoIntencao.CONVERSAR))
+            nome = str(dados.get("intencao", NOME_CONVERSAR))
+            if nome not in self._por_nome:
+                raise ValueError(nome)
             alvo = str(dados.get("alvo", "")).strip()
-            busca = str(dados.get("busca", "")).strip()
-            local = str(dados.get("local", "")).strip()
+            campos = {c: str(v).strip() for c, v in dados.items() if c not in ("alvo", "intencao")}
         except (ValueError, AttributeError):
             return Intencao(TipoIntencao.CONVERSAR, "", comando, motivo_regra="o modelo deu uma resposta inválida")
-        if tipo is TipoIntencao.CLICAR_BOTAO:
-            intencao = self._clique(alvo, local, comando)
-        else:
-            intencao = self._aplicar_regras(tipo, alvo, busca, comando)
-        return replace(intencao, resposta_modelo=dados)
+        return self._aplicar_regras(Leitura(nome, alvo, campos, comando), {**extra, **dados})
 
-    @staticmethod
-    def _clique(alvo, local, comando) -> Intencao:
-        if not VERBO_CLICAR.match(comando):
-            return Intencao(TipoIntencao.CONVERSAR, alvo, comando,
-                            motivo_regra="a frase não começa com uma ordem de clicar: é pergunta ou comentário")
-        if not alvo or alvo.lower() in NOMES_DO_ASSISTENTE:
-            return Intencao(TipoIntencao.VER_BOTOES, ALVO_MERLIN, comando,
-                            motivo_regra="pediu um clique sem dizer qual botão: vou listar os botões")
-        return Intencao(TipoIntencao.CLICAR_BOTAO, alvo, comando, local)
+    def _escolher_grupo(self, comando) -> str | None:
+        try:
+            grupo = json.loads(self._perguntar(self._prompt_grupos, self._esquema_grupos, comando)).get("grupo")
+        except (ValueError, AttributeError):
+            return None
+        return grupo if grupo in self._por_grupo else None
 
-    @staticmethod
-    def _aplicar_regras(tipo, alvo, busca, comando) -> Intencao:
-        sobre_merlin = alvo.lower() in NOMES_DO_ASSISTENTE  # "jarvis" também, se a personalidade for o Jarvis
-        motivo = ""
-        if tipo is TipoIntencao.FECHAR_PROGRAMA and VERBO_ABRIR.match(comando):
-            tipo, motivo = TipoIntencao.ABRIR_PROGRAMA, "a frase começa com um verbo de abrir, não de fechar"
-        if tipo is TipoIntencao.FECHAR_PROGRAMA and normalizar(alvo) in ALVOS_JANELA_DO_MERLIN:
-            return Intencao(TipoIntencao.DISPENSAR, ALVO_MERLIN, comando,
-                            motivo_regra="fechar esta janela, sem citar programa, é fechar a janela do assistente")
-        if tipo in (TipoIntencao.DISPENSAR, TipoIntencao.ENCERRAR) and not sobre_merlin:
-            return Intencao(TipoIntencao.CONVERSAR, alvo, comando,
-                            motivo_regra=f"sair só vale quando o alvo é o assistente, e o alvo era '{alvo}'")
-        if tipo is TipoIntencao.FECHAR_PROGRAMA and sobre_merlin:
-            return Intencao(TipoIntencao.DISPENSAR, alvo, comando, motivo_regra="fechar o próprio assistente é dispensá-lo")
-        if tipo is TipoIntencao.ABRIR_PROGRAMA and (sobre_merlin or not alvo):
-            return Intencao(TipoIntencao.CONVERSAR, alvo, comando,
-                            motivo_regra="abrir programa precisa de um programa, e não o próprio assistente")
-        if tipo is TipoIntencao.ABRIR_CONFIGURACOES:
-            return ClassificadorIntencao._configuracoes(alvo, comando)
-        if tipo is TipoIntencao.PESQUISAR_WEB:
-            return Intencao(tipo, busca or comando, comando,
-                            motivo_regra="" if busca else "o modelo não deu o termo da busca: uso a frase inteira")
-        return Intencao(tipo, alvo, comando, motivo_regra=motivo)
+    def _perguntar(self, prompt, esquema, comando) -> str:
+        return self._cliente.perguntar(
+            [{"role": "system", "content": prompt}, {"role": "user", "content": comando}],
+            formato=esquema,
+            opcoes={"temperature": 0},
+        )
 
-    @staticmethod
-    def _configuracoes(alvo, comando) -> Intencao:
-        if PERGUNTA.match(comando):
-            return Intencao(TipoIntencao.CONVERSAR, alvo, comando,
-                            motivo_regra="a frase é uma pergunta, não uma ordem")  # "como abro as configurações do celular?"
-        outro = CONFIGURACOES_DE_OUTRO.search(comando)
-        if outro and outro.group(1).lower() not in NOMES_DO_ASSISTENTE:
-            dono = outro.group(1)
-            if dono.lower() in DONOS_DO_SISTEMA:
-                return Intencao(TipoIntencao.ABRIR_PROGRAMA, "configurações", comando,
-                                motivo_regra=f"são as configurações do {dono}, não as do assistente")
-            return Intencao(TipoIntencao.CONVERSAR, alvo, comando,
-                            motivo_regra=f"são as configurações do {dono}, que eu não sei abrir")
-        return Intencao(TipoIntencao.ABRIR_CONFIGURACOES, ALVO_MERLIN, comando)
+    def _aplicar_regras(self, leitura: Leitura, resposta_modelo: dict) -> Intencao:
+        """Cada habilidade confere a decisão com a própria regra; uma correção pode passar para outra habilidade."""
+        motivos = []
+        for _ in range(MAX_CORRECOES):
+            habilidade = self._por_nome[leitura.intencao]
+            correcao = habilidade.regra(leitura) if habilidade.regra else None
+            if correcao is None:
+                break
+            if correcao.motivo:
+                motivos.append(correcao.motivo)
+            mudou = correcao.intencao != leitura.intencao
+            leitura = Leitura(correcao.intencao, leitura.alvo if correcao.alvo is None else correcao.alvo,
+                              {**leitura.campos, **correcao.campos}, leitura.comando)
+            if not mudou:
+                break
+        final = self._por_nome[leitura.intencao]
+        # Só ficam os dados que a habilidade final declara: um "local" sobrando de outra não vale
+        campos = {c.nome: leitura.campos.get(c.nome, "") for c in final.campos}
+        return Intencao(TipoIntencao(final.nome), leitura.alvo, leitura.comando, campos.get("local", ""),
+                        resposta_modelo=resposta_modelo, motivo_regra="; ".join(motivos), campos=campos)
+
+    def _preparar(self, habilidades):
+        habilidades = list(habilidades)
+        return prompt_intencao.montar_prompt(habilidades), prompt_intencao.montar_esquema(habilidades), habilidades

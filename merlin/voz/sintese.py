@@ -5,7 +5,8 @@ import wave
 import numpy as np
 from piper import PiperVoice, SynthesisConfig
 
-from merlin.config import EFEITOS_VOZ, PASTA_VOZES
+from merlin.config import PASTA_VOZES
+from merlin.voz.catalogo import efeito_da_voz
 from merlin.voz.efeitos import aplicar_efeito, cortar_silencio
 
 
@@ -18,7 +19,7 @@ class Sintetizador:
 
     def gerar(self, texto: str, voz: str, arquivo: str) -> None:
         """Sintetiza o texto em um WAV, sem o silêncio das pontas, aplicando o efeito quando a voz tiver um."""
-        efeito = EFEITOS_VOZ.get(voz)
+        efeito = efeito_da_voz(voz)
         configuracao = SynthesisConfig(length_scale=efeito.lentidao) if efeito else None
         memoria = io.BytesIO()
         with wave.open(memoria, "wb") as saida:
@@ -33,7 +34,8 @@ class Sintetizador:
         self._gravar(arquivo, aplicar_efeito(amostras, taxa, efeito) if efeito else amostras, taxa)
 
     def _obter_modelo(self, voz):
-        nome = EFEITOS_VOZ[voz].modelo if voz in EFEITOS_VOZ else voz
+        efeito = efeito_da_voz(voz)
+        nome = efeito.modelo if efeito else voz
         if nome not in self._modelos:
             self._modelos[nome] = PiperVoice.load(str(PASTA_VOZES / f"{nome}.onnx"))
         return self._modelos[nome]

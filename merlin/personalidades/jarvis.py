@@ -1,4 +1,12 @@
-"""Textos da personalidade Jarvis: um mordomo digital educado, preciso e com humor sutil."""
+"""Personalidade Jarvis: um mordomo digital educado, preciso e com humor sutil.
+
+Tudo dele fica aqui: nome, palavras de ativação, voz, som, aparência e os textos que a IA usa para falar.
+"""
+from merlin.config import PASTA_RAIZ
+from merlin.personalidades.base import ConjuntoFrases, Personalidade, VozPropria
+from merlin.voz.efeitos import EfeitoVoz
+
+ORDEM = 2  # posição no seletor das configurações
 
 TRATAMENTO = "senhor"  # como o Jarvis chama a pessoa; mude aqui se preferir outro
 
@@ -94,3 +102,26 @@ ENCERRAMENTOS_RESERVA = (
 
 APRESENTACAO = "Jarvis online. Às suas ordens, senhor."
 DICA_DE_VOCABULARIO = "Jarvis, abra o navegador. Jarvis, pesquise na internet."
+
+
+PERSONALIDADE = Personalidade(
+    id="jarvis",
+    nome="Jarvis",
+    palavras_ativacao=("jarvis", "jarves", "jervis", "jarvas", "javis", "djarvis", "yarvis", "jarbas"),
+    voz_padrao="jarvis_digital",
+    vozes_proprias=(
+        # Um pouco mais grave e com uma reflexão curta, como uma voz saindo de alto-falantes
+        VozPropria("Jarvis (digital)", "jarvis_digital",
+                   EfeitoVoz(modelo="pt_BR-cadu-medium", tom=0.96, lentidao=0.95, tremor=0.0, eco=0.08)),
+    ),
+    visual="esfera",
+    som_ativacao=PASTA_RAIZ / "recursos" / "ativacao_jarvis.wav",
+    apresentacao=APRESENTACAO,
+    dica_vocabulario=DICA_DE_VOCABULARIO,
+    prompt_conversa=PROMPT_CONVERSA,
+    saudacao=ConjuntoFrases(PROMPT_SAUDACAO, TEMAS_SAUDACAO, SAUDACOES_RESERVA, EXEMPLOS_SAUDACAO),
+    despedida=ConjuntoFrases(PROMPT_DESPEDIDA, TEMAS_DESPEDIDA, DESPEDIDAS_RESERVA, EXEMPLOS_DESPEDIDA,
+                             sem_perguntas=True, tamanho_maximo=120),
+    encerramento=ConjuntoFrases(PROMPT_ENCERRAMENTO, TEMAS_DESPEDIDA, ENCERRAMENTOS_RESERVA, EXEMPLOS_ENCERRAMENTO,
+                                sem_perguntas=True, tamanho_maximo=120),
+)

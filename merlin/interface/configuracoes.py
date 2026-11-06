@@ -2,10 +2,11 @@
 import logging
 import threading
 
-from merlin.config import ARQ_CONFIGURACOES, VOZES
+from merlin.config import ARQ_CONFIGURACOES
 from merlin.ia.cliente import listar_modelos
 from merlin.interface.janela_auxiliar import JanelaAuxiliar
 from merlin.personalidades import PERSONALIDADES
+from merlin.voz.catalogo import todas_as_vozes
 
 logger = logging.getLogger(__name__)
 
@@ -31,13 +32,14 @@ class ServicoConfiguracoes:
             logger.warning("[CONFIG] Não consegui listar os modelos do Ollama: %s", erro)
             modelos, erro_modelos = [], "Não consegui falar com o Ollama. Verifique se ele está aberto."
         atual = self._preferencias.modelo_ia
+        vozes = todas_as_vozes()
         if atual not in [m["nome"] for m in modelos]:
             modelos.insert(0, {"nome": atual, "detalhe": "não encontrado no Ollama"})
         return {
             "personalidades": [{"id": p.id, "nome": p.nome} for p in PERSONALIDADES.values()],
             "personalidade": self._preferencias.personalidade.id,
-            "vozes": list(VOZES),
-            "voz": next((r for r, v in VOZES.items() if v == self._preferencias.voz), list(VOZES)[0]),
+            "vozes": list(vozes),
+            "voz": next((r for r, v in vozes.items() if v == self._preferencias.voz), list(vozes)[0]),
             "modelos": modelos,
             "modelo": atual,
             "erro_modelos": erro_modelos,
@@ -52,8 +54,9 @@ class ServicoConfiguracoes:
         return self.estado_atual()  # a voz mostrada muda junto: cada personalidade tem a sua
 
     def trocar_voz(self, rotulo: str) -> None:
-        if rotulo in VOZES:
-            self._preferencias.voz = VOZES[rotulo]
+        vozes = todas_as_vozes()
+        if rotulo in vozes:
+            self._preferencias.voz = vozes[rotulo]
             self._canal.personalidade()
             self._falar("Olá, esta é a minha nova voz.")
 

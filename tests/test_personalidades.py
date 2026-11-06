@@ -3,11 +3,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from merlin.config import VOZES
 from merlin.ia.intencoes import ClassificadorIntencao, TipoIntencao
-from merlin.personalidades import JARVIS, MERLIN, PERSONALIDADES
+from merlin.personalidades import PERSONALIDADES
+from merlin.personalidades.jarvis import PERSONALIDADE as JARVIS
+from merlin.personalidades.merlin import PERSONALIDADE as MERLIN
 from merlin.preferencias import Preferencias
 from merlin.texto import remover_palavra_ativacao, tem_palavra_ativacao
+from merlin.voz.catalogo import todas_as_vozes
 from merlin.voz.envelope import envelope_do_audio
 from tests.falsos import ClienteFalso
 
@@ -53,7 +55,7 @@ class TestPreferencias(unittest.TestCase):
 class TestPersonalidades(unittest.TestCase):
     def test_vozes_padrao_existem_no_seletor(self):
         for p in PERSONALIDADES.values():
-            self.assertIn(p.voz_padrao, VOZES.values(), p.id)
+            self.assertIn(p.voz_padrao, todas_as_vozes().values(), p.id)
 
     def test_sons_existem_e_tem_volume(self):
         for p in PERSONALIDADES.values():

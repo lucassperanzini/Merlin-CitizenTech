@@ -1,7 +1,19 @@
 """Efeitos sonoros aplicados sobre um áudio já sintetizado."""
+from dataclasses import dataclass
+
 import numpy as np
 
-from merlin.config import EfeitoVoz
+
+@dataclass(frozen=True)
+class EfeitoVoz:
+    """Voz criada com efeitos sobre um modelo existente."""
+
+    modelo: str
+    tom: float  # menor = mais grave (também deixa a fala mais lenta)
+    lentidao: float  # maior = fala mais devagar, sem mudar o tom
+    tremor: float  # intensidade do tremor de voz idosa (0 = sem tremor)
+    eco: float  # intensidade do eco, como numa sala de pedra (0 = sem eco)
+
 
 FREQUENCIA_TREMOR = 5.5
 PICO_MAXIMO = 0.95

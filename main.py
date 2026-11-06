@@ -5,21 +5,14 @@ import threading
 from dataclasses import dataclass
 
 import merlin  # noqa: F401  (ativa o modo offline antes de importar as bibliotecas de modelos)
-from merlin.acoes.abrir_programa import AbrirPrograma
-from merlin.acoes.clicar import ClicarBotao
-from merlin.acoes.conversar import Conversar
-from merlin.acoes.fechar_programa import FecharPrograma
-from merlin.acoes.sessao import AbrirConfiguracoes, Dispensar, Encerrar
-from merlin.acoes.ver_botoes import VerBotoes
-from merlin.acoes.web import PesquisarWeb
 from merlin.audio.ouvinte import Ouvinte
 from merlin.audio.transcricao import Transcritor
 from merlin.config import ARQ_PREFERENCIAS, DIAS_DE_REGISTRO, PASTA_REGISTROS
 from merlin.estado import EstadoAssistente
+from merlin.habilidades import HABILIDADES
+from merlin.habilidades.base import Recursos
 from merlin.ia.cliente import ClienteIA
 from merlin.ia.confirmacao import ClassificadorConfirmacao
-from merlin.ia.conversa import Conversa
-from merlin.ia.escolha_botao import EscolhedorBotao
 from merlin.ia.divisao import DivisorTarefas
 from merlin.ia.intencoes import ClassificadorIntencao, TipoIntencao
 from merlin.ia.frases import GeradorFrases
@@ -55,23 +48,13 @@ class Aplicacao:
     janela: JanelaMerlin
 
 
-def construir_acoes(sessao, estado, cliente_ia, memoria, preferencias, canal, raciocinio):
-    """Para o Merlin aprender algo novo: crie a ação em merlin/acoes, registre aqui e descreva a intenção à IA.
+def construir_acoes(recursos: Recursos) -> dict:
+    """Uma ação para cada habilidade de merlin/habilidades/. Para o assistente aprender algo novo, crie um arquivo
+    lá (com a ação em merlin/acoes/): ele entra aqui, no prompt da IA e nas regras sozinho.
 
     Cada ação só executa e devolve um Resultado; o processador monta a resposta falada de todas as tarefas.
     """
-    pesquisa = PesquisarWeb()
-    return {
-        TipoIntencao.DISPENSAR: Dispensar(sessao, GeradorFrases(cliente_ia, lambda: preferencias.personalidade.despedida)),
-        TipoIntencao.ENCERRAR: Encerrar(estado, GeradorFrases(cliente_ia, lambda: preferencias.personalidade.encerramento)),
-        TipoIntencao.FECHAR_PROGRAMA: FecharPrograma(),
-        TipoIntencao.ABRIR_PROGRAMA: AbrirPrograma(pesquisa),
-        TipoIntencao.PESQUISAR_WEB: pesquisa,
-        TipoIntencao.VER_BOTOES: VerBotoes(raciocinio),
-        TipoIntencao.CLICAR_BOTAO: ClicarBotao(sessao, EscolhedorBotao(cliente_ia), raciocinio),
-        TipoIntencao.ABRIR_CONFIGURACOES: AbrirConfiguracoes(canal),
-        TipoIntencao.CONVERSAR: Conversar(Conversa(cliente_ia, memoria, preferencias)),
-    }
+    return {TipoIntencao(h.nome): h.criar_acao(recursos) for h in HABILIDADES}
 
 
 def construir_aplicacao() -> Aplicacao:
@@ -96,7 +79,7 @@ def construir_aplicacao() -> Aplicacao:
         classificador=ClassificadorIntencao(cliente_ia),
         confirmador=ClassificadorConfirmacao(cliente_ia),
         saudacao=GeradorFrases(cliente_ia, lambda: preferencias.personalidade.saudacao),
-        acoes=construir_acoes(sessao, estado, cliente_ia, memoria, preferencias, canal, raciocinio),
+        acoes=construir_acoes(Recursos(estado, sessao, canal, cliente_ia, memoria, preferencias, raciocinio)),
         memoria=memoria,
         preferencias=preferencias,
         raciocinio=raciocinio,

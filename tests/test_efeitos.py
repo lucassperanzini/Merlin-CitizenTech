@@ -2,8 +2,10 @@ import unittest
 
 import numpy as np
 
-from merlin.config import EFEITOS_VOZ, VOZES, EfeitoVoz
-from merlin.voz.efeitos import aplicar_efeito, cortar_silencio
+from merlin.config import PASTA_VOZES
+from merlin.personalidades import PERSONALIDADES
+from merlin.voz.catalogo import efeito_da_voz, todas_as_vozes
+from merlin.voz.efeitos import EfeitoVoz, aplicar_efeito, cortar_silencio
 
 TAXA = 22050
 
@@ -31,9 +33,16 @@ class TestEfeitos(unittest.TestCase):
     def test_silencio_total_fica_como_esta(self):
         self.assertEqual(len(cortar_silencio(np.zeros(100), TAXA)), 100)
 
-    def test_toda_voz_com_efeito_esta_no_seletor(self):
-        for voz in EFEITOS_VOZ:
-            self.assertIn(voz, VOZES.values())
+    def test_vozes_proprias_das_personalidades_estao_no_seletor(self):
+        vozes = todas_as_vozes()
+        for p in PERSONALIDADES.values():
+            for propria in p.vozes_proprias:
+                self.assertEqual(vozes[propria.rotulo], propria.id)
+                self.assertIs(efeito_da_voz(propria.id), propria.efeito)
+                self.assertTrue((PASTA_VOZES / f"{propria.efeito.modelo}.onnx").is_file(), propria.efeito.modelo)
+
+    def test_voz_do_piper_nao_tem_efeito(self):
+        self.assertIsNone(efeito_da_voz("pt_BR-faber-medium"))
 
 
 if __name__ == "__main__":

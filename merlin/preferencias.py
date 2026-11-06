@@ -3,8 +3,9 @@ import json
 import logging
 from pathlib import Path
 
-from merlin.config import MODELO_IA, VOZES
+from merlin.config import MODELO_IA
 from merlin.personalidades import PERSONALIDADE_PADRAO, PERSONALIDADES, Personalidade
+from merlin.voz.catalogo import todas_as_vozes
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class Preferencias:
         """A voz da personalidade atual."""
         personalidade = self.personalidade
         voz = self._dados.get("vozes", {}).get(personalidade.id, personalidade.voz_padrao)
-        return voz if voz in VOZES.values() else personalidade.voz_padrao
+        return voz if voz in todas_as_vozes().values() else personalidade.voz_padrao
 
     @voz.setter
     def voz(self, voz: str) -> None:
