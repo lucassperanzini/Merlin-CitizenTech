@@ -4,28 +4,32 @@
 <meta charset="utf-8">
 <title>Raciocínio</title>
 <style>
+  /* Cada pedido é um cartão: o que a pessoa disse em destaque e, embaixo, a linha do tempo do que a IA fez.
+     Cada tipo de passo tem uma cor fixa; o que é técnico fica recolhido. */
   :root {
     --fundo: #05070c;
     --painel: #0b1019;
     --borda: #1b2638;
+    --linha: #16202f;
     --texto: #dbe6ff;
     --suave: #8a97b3;
+    --apagado: #5b6780;
     --ouvi: #dbe6ff;
     --tarefas: #9fb4d9;
     --intencao: #35d6ff;
     --regra: #ffb648;
     --janela: #b18cff;
     --escolha: #52f2a8;
-    --acao: #dbe6ff;
+    --acao: #7fd4ff;
     --fala: #52f2a8;
-    --erro: #ff8a7a;
+    --erro: #ff7a7a;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   body {
     display: flex; flex-direction: column;
     background: var(--fundo); color: var(--texto);
-    font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+    font: 13.5px/1.45 "Segoe UI", system-ui, sans-serif;
   }
   header {
     display: flex; align-items: center; gap: 10px; flex: none;
@@ -37,39 +41,101 @@
     padding: 6px 12px; border-radius: 7px; border: 1px solid var(--borda);
     background: #0e1522; color: var(--texto); font: inherit; font-size: 13px; cursor: pointer;
   }
+  button:hover { border-color: #2a3a55; }
   button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--intencao); outline-offset: 1px; }
 
-  #lista { flex: 1; overflow-y: auto; padding: 14px 18px 24px; }
+  #lista { flex: 1; overflow-y: auto; padding: 14px 16px 24px; }
   #vazio { color: var(--suave); text-align: center; margin-top: 60px; line-height: 1.7; }
 
+  /* O pedido */
   .pedido {
-    background: var(--painel); border: 1px solid var(--borda); border-radius: 10px;
-    padding: 10px 14px 12px; margin-bottom: 12px;
+    background: var(--painel); border: 1px solid var(--borda); border-radius: 12px;
+    margin-bottom: 12px; overflow: hidden; transition: opacity .3s;
   }
-  .passo { display: grid; grid-template-columns: 82px 1fr; gap: 2px 10px; padding: 5px 0; }
-  .passo + .passo { border-top: 1px solid #121a28; }
-  .rotulo { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding-top: 2px; }
-  .texto { overflow-wrap: anywhere; }
-  .hora { color: var(--suave); font-size: 12px; margin-left: 6px; }
-  .detalhes { grid-column: 2; display: grid; grid-template-columns: max-content 1fr; gap: 1px 10px; font-size: 13px; }
-  .detalhes dt { color: var(--suave); }
-  .detalhes dd { margin: 0; overflow-wrap: anywhere; }
-  details summary { cursor: pointer; color: var(--suave); }
-  details[open] summary { margin-bottom: 4px; }
-  .nomes { display: flex; flex-wrap: wrap; gap: 4px; }
-  .nomes span { background: #0e1522; border: 1px solid var(--borda); border-radius: 5px; padding: 0 6px; font-size: 12.5px; }
+  .pedido.antigo { opacity: .6; }
+  .pedido.antigo:hover { opacity: 1; }
+  .cabeca { padding: 11px 14px 10px; border-bottom: 1px solid var(--linha); }
+  .cabeca .topo { display: flex; align-items: flex-start; gap: 10px; }
+  .disse { flex: 1; font-size: 15px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+  .disse::before { content: "“"; color: var(--apagado); }
+  .disse::after { content: "”"; color: var(--apagado); }
+  .selo {
+    flex: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 1px; padding: 1px 8px;
+    border-radius: 99px; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--apagado); border: 1px solid var(--borda);
+  }
+  .selo.ok { color: var(--fala); border-color: color-mix(in srgb, var(--fala) 40%, transparent); }
+  .selo.erro { color: var(--erro); border-color: color-mix(in srgb, var(--erro) 45%, transparent); }
+  .selo.andamento::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--intencao);
+    animation: piscar 1s ease-in-out infinite;
+  }
+  @keyframes piscar { 50% { opacity: .25; } }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 5px; font-size: 11.5px; color: var(--apagado); }
+  .meta b { font-weight: 400; color: var(--suave); }
 
-  .ouvi .rotulo { color: var(--ouvi); }
-  .ouvi .texto { font-size: 15px; font-weight: 600; }
-  .confirmacao .rotulo, .tarefas .rotulo { color: var(--tarefas); }
-  .intencao .rotulo { color: var(--intencao); }
-  .regra .rotulo { color: var(--regra); }
-  .janela .rotulo, .botoes .rotulo { color: var(--janela); }
-  .escolha .rotulo { color: var(--escolha); }
-  .acao .rotulo { color: var(--acao); }
-  .fala .rotulo { color: var(--fala); }
-  .fala .texto { font-style: italic; }
-  .erro .rotulo, .erro .texto { color: var(--erro); }
+  /* A linha do tempo dos passos */
+  .passos { list-style: none; margin: 0; padding: 8px 14px 12px; }
+  .passo { position: relative; padding: 6px 0 6px 20px; }
+  .passo::before {  /* o fio que liga um passo ao próximo */
+    content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 1px; background: var(--linha);
+  }
+  .passo:first-child::before { top: 12px; }
+  .passo:last-child::before { bottom: calc(100% - 12px); }
+  .marcador {
+    position: absolute; left: 0; top: 10px; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--cor); box-shadow: 0 0 0 3px var(--painel), 0 0 8px color-mix(in srgb, var(--cor) 60%, transparent);
+  }
+  .linha1 { display: flex; align-items: baseline; gap: 8px; }
+  .rotulo {
+    flex: none; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--cor);
+  }
+  .texto { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .tempo { flex: none; margin-left: auto; font-size: 11px; color: var(--apagado); font-variant-numeric: tabular-nums; }
+  .nota { margin-top: 2px; font-size: 12px; color: var(--suave); overflow-wrap: anywhere; }
+
+  .etiqueta {
+    display: inline-block; padding: 1px 9px; border-radius: 99px; font-size: 12px; font-weight: 600;
+    color: var(--cor); background: color-mix(in srgb, var(--cor) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cor) 35%, transparent);
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .chip {
+    padding: 0 7px; border-radius: 5px; font-size: 12px; background: #0e1522; border: 1px solid var(--borda);
+    overflow-wrap: anywhere;
+  }
+  .chip i { font-style: normal; color: var(--apagado); }
+  details { margin-top: 4px; font-size: 12px; }
+  details summary { cursor: pointer; color: var(--apagado); width: fit-content; }
+  details summary:hover { color: var(--suave); }
+  details[open] summary { margin-bottom: 4px; }
+  details .cru { color: var(--suave); overflow-wrap: anywhere; }
+
+  /* Alertas: regra do código (laranja) e erro (vermelho) */
+  .passo.regra .caixa, .passo.erro .caixa {
+    margin-top: 4px; padding: 6px 10px; border-radius: 8px; font-size: 12.5px;
+    background: color-mix(in srgb, var(--cor) 9%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cor) 30%, transparent);
+  }
+  .passo.regra .caixa b, .passo.erro .caixa b { display: block; font-weight: 600; color: var(--cor); }
+  .passo.regra .caixa span, .passo.erro .caixa span { color: var(--suave); }
+
+  /* A resposta falada, como um balão */
+  .balao {
+    margin-top: 4px; padding: 7px 11px; border-radius: 10px; border-bottom-left-radius: 3px;
+    background: color-mix(in srgb, var(--fala) 9%, transparent);
+    border: 1px solid color-mix(in srgb, var(--fala) 28%, transparent); overflow-wrap: anywhere;
+  }
+
+  .ouvi { --cor: var(--ouvi); }
+  .confirmacao, .tarefas { --cor: var(--tarefas); }
+  .intencao { --cor: var(--intencao); }
+  .regra { --cor: var(--regra); }
+  .janela, .botoes { --cor: var(--janela); }
+  .escolha { --cor: var(--escolha); }
+  .acao { --cor: var(--acao); }
+  .fala { --cor: var(--fala); }
+  .erro { --cor: var(--erro); }
 </style>
 </head>
 <body>
@@ -80,61 +146,156 @@
     <button id="limpar" type="button" title="Limpa a tela; os registros guardados continuam na pasta">Limpar</button>
   </header>
   <main id="lista" aria-live="polite">
-    <p id="vazio">Nada ainda.<br>Fale com o assistente e cada passo aparece aqui:<br>
-      o que ele ouviu, a intenção que identificou, os botões que viu e o que fez.</p>
+    <p id="vazio">Nada ainda.<br>Fale com o assistente e cada pedido aparece aqui:<br>
+      o que você disse, o que a IA entendeu, o que ela fez e o que respondeu.</p>
   </main>
 
 <script>
+  // Nomes simples para cada passo (o tipo vem de merlin/nucleo/raciocinio.py)
   const ROTULOS = {
-    ouvi: "Ouvi", confirmacao: "Resposta", tarefas: "Tarefas", intencao: "Intenção", regra: "Regra",
-    janela: "Janela", botoes: "Botões", escolha: "Escolha", acao: "Fiz", fala: "Falei", erro: "Erro",
+    confirmacao: "Confirmação", tarefas: "Dividiu", intencao: "Entendeu", regra: "Regra",
+    janela: "Janela", botoes: "Botões", escolha: "Escolheu", acao: "Executou", fala: "Respondeu", erro: "Erro",
   };
-  const LISTAS = new Set(["nomes", "candidatos", "partes"]);  // viram etiquetas; a de botões fica recolhida
+  // Detalhes que viram chips curtos; os demais têm lugar próprio no desenho de cada passo
+  const CHIPS = { alvo: "alvo", programa: "programa" };
   const lista = document.getElementById("lista");
   const vazio = document.getElementById("vazio");
   const seguir = document.getElementById("seguir");
   let ultimo = 0;
-  let pedidoAtual = null;
+  let pedido = null;  // { secao, passos, selo }
 
-  function elemento(tag, classe, texto) {
+  function el(tag, classe, texto) {
     const e = document.createElement(tag);
     if (classe) e.className = classe;
-    if (texto !== undefined) e.textContent = texto;  // sempre texto: nada vindo de fora vira HTML
+    if (texto !== undefined && texto !== null) e.textContent = texto;  // sempre texto: nada de fora vira HTML
     return e;
   }
+  const detalhesDe = p => Object.fromEntries(p.detalhes);
+  // "“abre o chrome” → abrir_programa": o que veio depois da seta
+  const depoisDaSeta = texto => (texto.split("→").pop() || "").trim();
+  const legivel = nome => nome.replace(/_/g, " ");
 
-  function valor(nome, texto) {
-    if (!LISTAS.has(nome)) return elemento("dd", "", texto);
-    const itens = texto.split(", ");
-    const caixa = elemento("div", "nomes");
-    for (const item of itens) caixa.append(elemento("span", "", item));
-    if (nome !== "nomes" || itens.length <= 6) return dentroDeDd(caixa);
-    const detalhes = elemento("details");
-    detalhes.append(elemento("summary", "", `ver os ${itens.length}`), caixa);
-    return dentroDeDd(detalhes);
+  function chips(pares) {
+    const caixa = el("div", "chips");
+    for (const [nome, valor] of pares) {
+      const chip = el("span", "chip");
+      if (nome) chip.append(el("i", "", nome + ": "));
+      chip.append(valor);
+      caixa.append(chip);
+    }
+    return caixa;
   }
-  function dentroDeDd(filho) {
-    const dd = elemento("dd");
-    dd.append(filho);
-    return dd;
+  function recolhido(resumo, conteudo) {
+    const d = el("details");
+    d.append(el("summary", "", resumo), conteudo);
+    return d;
+  }
+
+  function novoPedido(p) {
+    lista.querySelectorAll(".pedido").forEach(s => s.classList.add("antigo"));
+    const d = detalhesDe(p);
+    const secao = el("section", "pedido");
+    const cabeca = el("div", "cabeca");
+    const topo = el("div", "topo");
+    const selo = el("span", "selo andamento", "pensando");
+    topo.append(el("div", "disse", p.texto), selo);
+    const meta = el("div", "meta");
+    const item = (rotulo, valor) => { const s = el("span"); s.append(rotulo + " ", el("b", "", valor)); meta.append(s); };
+    meta.append(el("span", "", p.hora));
+    if (d.modelo) item("modelo", d.modelo);
+    if (d["ativou agora"]) meta.append(el("span", "", "chamou o assistente"));
+    if (d.comando) item("sem o nome:", d.comando);
+    cabeca.append(topo, meta);
+    const passos = el("ol", "passos");
+    secao.append(cabeca, passos);
+    lista.append(secao);
+    return { secao, passos, selo };
+  }
+
+  function conteudoDoPasso(p, corpo) {
+    const d = detalhesDe(p);
+    const linha1 = el("div", "linha1");
+    linha1.append(el("span", "rotulo", ROTULOS[p.tipo] || p.tipo));
+    const texto = el("span", "texto");
+    linha1.append(texto);
+    if (d.tempo) linha1.append(el("span", "tempo", d.tempo));
+    corpo.append(linha1);
+
+    switch (p.tipo) {
+      case "intencao": {
+        texto.append(el("span", "etiqueta", legivel(depoisDaSeta(p.texto))));
+        const pares = Object.entries(CHIPS).filter(([chave]) => d[chave]).map(([chave, rotulo]) => [rotulo, d[chave]]);
+        if (pares.length) corpo.append(chips(pares));
+        const pedidoDaParte = (p.texto.split("→")[0] || "").trim();
+        if (pedidoDaParte && pedido.dividido) corpo.append(el("div", "nota", `na parte ${pedidoDaParte}`));
+        if (d["resposta do modelo"]) corpo.append(recolhido("o que o modelo respondeu", el("div", "cru", d["resposta do modelo"])));
+        break;
+      }
+      case "escolha": {
+        texto.append(el("span", "etiqueta", depoisDaSeta(p.texto)));
+        if (d["como escolhi"]) corpo.append(el("div", "nota", d["como escolhi"]));
+        if (d.candidatos) corpo.append(chips(d.candidatos.split(", ").map(c => ["", c])));
+        break;
+      }
+      case "tarefas": {
+        const partes = d.partes ? d.partes.split(", ") : [];
+        texto.textContent = partes.length ? `em ${partes.length} tarefas` : p.texto;
+        if (partes.length) corpo.append(chips(partes.map(c => ["", c])));
+        break;
+      }
+      case "regra":
+      case "erro": {
+        const caixa = el("div", "caixa");
+        caixa.append(el("b", "", p.texto));
+        const motivo = d.motivo || d.erro;
+        if (motivo) caixa.append(el("span", "", motivo));
+        corpo.append(caixa);
+        break;
+      }
+      case "fala":
+        corpo.append(el("div", "balao", p.texto));
+        if (d.motivo) corpo.append(el("div", "nota", d.motivo));
+        break;
+      case "janela":
+        texto.textContent = p.texto.replace(/^Janela:\s*/, "");
+        if (d.titulo) corpo.append(el("div", "nota", d.titulo));
+        if (d["como escolhi"]) corpo.append(el("div", "nota", `escolhida por ser ${d["como escolhi"]}`));
+        break;
+      case "botoes": {
+        texto.textContent = p.texto;
+        if (d.nomes) corpo.append(recolhido("ver os nomes", chips(d.nomes.split(", ").map(c => ["", c]))));
+        break;
+      }
+      case "confirmacao":
+        texto.textContent = p.texto;
+        if (d.pergunta) corpo.append(el("div", "nota", d.pergunta));
+        break;
+      default:
+        texto.textContent = p.texto;
+    }
   }
 
   function desenhar(p) {
-    if (p.tipo === "ouvi" || !pedidoAtual) {
-      pedidoAtual = elemento("section", "pedido");
-      lista.append(pedidoAtual);
+    if (p.tipo === "ouvi" || !pedido) {
+      pedido = novoPedido(p.tipo === "ouvi" ? p : { ...p, texto: "", detalhes: [] });
+      if (p.tipo === "ouvi") return;
     }
-    const linha = elemento("div", `passo ${p.tipo}`);
-    const rotulo = elemento("div", "rotulo", ROTULOS[p.tipo] || p.tipo);
-    const texto = elemento("div", "texto", p.texto);
-    if (p.tipo === "ouvi") texto.append(elemento("span", "hora", p.hora));
-    linha.append(rotulo, texto);
-    if (p.detalhes.length) {
-      const dl = elemento("dl", "detalhes");
-      for (const [nome, v] of p.detalhes) dl.append(elemento("dt", "", nome), valor(nome, v));
-      linha.append(dl);
+    // "Uma tarefa só" não informa nada: só aparece quando a frase foi dividida
+    if (p.tipo === "tarefas" && !detalhesDe(p).partes) return;
+    if (p.tipo === "tarefas") pedido.dividido = true;
+    const item = el("li", `passo ${p.tipo}`);
+    item.append(el("span", "marcador"));
+    const corpo = el("div", "corpo");
+    conteudoDoPasso(p, corpo);
+    item.append(corpo);
+    pedido.passos.append(item);
+    if (p.tipo === "fala" && !pedido.selo.classList.contains("erro")) {
+      pedido.selo.className = "selo ok";
+      pedido.selo.textContent = "✓ respondeu";
+    } else if (p.tipo === "erro") {
+      pedido.selo.className = "selo erro";
+      pedido.selo.textContent = "✕ erro";
     }
-    pedidoAtual.append(linha);
   }
 
   async function buscar() {
@@ -156,7 +317,7 @@
     await window.pywebview.api.limpar();
     lista.replaceChildren(vazio);
     vazio.hidden = false;
-    pedidoAtual = null;
+    pedido = null;
   });
   const botaoPasta = document.getElementById("pasta");
   botaoPasta.addEventListener("click", () => window.pywebview.api.abrir_pasta());

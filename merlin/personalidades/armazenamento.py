@@ -52,13 +52,17 @@ def para_dados(p: Personalidade) -> dict:
         "visual": p.visual, "cor": p.cor, "som": som,
         "apresentacao": p.apresentacao, "dica_vocabulario": p.dica_vocabulario, "prompt_conversa": p.prompt_conversa,
     }
-    for parte in ("saudacao", "despedida", "encerramento"):
+    for parte in PARTES:
         c: ConjuntoFrases = getattr(p, parte)
         dados[parte] = {"prompt": c.prompt, "temas": list(c.temas), "reservas": list(c.reservas),
                         "exemplos": [e for e in c.exemplos if e], "exige_nome": c.exige_nome or "",
                         "sem_perguntas": c.sem_perguntas, "proibir_tratamentos": c.proibir_tratamentos,
                         "tamanho_maximo": c.tamanho_maximo}
     return dados
+
+
+# Os conjuntos de frases de cada assistente. Um "encerramento" em arquivos antigos é ignorado.
+PARTES = ("saudacao", "despedida")
 
 
 def de_dados(dados: dict, base: Personalidade | None = None) -> Personalidade:
@@ -89,7 +93,7 @@ def de_dados(dados: dict, base: Personalidade | None = None) -> Personalidade:
     if not 0 <= frequencia <= 1:
         raise DadosInvalidos("A frequência das expressões precisa ser de 0 a 1.")
     conjuntos = {parte: _conjunto(dados.get(parte) or {}, parte, expressoes, frequencia)
-                 for parte in ("saudacao", "despedida", "encerramento")}
+                 for parte in PARTES}
     if not str(dados.get("prompt_conversa", "")).strip():
         raise DadosInvalidos("Descreva como o assistente conversa.")
     return Personalidade(
@@ -113,7 +117,7 @@ def de_dados(dados: dict, base: Personalidade | None = None) -> Personalidade:
     )
 
 
-NOMES_PARTES = {"saudacao": "saudações", "despedida": "despedidas", "encerramento": "despedidas ao desligar"}
+NOMES_PARTES = {"saudacao": "saudações", "despedida": "despedidas"}
 
 
 def ajustar_frase(frase: str) -> str:

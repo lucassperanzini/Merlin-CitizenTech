@@ -12,10 +12,9 @@ FRASES = [
     ("já resolvi, obrigado", "dispensar", None),
     ("tchau", "dispensar", None),
     ("some daqui", "dispensar", None),
-    # encerrar
-    ("desliga você mesmo de vez", "encerrar", None),
-    ("encerra o assistente por completo", "encerrar", None),
-    ("para de escutar e fecha tudo de você", "encerrar", None),
+    # dispensar também cobre "desligar": o assistente volta para a espera
+    ("desliga você mesmo", "dispensar", None),
+    ("pode desligar agora", "dispensar", None),
     # fechar_programa
     ("fecha o spotify", "fechar_programa", "spotify"),
     ("encerra o excel", "fechar_programa", "excel"),
@@ -41,6 +40,11 @@ FRASES = [
     ("confirma", "clicar_botao", None),
     ("clica em cancelar no word", "clicar_botao", "cancelar"),
     ("seleciona a opção lembrar de mim", "clicar_botao", None),
+    # trocar_assistente
+    ("muda pro jarvis", "trocar_assistente", "jarvis"),
+    ("coloca o merlin no lugar", "trocar_assistente", "merlin"),
+    ("troca de assistente para o jarvis", "trocar_assistente", "jarvis"),
+    ("quais assistentes você tem", "conversar", None),
     # abrir_configuracoes
     ("abre suas configurações", "abrir_configuracoes", None),
     ("quero mudar seus ajustes", "abrir_configuracoes", None),

@@ -1,12 +1,7 @@
-"""Janela de raciocínio: mostra, pedido a pedido, o que o assistente ouviu, entendeu, viu na tela e fez.
+"""Aba Raciocínio da Central: mostra, pedido a pedido, o que o assistente ouviu, entendeu, viu na tela e fez.
 A página busca os passos novos sozinha enquanto está aberta."""
 import os
 from pathlib import Path
-
-from merlin.config import ARQ_RACIOCINIO
-from merlin.interface.janela_auxiliar import JanelaAuxiliar
-
-LARGURA, ALTURA = 560, 760
 
 
 class ApiRaciocinio:
@@ -32,8 +27,3 @@ class ApiRaciocinio:
         self._pasta.mkdir(parents=True, exist_ok=True)
         os.startfile(self._pasta)  # abre no Explorador de Arquivos
 
-
-class JanelaRaciocinio(JanelaAuxiliar):
-    def __init__(self, raciocinio, pasta_registros: Path | None = None):
-        super().__init__("Raciocínio", ARQ_RACIOCINIO, ApiRaciocinio(raciocinio, pasta_registros), LARGURA, ALTURA,
-                         redimensionavel=True, sempre_na_frente=False)

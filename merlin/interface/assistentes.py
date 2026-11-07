@@ -5,17 +5,14 @@ O serviço não conhece a página: recebe e devolve dados simples (os mesmos do 
 import logging
 from dataclasses import replace
 
-from merlin.config import ARQ_ASSISTENTES
 from merlin.ia.criador_assistente import CriadorAssistente
 from merlin.ia.frases import TAMANHO_MINIMO_ESCRITA, motivo_recusa
-from merlin.interface.janela_auxiliar import JanelaAuxiliar
 from merlin.personalidades import EMBUTIDAS, PERSONALIDADES, armazenamento, modelo, personalidade_padrao, recarregar
 from merlin.personalidades.armazenamento import DadosInvalidos
 from merlin.voz.catalogo import todas_as_vozes
 
 logger = logging.getLogger(__name__)
 
-LARGURA, ALTURA = 900, 760
 # Palavras do dia a dia: como palavra de chamada, ativam o assistente no meio de uma conversa qualquer
 PALAVRAS_COMUNS = {"sexta", "segunda", "terça", "quarta", "quinta", "sábado", "domingo", "casa", "hoje", "agora",
                    "ajuda", "amigo", "amiga", "chefe", "você", "voce", "assistente", "ok", "olá", "ola", "oi",
@@ -112,7 +109,7 @@ class ServicoAssistentes:
         repetidas = [f"{palavra} ({ocupadas[palavra]})" for palavra in p.palavras_ativacao if palavra in ocupadas]
         if repetidas:
             raise DadosInvalidos(f"Palavras de chamada já usadas por outro assistente: {', '.join(repetidas)}.")
-        for parte, rotulo in (("saudacao", "saudação"), ("despedida", "despedida"), ("encerramento", "despedida ao desligar")):
+        for parte, rotulo in (("saudacao", "saudação"), ("despedida", "despedida")):
             # "sempre dizer o nome" vale para as frases inventadas na hora; as escritas pela pessoa são livres
             conjunto = replace(getattr(p, parte), exige_nome=None)
             for frase in conjunto.reservas:
@@ -177,8 +174,3 @@ class ApiAssistentes:
     def usar(self, identificador):
         return self._servico.usar(identificador)
 
-
-class JanelaAssistentes(JanelaAuxiliar):
-    def __init__(self, servico):
-        super().__init__("Assistentes", ARQ_ASSISTENTES, ApiAssistentes(servico), LARGURA, ALTURA,
-                         redimensionavel=True, sempre_na_frente=False)

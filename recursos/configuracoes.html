@@ -2,116 +2,281 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<title>Configurações</title>
+<title>Central</title>
 <style>
+  /* A Central, no estilo HUD: módulos com cantos chanfrados, linhas finas de brilho e status do sistema ao vivo.
+     A cor de destaque (--cor) é a do assistente escolhido e chega do Python junto com os dados.
+     As abas de ferramentas (editor e habilidades) são outras páginas, em quadros: veja
+     merlin/interface/central.py, que troca os marcadores QUADRO por elas. */
   :root {
-    --fundo: #05070c;
-    --painel: #0b1019;
-    --borda: #1b2638;
+    --cor: #35d6ff;
+    --fundo: #04070d;
+    --painel: #070c15;
+    --campo: #0a111d;
     --texto: #dbe6ff;
-    --suave: #8a97b3;
-    --destaque: #35d6ff;
-    --erro: #ff8a7a;
+    --suave: #7d8aa6;
+    --apagado: #4a5568;
+    --erro: #ff6b6b;
+    --linha: color-mix(in srgb, var(--cor) 28%, transparent);
+    --brilho: color-mix(in srgb, var(--cor) 55%, transparent);
+    --fraco: color-mix(in srgb, var(--cor) 10%, transparent);
+    --mono: "Cascadia Mono", Consolas, monospace;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   body {
-    background: var(--fundo); color: var(--texto);
-    font: 15px/1.45 "Segoe UI", system-ui, sans-serif;
-    padding: 22px 24px; user-select: none;
+    display: grid; grid-template-rows: auto 1fr auto auto; overflow: hidden;
+    background:
+      radial-gradient(ellipse at 70% 0%, color-mix(in srgb, var(--cor) 9%, transparent), transparent 60%),
+      linear-gradient(var(--fraco) 1px, transparent 1px) 0 0 / 28px 28px,
+      linear-gradient(90deg, var(--fraco) 1px, transparent 1px) 0 0 / 28px 28px,
+      var(--fundo);
+    color: var(--texto); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; user-select: none;
   }
-  h1 { margin: 0 0 18px; font-size: 18px; font-weight: 600; letter-spacing: .02em; }
-  .campo {
-    display: grid; gap: 6px; padding: 14px 16px; margin-bottom: 12px;
-    background: var(--painel); border: 1px solid var(--borda); border-radius: 10px;
-  }
-  .campo label { font-size: 13px; color: var(--suave); }
-  .linha { display: flex; gap: 8px; }
-  select {
-    flex: 1; min-width: 0; padding: 8px 10px; border-radius: 7px;
-    border: 1px solid var(--borda); background: #0e1522; color: var(--texto); font: inherit;
-  }
-  button {
-    padding: 8px 12px; border-radius: 7px; border: 1px solid var(--borda);
-    background: #0e1522; color: var(--texto); font: inherit; cursor: pointer;
-  }
-  select:focus-visible, button:focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
-  .ajuda { font-size: 12.5px; color: var(--suave); }
-  #status { min-height: 20px; font-size: 13px; color: var(--suave); }
-  #status.erro { color: var(--erro); }
-  html, body { height: auto; min-height: 100%; }  /* a seção de clonagem pode passar da altura: a página rola */
-  input[type="text"], textarea {
-    width: 100%; padding: 8px 10px; border-radius: 7px; border: 1px solid var(--borda);
-    background: #0e1522; color: var(--texto); font: inherit; resize: vertical;
-  }
-  input:focus-visible, textarea:focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
-  button:disabled { opacity: .5; cursor: default; }
-  #ler { padding: 10px 12px; border-radius: 7px; background: #0e1522; border-left: 3px solid var(--destaque);
-         font-size: 14px; user-select: text; }
-  #contagem { font-variant-numeric: tabular-nums; color: var(--destaque); }
   [hidden] { display: none !important; }
+
+  /* Cabeçalho */
+  header {
+    display: flex; align-items: center; gap: 14px; padding: 14px 22px 12px;
+    border-bottom: 1px solid var(--linha);
+  }
+  #mira { width: 38px; height: 38px; flex: none; color: var(--cor); filter: drop-shadow(0 0 6px var(--brilho)); }
+  #mira .gira { transform-origin: 20px 20px; animation: girar 14s linear infinite; }
+  #mira .gira2 { transform-origin: 20px 20px; animation: girar 9s linear infinite reverse; }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  .titulo { display: grid; line-height: 1.2; }
+  .titulo strong { font-size: 15px; font-weight: 600; letter-spacing: .32em; }
+  .titulo span { font: 11px var(--mono); letter-spacing: .2em; color: var(--cor); }
+  #relogio { margin-left: auto; font: 13px var(--mono); letter-spacing: .12em; color: var(--suave); }
+
+  /* Menu lateral + módulo aberto */
+  main { display: grid; grid-template-columns: 186px 1fr; min-height: 0; }
+  nav { display: flex; flex-direction: column; gap: 4px; padding: 14px 0 18px 16px; border-right: 1px solid var(--linha); }
+  nav .grupo { margin: 10px 0 4px 12px; font: 10px var(--mono); letter-spacing: .24em; color: var(--apagado); }
+  nav .grupo:first-child { margin-top: 4px; }
+  nav button {
+    display: flex; align-items: baseline; gap: 10px; padding: 10px 12px; border: 0; border-left: 2px solid transparent;
+    background: transparent; color: var(--suave); text-align: left; cursor: pointer;
+    font: 600 12px "Segoe UI", sans-serif; letter-spacing: .2em;
+  }
+  nav button small { font: 10px var(--mono); letter-spacing: .05em; color: var(--apagado); }
+  nav button:hover { color: var(--texto); background: var(--fraco); }
+  nav button[aria-selected="true"] {
+    color: var(--cor); border-left-color: var(--cor);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--cor) 16%, transparent), transparent);
+    text-shadow: 0 0 10px var(--brilho);
+  }
+  nav button[aria-selected="true"] small { color: var(--cor); }
+
+  #modulos { overflow-y: auto; padding: 18px 22px; scrollbar-width: thin; scrollbar-color: var(--linha) transparent; }
+  #modulos.com-quadro { padding: 0; overflow: hidden; }
+  .painel-quadro { height: 100%; }
+  .quadro { display: block; width: 100%; height: 100%; border: 0; }
+
+  /* Módulo: a borda é o fundo da camada de fora, aparecendo 1px em volta da de dentro (o recorte chanfrado
+     cortaria uma borda comum nas diagonais) */
+  .modulo { --chanfro: 16px; padding: 1px; background: var(--linha); animation: entrar .35s ease-out; }
+  .modulo, .modulo > .dentro {
+    clip-path: polygon(var(--chanfro) 0, 100% 0, 100% calc(100% - var(--chanfro)),
+                       calc(100% - var(--chanfro)) 100%, 0 100%, 0 var(--chanfro));
+  }
+  .modulo > .dentro { display: grid; gap: 16px; padding: 18px 20px 20px; background: var(--painel); }
+  @keyframes entrar { from { opacity: 0; transform: translateY(6px); } }
+  .cabeca { display: flex; align-items: center; gap: 10px; }
+  .cabeca h2 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .28em; color: var(--cor); }
+  .cabeca::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--linha), transparent); }
+  .cabeca code { order: 2; font: 10px var(--mono); color: var(--apagado); }
+
+  .campo { display: grid; gap: 6px; }
+  .campo > label, .rotulo { font: 600 10.5px "Segoe UI", sans-serif; letter-spacing: .22em; color: var(--suave); }
+  .linha { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ajuda { font-size: 12.5px; color: var(--suave); }
+  hr { width: 100%; margin: 0; border: 0; border-top: 1px dashed var(--linha); }
+
+  select, input[type="text"], textarea {
+    flex: 1; min-width: 0; width: 100%; padding: 9px 12px; border: 1px solid var(--linha); border-radius: 0;
+    background: var(--campo); color: var(--texto); font: 14px var(--mono);
+  }
+  select {
+    appearance: none; padding-right: 32px; cursor: pointer;
+    background: var(--campo) no-repeat right 12px center / 10px 6px
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237d8aa6'/%3E%3C/svg%3E");
+  }
+  select:hover, input[type="text"]:hover, textarea:hover { border-color: var(--brilho); }
+  textarea { resize: vertical; font-family: "Segoe UI", sans-serif; }
+  :is(select, input, textarea, button):focus-visible { outline: 1px solid var(--cor); outline-offset: 2px; }
+
+  .botao {
+    --chanfro: 8px; padding: 9px 16px; border: 1px solid var(--brilho); background: var(--fraco); color: var(--cor);
+    font: 600 11.5px "Segoe UI", sans-serif; letter-spacing: .18em; text-transform: uppercase; cursor: pointer;
+    clip-path: polygon(var(--chanfro) 0, 100% 0, 100% calc(100% - var(--chanfro)), calc(100% - var(--chanfro)) 100%, 0 100%, 0 var(--chanfro));
+    transition: background .15s, box-shadow .15s;
+  }
+  .botao:hover:not(:disabled) { background: color-mix(in srgb, var(--cor) 22%, transparent); box-shadow: inset 0 0 14px var(--brilho); }
+  .botao:disabled { opacity: .4; cursor: default; }
+  .botao.perigo { border-color: color-mix(in srgb, var(--erro) 60%, transparent); color: var(--erro);
+                  background: color-mix(in srgb, var(--erro) 8%, transparent); }
+
+  #ler { padding: 12px 14px; border-left: 2px solid var(--cor); background: var(--fraco); font-size: 14px; user-select: text; }
+  #contagem { font-family: var(--mono); color: var(--cor); }
+  .aviso-instalar { padding: 12px 14px; border: 1px dashed var(--linha); color: var(--suave); font-size: 13px; }
+  .aviso-instalar code { font-family: var(--mono); color: var(--texto); }
+
+  /* Linha de mensagens, como um console */
+  #status {
+    min-height: 30px; padding: 6px 22px; border-top: 1px solid var(--linha);
+    font: 12.5px var(--mono); color: var(--suave);
+  }
+  #status:not(:empty)::before { content: "> "; color: var(--cor); }
+  #status.erro { color: var(--erro); }
+  #status.erro::before { color: var(--erro); }
+
+  /* Barra do sistema ao vivo */
+  footer {
+    display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 9px 22px 11px;
+    border-top: 1px solid var(--linha); background: #03050a; font: 10.5px var(--mono); letter-spacing: .04em;
+  }
+  .indicador { display: flex; align-items: center; gap: 7px; color: var(--suave); }
+  .indicador b { font-weight: 400; color: var(--apagado); letter-spacing: .1em; }
+  .indicador i { width: 7px; height: 7px; border-radius: 50%; background: var(--apagado); }
+  .indicador.ok i { background: var(--cor); box-shadow: 0 0 8px var(--cor); animation: pulsar 2.4s ease-in-out infinite; }
+  .indicador.ok span { color: var(--texto); }
+  .indicador.erro i { background: var(--erro); box-shadow: 0 0 8px var(--erro); }
+  .indicador.erro span { color: var(--erro); }
+  @keyframes pulsar { 50% { opacity: .45; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
 </style>
 </head>
 <body>
-  <h1>Configurações</h1>
-
-  <div class="campo">
-    <label for="assistente">Assistente</label>
-    <select id="assistente"></select>
-    <span class="ajuda">Muda o nome usado para chamar, o jeito de falar, a voz e a aparência.</span>
-    <div class="linha"><button id="gerenciar-assistentes" type="button">Criar e editar assistentes</button></div>
-  </div>
-
-  <div class="campo">
-    <label for="voz">Voz do assistente escolhido</label>
-    <select id="voz"></select>
-  </div>
-
-  <div class="campo">
-    <label for="modelo">Modelo de IA (Ollama)</label>
-    <div class="linha">
-      <select id="modelo"></select>
-      <button id="atualizar" type="button" title="Atualizar a lista de modelos">Atualizar</button>
+  <header>
+    <svg id="mira" viewBox="0 0 40 40" fill="none" stroke="currentColor" aria-hidden="true">
+      <circle cx="20" cy="20" r="18" stroke-width="1" opacity=".35"/>
+      <g class="gira"><circle cx="20" cy="20" r="14" stroke-width="2" stroke-dasharray="18 8 4 8"/></g>
+      <g class="gira2"><circle cx="20" cy="20" r="9" stroke-width="1.2" stroke-dasharray="6 5"/></g>
+      <circle cx="20" cy="20" r="3" fill="currentColor" stroke="none"/>
+    </svg>
+    <div class="titulo">
+      <strong>CENTRAL</strong>
+      <span id="subtitulo">SISTEMA</span>
     </div>
-    <span class="ajuda">Modelos maiores costumam entender melhor, mas respondem mais devagar e usam mais memória.</span>
-  </div>
+    <div id="relogio" aria-hidden="true"></div>
+  </header>
 
-  <div class="campo">
-    <label for="ver-raciocinio">Raciocínio da IA</label>
-    <div class="linha"><button id="ver-raciocinio" type="button">Ver o que a IA entendeu e fez</button>
-      <button id="ver-habilidades" type="button">Ver habilidades</button></div>
-    <span class="ajuda">Intenção identificada, regras aplicadas, botões que ela viu e o que escolheu.</span>
-  </div>
+  <main>
+    <nav role="tablist" aria-label="Módulos" aria-orientation="vertical">
+      <span class="grupo" aria-hidden="true">AJUSTES</span>
+      <button role="tab" id="aba-assistente" data-aba="assistente" aria-controls="mod-assistente" aria-selected="true"><small>01</small>ASSISTENTE</button>
+      <button role="tab" id="aba-inteligencia" data-aba="inteligencia" aria-controls="mod-inteligencia" aria-selected="false" tabindex="-1"><small>02</small>INTELIGÊNCIA</button>
+      <button role="tab" id="aba-clonagem" data-aba="clonagem" aria-controls="mod-clonagem" aria-selected="false" tabindex="-1"><small>03</small>CLONAGEM</button>
+      <span class="grupo" aria-hidden="true">FERRAMENTAS</span>
+      <button role="tab" id="aba-assistentes" data-aba="assistentes" aria-controls="mod-assistentes" aria-selected="false" tabindex="-1"><small>04</small>EDITOR</button>
+      <button role="tab" id="aba-habilidades" data-aba="habilidades" aria-controls="mod-habilidades" aria-selected="false" tabindex="-1"><small>05</small>HABILIDADES</button>
+    </nav>
 
-  <div class="campo" id="clonagem" hidden>
-    <label>Clonar uma voz</label>
-    <span class="ajuda">Grave de 8 a 15 segundos de fala, em um lugar silencioso, ou escolha um áudio.
-      Use a sua voz, ou a de alguém que autorizou.</span>
-    <div class="linha">
-      <button id="gravar" type="button">Gravar</button>
-      <button id="arquivo" type="button">Escolher arquivo</button>
+    <div id="modulos">
+      <section class="modulo" id="mod-assistente" role="tabpanel" aria-labelledby="aba-assistente">
+        <div class="dentro">
+          <div class="cabeca"><h2>ASSISTENTE</h2><code>MOD-01</code></div>
+          <div class="campo">
+            <label for="assistente">PERSONALIDADE ATIVA</label>
+            <select id="assistente"></select>
+            <span class="ajuda">Muda o nome usado para chamar, o jeito de falar, a voz e a aparência.</span>
+          </div>
+          <div class="campo">
+            <label for="voz">VOZ</label>
+            <select id="voz"></select>
+          </div>
+          <hr>
+          <div class="linha">
+            <button class="botao" id="gerenciar-assistentes" type="button">Criar e editar assistentes</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="modulo" id="mod-inteligencia" role="tabpanel" aria-labelledby="aba-inteligencia" hidden>
+        <div class="dentro">
+          <div class="cabeca"><h2>INTELIGÊNCIA</h2><code>MOD-02</code></div>
+          <div class="campo">
+            <label for="modelo">MODELO DE IA · OLLAMA</label>
+            <div class="linha">
+              <select id="modelo"></select>
+              <button class="botao" id="atualizar" type="button" title="Atualizar a lista de modelos">Atualizar</button>
+            </div>
+            <span class="ajuda">Modelos maiores costumam entender melhor, mas respondem mais devagar e usam mais memória.</span>
+          </div>
+          <hr>
+          <div class="campo">
+            <span class="rotulo">ANÁLISE</span>
+            <div class="linha">
+              <button class="botao" id="ver-habilidades" type="button">Habilidades</button>
+            </div>
+            <span class="ajuda">Tudo o que a IA sabe fazer, com um teste de frases.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="modulo" id="mod-clonagem" role="tabpanel" aria-labelledby="aba-clonagem" hidden>
+        <div class="dentro">
+          <div class="cabeca"><h2>CLONAGEM DE VOZ</h2><code>MOD-03</code></div>
+          <div class="aviso-instalar" id="clonagem-ausente">
+            A clonagem é opcional e precisa de uma instalação à parte (cerca de 5 GB). Para instalar, rode
+            <code>.venv\Scripts\python.exe ferramentas\instalar_clonagem.py</code> e reabra o assistente.
+          </div>
+          <div id="clonagem" class="campo" hidden>
+            <span class="ajuda">Grave de 8 a 15 segundos de fala, em um lugar silencioso, ou escolha um áudio.
+              Use a sua voz, ou a de alguém que autorizou.</span>
+            <div class="linha">
+              <button class="botao" id="gravar" type="button">● Gravar</button>
+              <button class="botao" id="arquivo" type="button">Escolher arquivo</button>
+            </div>
+            <div id="ler" hidden>Leia em voz alta (<span id="contagem"></span>): <span id="texto-ler"></span></div>
+            <div id="conferir" class="campo" hidden>
+              <label for="texto-amostra">O QUE FOI ENTENDIDO NA AMOSTRA</label>
+              <textarea id="texto-amostra" rows="3"></textarea>
+              <span class="ajuda">Só para conferir se a gravação ficou clara.</span>
+              <label for="nome-voz">NOME DA VOZ</label>
+              <div class="linha">
+                <input id="nome-voz" type="text" placeholder="Ex.: Minha voz" maxlength="30">
+                <button class="botao" id="salvar-voz" type="button">Salvar e usar</button>
+              </div>
+            </div>
+            <div class="linha"><button class="botao perigo" id="apagar-voz" type="button" hidden>Apagar a voz clonada escolhida</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="painel-quadro" id="mod-assistentes" role="tabpanel" aria-labelledby="aba-assistentes" hidden><!--QUADRO:assistentes--></section>
+      <section class="painel-quadro" id="mod-habilidades" role="tabpanel" aria-labelledby="aba-habilidades" hidden><!--QUADRO:habilidades--></section>
     </div>
-    <div id="ler" hidden>Leia em voz alta (<span id="contagem"></span>): <span id="texto-ler"></span></div>
-    <div id="conferir" hidden>
-      <label for="texto-amostra">O que foi entendido na amostra (só para conferir se a gravação ficou clara)</label>
-      <textarea id="texto-amostra" rows="3"></textarea>
-      <label for="nome-voz">Nome da voz</label>
-      <div class="linha">
-        <input id="nome-voz" type="text" placeholder="Ex.: Minha voz" maxlength="30">
-        <button id="salvar-voz" type="button">Salvar e usar</button>
-      </div>
-    </div>
-    <div class="linha"><button id="apagar-voz" type="button" hidden>Apagar a voz clonada escolhida</button></div>
-  </div>
+  </main>
 
   <div id="status" role="status" aria-live="polite"></div>
+
+  <footer aria-label="Status do sistema">
+    <div class="indicador" id="ind-ollama"><i></i><b>OLLAMA</b><span>…</span></div>
+    <div class="indicador" id="ind-modelo"><i></i><b>MODELO</b><span>…</span></div>
+    <div class="indicador" id="ind-reconhecimento"><i></i><b>WHISPER</b><span>…</span></div>
+    <div class="indicador" id="ind-microfone"><i></i><b>MICROFONE</b><span>…</span></div>
+    <div class="indicador" id="ind-clonagem"><i></i><b>CLONAGEM</b><span>…</span></div>
+  </footer>
 
 <script>
   const assistente = document.getElementById("assistente");
   const voz = document.getElementById("voz");
   const modelo = document.getElementById("modelo");
   const status = document.getElementById("status");
-  const api = () => window.pywebview.api;
+  const api = () => window.pywebview.api.ajustes;
+
+  // As páginas dos quadros esperam o pywebview ficar pronto aqui, na Central, para começar
+  let prontos = null;
+  function quandoPronto(fn) {
+    if (prontos === null) fn();
+    else prontos.push(fn);
+  }
+  if (!window.pywebview || !window.pywebview.api) prontos = [];
 
   function avisar(texto, erro = false) {
     status.textContent = texto;
@@ -123,6 +288,58 @@
     select.value = valor;
   }
 
+  // Abas do menu lateral (setas para cima e para baixo também trocam)
+  const abas = [...document.querySelectorAll('[role="tab"]')];
+  const modulos = document.getElementById("modulos");
+  function selecionar(aba) {
+    for (const a of abas) {
+      const ativa = a === aba;
+      a.setAttribute("aria-selected", String(ativa));
+      a.tabIndex = ativa ? 0 : -1;
+      document.getElementById(a.getAttribute("aria-controls")).hidden = !ativa;
+    }
+    const painel = document.getElementById(aba.getAttribute("aria-controls"));
+    modulos.classList.toggle("com-quadro", painel.classList.contains("painel-quadro"));
+    // Ao voltar para os ajustes (por exemplo, depois de criar um assistente no editor), as listas se atualizam
+    if (!painel.classList.contains("painel-quadro") && window.pywebview && prontos === null) carregar();
+  }
+  // Chamada pelo Python (merlin/interface/central.py) para abrir uma aba pelo nome
+  function abrirAba(nome) {
+    const aba = abas.find(a => a.dataset.aba === nome);
+    if (aba) selecionar(aba);
+  }
+  abas.forEach((aba, i) => {
+    aba.addEventListener("click", () => selecionar(aba));
+    aba.addEventListener("keydown", e => {
+      const passo = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+      if (!passo) return;
+      e.preventDefault();
+      const proxima = abas[(i + passo + abas.length) % abas.length];
+      selecionar(proxima);
+      proxima.focus();
+    });
+  });
+
+  // Relógio do cabeçalho
+  const relogio = document.getElementById("relogio");
+  const atualizarRelogio = () => relogio.textContent = new Date().toLocaleTimeString("pt-BR");
+  atualizarRelogio();
+  setInterval(atualizarRelogio, 1000);
+
+  // Status do sistema: cada item vem como [situação, texto], com situação "ok", "desligado" ou "erro"
+  function mostrarSistema(sistema) {
+    for (const [chave, [situacao, texto]] of Object.entries(sistema)) {
+      const indicador = document.getElementById(`ind-${chave}`);
+      if (!indicador) continue;
+      indicador.className = `indicador ${situacao}`;
+      indicador.querySelector("span").textContent = texto.toUpperCase();
+    }
+  }
+  async function atualizarSistema() {
+    if (window.pywebview && !document.hidden) mostrarSistema(await api().sistema());
+  }
+  setInterval(atualizarSistema, 3000);
+
   // Cada mudança conta como um pedido novo; uma resposta que chega depois de outro pedido está velha
   // e não pode desfazer a escolha que a pessoa acabou de fazer.
   let ultimoPedido = 0;
@@ -130,9 +347,12 @@
 
   function mostrar(dados, pedido) {
     if (pedido !== ultimoPedido) return;
+    document.documentElement.style.setProperty("--cor", dados.cor);
+    document.getElementById("subtitulo").textContent = `${dados.nome.toUpperCase()} · SISTEMA`;
     preencher(assistente, dados.personalidades.map(p => [p.id, p.nome]), dados.personalidade);
     preencher(voz, dados.vozes.map(v => [v, v]), dados.voz);
     preencher(modelo, dados.modelos.map(m => [m.nome, m.detalhe ? `${m.nome}  (${m.detalhe})` : m.nome]), dados.modelo);
+    mostrarSistema(dados.sistema);
     if (dados.erro_modelos) avisar(dados.erro_modelos, true);
   }
 
@@ -158,16 +378,15 @@
     const erro = await api().trocar_modelo(escolhido);
     if (pedido !== ultimoPedido) return;
     if (erro) { await carregar(); avisar(erro, true); }  // volta a lista para o modelo que ficou valendo
-    else avisar(`Modelo: ${escolhido}. A primeira resposta pode demorar um pouco mais.`);
+    else { avisar(`Modelo: ${escolhido}. A primeira resposta pode demorar um pouco mais.`); atualizarSistema(); }
   });
   document.getElementById("atualizar").addEventListener("click", carregar);
-  document.getElementById("ver-raciocinio").addEventListener("click", () => api().abrir_raciocinio());
-  document.getElementById("gerenciar-assistentes").addEventListener("click", () => api().abrir_assistentes());
-  document.getElementById("ver-habilidades").addEventListener("click", () => api().abrir_habilidades());
+  document.getElementById("gerenciar-assistentes").addEventListener("click", () => abrirAba("assistentes"));
+  document.getElementById("ver-habilidades").addEventListener("click", () => abrirAba("habilidades"));
   // Ao voltar para esta janela (por exemplo, depois de criar um assistente), as listas são atualizadas
   window.addEventListener("focus", () => { if (window.pywebview) { carregar(); carregarClonagem(); } });
 
-  // Clonagem de voz: só aparece com a instalação opcional
+  // Clonagem de voz: sem a instalação opcional, o módulo explica como instalar
   const clonagem = document.getElementById("clonagem");
   const botaoGravar = document.getElementById("gravar"), botaoArquivo = document.getElementById("arquivo");
   const ler = document.getElementById("ler"), contagem = document.getElementById("contagem");
@@ -178,6 +397,7 @@
   async function carregarClonagem() {
     infoClonagem = await api().clonagem_estado();
     clonagem.hidden = !infoClonagem.instalada;
+    document.getElementById("clonagem-ausente").hidden = !!infoClonagem.instalada;
     if (!infoClonagem.instalada) return;
     document.getElementById("texto-ler").textContent = infoClonagem.texto_para_ler;
     apagarVoz.hidden = !infoClonagem.voz_atual_clonada;
@@ -200,10 +420,10 @@
     ler.hidden = false;
     let resta = infoClonagem.duracao_gravacao;
     contagem.textContent = `${resta} s`;
-    const relogio = setInterval(() => { resta = Math.max(0, resta - 1); contagem.textContent = `${resta} s`; }, 1000);
+    const relogioGravacao = setInterval(() => { resta = Math.max(0, resta - 1); contagem.textContent = `${resta} s`; }, 1000);
     avisar("Gravando… leia o texto acima.");
     const r = await api().clonagem_gravar();
-    clearInterval(relogio);
+    clearInterval(relogioGravacao);
     receberAmostra(r);
   });
   botaoArquivo.addEventListener("click", async () => {
@@ -230,7 +450,14 @@
   voz.addEventListener("change", carregarClonagem);
   assistente.addEventListener("change", carregarClonagem);
 
-  window.addEventListener("pywebviewready", () => { carregar(); carregarClonagem(); });
+  window.addEventListener("pywebviewready", async () => {
+    const pendentes = prontos || [];
+    prontos = null;
+    pendentes.forEach(fn => fn());
+    carregar();
+    carregarClonagem();
+    abrirAba(await window.pywebview.api.aba_inicial());
+  });
 </script>
 </body>
 </html>

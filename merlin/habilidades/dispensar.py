@@ -26,7 +26,7 @@ HABILIDADE = Habilidade(
     grupo=grupos.ASSISTENTE,
     ordem=10,
     descricao="a pessoa se despede do Merlin, agradece encerrando a conversa, diz que já terminou ou que não precisa "
-              "mais dele, ou manda ele sair ou descansar, mesmo com gíria ou de forma rude.",
+              "mais dele, ou manda ele sair, descansar ou desligar, mesmo com gíria ou de forma rude.",
     exemplos=(
         Exemplo("obrigado, pode ir", ALVO_ASSISTENTE),
         Exemplo("terminamos aqui", ALVO_ASSISTENTE),

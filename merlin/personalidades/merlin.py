@@ -36,17 +36,6 @@ PROMPT_DESPEDIDA = (
     "Não repita as despedidas recentes:\n{evitar}"
 )
 
-PROMPT_ENCERRAMENTO = (
-    f"Você é {NOME}, um mago conselheiro sábio e acolhedor. A pessoa acaba de desligar você por completo: você vai parar "
-    "de escutar e não ouvirá mais ninguém até ser iniciado de novo. Escreva uma despedida falada em português do Brasil "
-    "correto e natural, com duas frases curtas e simples, no estilo de um velho mago. Fale de você na primeira pessoa, "
-    "contando que está se recolhendo de vez, com uma imagem ligada a este tema: {tema}. "
-    "Inspire-se no ritmo deste exemplo, sem copiar as palavras: {exemplo} "
-    "Não diga que basta chamar. Não use tratamentos como senhor, mestre ou amigo. Não comece com Que nem com Olá. "
-    "Não faça perguntas. Responda só com a despedida, sem aspas, emojis ou formatação. "
-    "Não repita as despedidas recentes:\n{evitar}"
-)
-
 TEMAS_DESPEDIDA = (
     "as estrelas", "a lua", "o lord de dragão", "o cajado", "o caldeirão", "a coruja sábia",
     "a torre do mago", "rei arthur me aguarda", "o Elixir", "a névoa", "o pergaminho", "o vento",
@@ -61,28 +50,12 @@ EXEMPLOS_DESPEDIDA = (
     "Até logo, viajante. Sigo entre os pergaminhos, à espera do seu chamado.",
 )
 
-EXEMPLOS_ENCERRAMENTO = (
-    "Apago as velas e fecho a porta da torre. Meu dia termina aqui.",
-    "Guardo o grimório e recolho minha magia. Agora fico em silêncio.",
-    "Com um último sopro, a vela se apaga. Esta é a minha despedida por hoje.",
-    "Encerro meus feitiços e subo para a torre. Só volto quando me despertarem.",
-    "Deixo o cajado de lado e adormeço. Não ouvirei mais nada a partir de agora.",
-)
-
 DESPEDIDAS_RESERVA = (
     "Recolho meu cajado por ora. Basta chamar meu nome e eu voltarei.",
     "Fico aqui entre os meus pergaminhos. Quando precisar, é só me chamar.",
     "Que as estrelas guiem seus passos. Chame por Merlin quando precisar.",
     "A coruja vigia, e eu descanso. Meu nome ainda me traz de volta.",
     "Vou me aquietar junto à vela. Um chamado seu e estarei de volta.",
-)
-
-ENCERRAMENTOS_RESERVA = (
-    "Apago a última vela da torre e me recolho de vez. Até a próxima jornada.",
-    "Fecho meu grimório e guardo o cajado. Meu trabalho termina aqui por hoje.",
-    "A magia se recolhe agora, e eu com ela. Até que me despertem outra vez.",
-    "Que a lua cuide do seu caminho, pois agora me recolho por completo.",
-    "Encerro meus encantos e deixo a torre em silêncio. Até logo.",
 )
 
 SAUDACOES_RESERVA = (
@@ -116,6 +89,4 @@ PERSONALIDADE = Personalidade(
     saudacao=ConjuntoFrases(PROMPT_SAUDACAO, TEMAS_SAUDACAO, SAUDACOES_RESERVA, exige_nome="merlin"),
     despedida=ConjuntoFrases(PROMPT_DESPEDIDA, TEMAS_DESPEDIDA, DESPEDIDAS_RESERVA, EXEMPLOS_DESPEDIDA,
                              sem_perguntas=True, proibir_tratamentos=True, tamanho_maximo=120),
-    encerramento=ConjuntoFrases(PROMPT_ENCERRAMENTO, TEMAS_DESPEDIDA, ENCERRAMENTOS_RESERVA, EXEMPLOS_ENCERRAMENTO,
-                                sem_perguntas=True, proibir_tratamentos=True, tamanho_maximo=120),
 )

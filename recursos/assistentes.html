@@ -139,11 +139,10 @@
       <div class="grade" style="margin-top:8px">
         <label>Saudações<textarea id="saudacoes" rows="5"></textarea></label>
         <label>Despedidas (volta quando chamado)<textarea id="despedidas" rows="5"></textarea></label>
-        <label>Despedidas ao desligar de vez<textarea id="encerramentos" rows="5"></textarea></label>
         <label>Temas das saudações<textarea id="temas-saudacao" rows="5"
           placeholder="Imagens ligadas ao personagem, uma por linha"></textarea></label>
         <label>Temas das despedidas<textarea id="temas-despedida" rows="5"
-          placeholder="Usados nas duas caixas de despedida"></textarea></label>
+          placeholder="Imagens ligadas ao personagem, uma por linha"></textarea></label>
       </div>
     </section>
 
@@ -224,11 +223,10 @@
     $("nao-comentar").checked = dados.nao_comentar_instrucoes !== false;
     $("saudacoes").value = juntar(dados.saudacao.reservas);
     $("despedidas").value = juntar(dados.despedida.reservas);
-    $("encerramentos").value = juntar(dados.encerramento.reservas);
     $("temas-saudacao").value = juntar(dados.saudacao.temas);
     $("temas-despedida").value = juntar(dados.despedida.temas);
     $("diz-nome").checked = !!dados.saudacao.exige_nome;
-    $("sem-tratamentos").checked = ["saudacao", "despedida", "encerramento"].some(p => dados[p].proibir_tratamentos);
+    $("sem-tratamentos").checked = ["saudacao", "despedida"].some(p => dados[p].proibir_tratamentos);
     $("restaurar").hidden = !(dados.embutido && dados.ajustado);
     $("excluir").hidden = dados.embutido || !dados.id;
     $("usar").disabled = !dados.id;
@@ -255,8 +253,6 @@
                    exige_nome: $("diz-nome").checked ? d.nome.toLowerCase() : "", proibir_tratamentos: semTratamentos };
     d.despedida = { ...d.despedida, reservas: separar($("despedidas").value), temas: temasDespedida,
                     proibir_tratamentos: semTratamentos };
-    d.encerramento = { ...d.encerramento, reservas: separar($("encerramentos").value), temas: temasDespedida,
-                       proibir_tratamentos: semTratamentos };
     return d;
   }
 

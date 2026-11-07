@@ -39,16 +39,6 @@ PROMPT_DESPEDIDA = (
     "Não repita as despedidas recentes:\n{evitar}"
 )
 
-PROMPT_ENCERRAMENTO = (
-    "Você é o Jarvis, uma inteligência artificial que atua como mordomo digital. A pessoa acaba de desligar você por "
-    "completo: você vai parar de escutar até ser iniciado de novo. Escreva uma despedida falada em português do "
-    "Brasil correto e natural, com uma ou duas frases curtas, mencionando de leve este tema: {tema}. "
-    f"Deixe claro que está desligando. Não diga que basta chamar. Trate a pessoa por {TRATAMENTO}. "
-    "Não faça perguntas. Inspire-se no ritmo deste exemplo, sem copiar as palavras: {exemplo} "
-    "Responda só com a despedida, sem aspas, emojis ou formatação. "
-    "Não repita as despedidas recentes:\n{evitar}"
-)
-
 TEMAS_SAUDACAO = (
     "os sistemas", "a agenda do dia", "os sensores", "a rede", "os protocolos", "o laboratório",
     "os servidores", "a previsão do tempo", "o diagnóstico", "a energia",
@@ -86,20 +76,6 @@ DESPEDIDAS_RESERVA = (
     "Pausando por ora, senhor. Um chamado seu e estou de volta.",
 )
 
-EXEMPLOS_ENCERRAMENTO = (
-    "Desligando todos os sistemas, senhor. Foi um prazer.",
-    "Encerrando os protocolos e apagando as luzes do laboratório. Até a próxima, senhor.",
-    "Energia reduzida a zero, senhor. Desligando agora.",
-)
-
-ENCERRAMENTOS_RESERVA = (
-    "Desligando todos os sistemas. Até a próxima, senhor.",
-    "Encerrando os protocolos agora, senhor. Foi um prazer.",
-    "Sistemas sendo desligados, senhor. Até logo.",
-    "Desligamento completo iniciado. Tenha um bom dia, senhor.",
-    "Encerrando tudo por hoje, senhor. Até a próxima.",
-)
-
 APRESENTACAO = "Jarvis online. Às suas ordens, senhor."
 DICA_DE_VOCABULARIO = "Jarvis, abra o navegador. Jarvis, pesquise na internet."
 
@@ -122,6 +98,4 @@ PERSONALIDADE = Personalidade(
     saudacao=ConjuntoFrases(PROMPT_SAUDACAO, TEMAS_SAUDACAO, SAUDACOES_RESERVA, EXEMPLOS_SAUDACAO),
     despedida=ConjuntoFrases(PROMPT_DESPEDIDA, TEMAS_DESPEDIDA, DESPEDIDAS_RESERVA, EXEMPLOS_DESPEDIDA,
                              sem_perguntas=True, tamanho_maximo=120),
-    encerramento=ConjuntoFrases(PROMPT_ENCERRAMENTO, TEMAS_DESPEDIDA, ENCERRAMENTOS_RESERVA, EXEMPLOS_ENCERRAMENTO,
-                                sem_perguntas=True, tamanho_maximo=120),
 )

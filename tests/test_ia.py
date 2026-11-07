@@ -2,8 +2,7 @@ import json
 import unittest
 from unittest import mock
 
-from merlin.acoes.sessao import Dispensar, Encerrar
-from merlin.estado import EstadoAssistente
+from merlin.acoes.sessao import Dispensar
 from merlin.ia.confirmacao import ClassificadorConfirmacao, RespostaConfirmacao
 from merlin.ia.frases import GeradorFrases, frase_valida, valida_para
 from merlin.ia.divisao import DivisorTarefas
@@ -21,8 +20,6 @@ def classificar(alvo, intencao, busca="", comando="frase"):
 class TestRegrasDeIntencao(unittest.TestCase):
     def test_sair_exige_que_o_alvo_seja_o_merlin(self):
         self.assertIs(classificar("merlin", "dispensar").tipo, TipoIntencao.DISPENSAR)
-        self.assertIs(classificar("merlin", "encerrar").tipo, TipoIntencao.ENCERRAR)
-        self.assertIs(classificar("discord", "encerrar").tipo, TipoIntencao.CONVERSAR)
         self.assertIs(classificar("colega", "dispensar").tipo, TipoIntencao.CONVERSAR)
 
     def test_fechar_outro_programa(self):
@@ -144,7 +141,7 @@ class TestFrasesDoMerlin(unittest.TestCase):
             self.assertIn(gerador(MERLIN.despedida, texto).gerar(), MERLIN.despedida.reservas, texto)
 
     def test_sem_ia_usa_reserva_sem_repetir_em_seguida(self):
-        for conjunto in (MERLIN.despedida, MERLIN.encerramento, MERLIN.saudacao):
+        for conjunto in (MERLIN.despedida, MERLIN.saudacao):
             g = gerador(conjunto, ConnectionError("fora do ar"))
             frases = [g.gerar() for _ in range(30)]
             self.assertTrue(all(f in conjunto.reservas for f in frases))
@@ -164,7 +161,7 @@ class TestFrasesDoMerlin(unittest.TestCase):
 
     def test_palavrao_vira_reserva(self):
         texto = "Vou mijar perto do caldeirão, eu sou Merlin. Volto quando chamar."
-        for conjunto in (MERLIN.despedida, MERLIN.encerramento, MERLIN.saudacao):
+        for conjunto in (MERLIN.despedida, MERLIN.saudacao):
             self.assertIn(gerador(conjunto, texto).gerar(), conjunto.reservas)
 
     def test_filtro_nao_barra_palavras_normais(self):
@@ -193,15 +190,10 @@ class TestFrasesDoJarvis(unittest.TestCase):
 
     def test_reservas_sao_validas(self):
         for p in (MERLIN, JARVIS):
-            for conjunto in (p.saudacao, p.despedida, p.encerramento):
+            for conjunto in (p.saudacao, p.despedida):
                 for frase in conjunto.reservas:
                     self.assertTrue(valida_para(frase, conjunto), f"{p.id}: {frase}")
                 self.assertGreater(len(conjunto.reservas), 3)  # sempre sobra uma além das recentes
-
-    def test_encerramento_nao_promete_voltar(self):
-        for p in (MERLIN, JARVIS):
-            for frase in p.encerramento.reservas:
-                self.assertNotIn("chamar", frase.lower(), frase)
 
     def test_troca_de_personalidade_muda_as_frases_na_hora(self):
         escolhida = {"p": MERLIN}
@@ -213,16 +205,11 @@ class TestFrasesDoJarvis(unittest.TestCase):
 
 class TestAcoesDeSaida(unittest.TestCase):
     def test_so_saem_depois_de_falar(self):
-        sessao, estado = mock.Mock(), EstadoAssistente()
+        sessao = mock.Mock()
         r = Dispensar(sessao, gerador(MERLIN.despedida, "Recolho meu cajado sob a lua. Basta chamar meu nome."))(None)
         sessao.desativar.assert_not_called()
         r.depois()
         sessao.desativar.assert_called_once()
-
-        r = Encerrar(estado, gerador(MERLIN.encerramento, ConnectionError("x")))(None)
-        self.assertFalse(estado.encerrando.is_set())
-        r.depois()
-        self.assertTrue(estado.encerrando.is_set())
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,12 +17,13 @@ from merlin.ia.divisao import DivisorTarefas
 from merlin.ia.intencoes import ClassificadorIntencao, TipoIntencao
 from merlin.ia.frases import GeradorFrases
 from merlin.interface.clonagem_voz import ServicoClonagem
-from merlin.interface.assistentes import JanelaAssistentes, ServicoAssistentes
-from merlin.interface.configuracoes import JanelaConfiguracoes, ServicoConfiguracoes
-from merlin.interface.painel_habilidades import JanelaPainelHabilidades, ServicoPainelHabilidades
+from merlin.interface.assistentes import ApiAssistentes, ServicoAssistentes
+from merlin.interface.central import ApiCentral, JanelaCentral
+from merlin.interface.configuracoes import ApiConfiguracoes, ServicoConfiguracoes
+from merlin.interface.painel_habilidades import ApiPainelHabilidades, ServicoPainelHabilidades
 from merlin.interface.eventos import CanalInterface
 from merlin.interface.janela import JanelaMerlin
-from merlin.interface.janela_raciocinio import JanelaRaciocinio
+from merlin.interface.janela_raciocinio import ApiRaciocinio
 from merlin.nucleo.memoria_conversa import MemoriaConversa
 from merlin.nucleo.processador import ProcessadorComandos
 from merlin.nucleo.gravador_raciocinio import GravadorRaciocinio
@@ -75,11 +76,16 @@ def construir_aplicacao() -> Aplicacao:
     gravador = GravadorRaciocinio(PASTA_REGISTROS, DIAS_DE_REGISTRO)
     gravador.apagar_antigos()
     raciocinio = Raciocinio(gravador=gravador)
-    janela_raciocinio = JanelaRaciocinio(raciocinio, gravador.pasta)
-    servico_configuracoes = ServicoConfiguracoes(preferencias, locutor, canal, memoria, cliente_ia)
-    janela_assistentes = JanelaAssistentes(
-        ServicoAssistentes(preferencias, canal, cliente_ia, servico_configuracoes.trocar_personalidade))
-    janela_habilidades = JanelaPainelHabilidades(ServicoPainelHabilidades(cliente_ia))
+    servico_configuracoes = ServicoConfiguracoes(preferencias, locutor, canal, memoria, cliente_ia, estado, transcritor)
+    # Central: uma janela só, com abas, para configurar e investigar
+    central = JanelaCentral(ApiCentral(
+        ajustes=ApiConfiguracoes(
+            servico_configuracoes,
+            clonagem=ServicoClonagem(ouvinte, transcritor, preferencias, locutor, sintetizador, canal)),
+        assistentes=ApiAssistentes(
+            ServicoAssistentes(preferencias, canal, cliente_ia, servico_configuracoes.trocar_personalidade)),
+        habilidades=ApiPainelHabilidades(ServicoPainelHabilidades(cliente_ia)),
+    ))
 
     processador = ProcessadorComandos(
         estado, sessao, canal, locutor,
@@ -102,17 +108,9 @@ def construir_aplicacao() -> Aplicacao:
         ouvinte=ouvinte,
         processador=processador,
         trabalhador=TrabalhadorComandos(estado, sessao, canal, processador),
-        janela=JanelaMerlin(
-            estado, canal, sessao, preferencias,
-            JanelaConfiguracoes(servico_configuracoes,
-                                abrir_raciocinio=janela_raciocinio.abrir,
-                                abrir_assistentes=janela_assistentes.abrir,
-                                abrir_habilidades=janela_habilidades.abrir,
-                                clonagem=ServicoClonagem(ouvinte, transcritor, preferencias, locutor, sintetizador, canal)),
-            janela_raciocinio,
-            janela_assistentes,
-            janela_habilidades,
-        ),
+        janela=JanelaMerlin(estado, canal, sessao, preferencias, central,
+                            trocar_assistente=servico_configuracoes.trocar_personalidade,
+                            raciocinio=ApiRaciocinio(raciocinio, gravador.pasta)),
     )
 
 

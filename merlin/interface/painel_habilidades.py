@@ -5,12 +5,9 @@ Nenhuma ação é executada.
 """
 import time
 
-from merlin.config import ARQ_HABILIDADES, LIMITE_UMA_ETAPA
+from merlin.config import LIMITE_UMA_ETAPA
 from merlin.habilidades import HABILIDADES, NOME_CONVERSAR, grupos_em_uso
 from merlin.ia.intencoes import ClassificadorIntencao
-from merlin.interface.janela_auxiliar import JanelaAuxiliar
-
-LARGURA, ALTURA = 860, 780
 
 
 class ServicoPainelHabilidades:
@@ -83,8 +80,3 @@ class ApiPainelHabilidades:
     def testar(self, frase):
         return self._servico.testar(frase)
 
-
-class JanelaPainelHabilidades(JanelaAuxiliar):
-    def __init__(self, servico):
-        super().__init__("Habilidades", ARQ_HABILIDADES, ApiPainelHabilidades(servico), LARGURA, ALTURA,
-                         redimensionavel=True, sempre_na_frente=False)

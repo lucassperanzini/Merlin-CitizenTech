@@ -74,7 +74,7 @@ print(intencao.tipo.value, intencao.campos["artista"], acoes[intencao.tipo](inte
 class TestRegistro(unittest.TestCase):
     def test_encontra_todas_as_habilidades_com_conversar_por_ultimo(self):
         nomes = [h.nome for h in HABILIDADES]
-        self.assertEqual(set(nomes), {"dispensar", "encerrar", "abrir_configuracoes", "fechar_programa",
+        self.assertEqual(set(nomes), {"dispensar", "abrir_configuracoes", "trocar_assistente", "fechar_programa",
                                       "abrir_programa", "pesquisar_web", "clicar_botao", "conversar"})
         self.assertEqual(nomes[-1], NOME_CONVERSAR)
 

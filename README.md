@@ -14,11 +14,12 @@ Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho a
 - **Conversa:** responde perguntas no jeito da personalidade e lembra o que foi dito na conversa atual.
 - **Interrupção:** fale por cima e ele para de falar.
 - **Janelas:**
-  - **Principal:** a resposta aparece junto com a voz, palavra por palavra. Em espera, vira uma bolinha no canto da tela com o nome do assistente.
-  - **Configurações:** assistente, voz, modelo de IA e clonagem de voz.
-  - **Assistentes:** cria e edita personalidades sem mexer em código.
-  - **Habilidades:** mostra tudo o que ele sabe fazer, com um teste de frases.
-  - **Raciocínio:** mostra o que a IA entendeu e decidiu em cada pedido.
+  - **Bolinha (em espera):** fica no canto da tela com o nome do assistente. O anel mostra o estado: cor do assistente normalmente, vermelho com o microfone no mudo, laranja piscando se a IA (Ollama) não responde. Com o mouse por perto, aparecem os botões de configurações, microfone e modo debug (que mostra no cartão uma aba com o raciocínio da IA: o que ela entendeu e decidiu em cada pedido).
+  - **Cartão (ativo):** a bolinha cresce para cima e vira um cartão no canto direito, sem cobrir o programa em uso. A resposta aparece junto com a voz, palavra por palavra.
+  - **Central:** uma janela só, com abas.
+    - *Ajustes:* assistente e voz, modelo de IA, clonagem de voz.
+    - *Ferramentas:* editor de assistentes (cria e edita personalidades sem mexer em código) e habilidades (tudo o que ele sabe fazer, com um teste de frases).
+    - Embaixo, o status do sistema ao vivo.
 - **Clonagem de voz (opcional):** fala com a voz de uma amostra de 8 a 15 segundos.
 
 ---
@@ -90,7 +91,7 @@ py -3.13 -m venv .venv
 ollama pull qwen2.5:7b
 ```
 
-O modelo padrão é o `qwen2.5:7b`. Qualquer outro modelo baixado no Ollama aparece em **Configurações → Modelo de IA**. Nos testes, o `qwen3:8b` teve precisão parecida.
+O modelo padrão é o `qwen2.5:7b`. Qualquer outro modelo baixado no Ollama aparece na **Central → Inteligência**. Nos testes, o `qwen3:8b` teve precisão parecida.
 
 ### Clonagem de voz (opcional)
 
@@ -103,7 +104,7 @@ O instalador faz três coisas:
 - instala o XTTS-v2 (pacote `coqui-tts`);
 - baixa o modelo para `modelos\xtts_v2`.
 
-Depois disso, aparece a seção **"Clonar uma voz"** nas Configurações. O modelo XTTS-v2 tem licença **não comercial** (Coqui Public Model License).
+Depois disso, a aba **Clonagem** da Central passa a gravar e salvar vozes. O modelo XTTS-v2 tem licença **não comercial** (Coqui Public Model License).
 
 ---
 
@@ -122,14 +123,13 @@ Ao abrir, ele calibra o microfone (2 s), carrega os modelos e fica em espera: um
 | "fecha o chrome e pesquisa receita de bolo" | faz as duas tarefas |
 | "dá play" / "clica em salvar no word" | clica no botão |
 | "qual a capital da França?" | responde |
-| "abre as suas configurações" | abre a janela de configurações |
-| "valeu, pode ir" | volta para a espera |
-| "pode desligar de vez" | fecha o programa |
+| "abre as suas configurações" | abre a Central |
+| "valeu, pode ir" / "pode desligar" | volta para a espera (a bolinha) |
 
 **Outros comportamentos:**
 - **Inatividade:** depois de 30 s parado, ele volta sozinho para a espera.
 - **Clique:** clicar na bolinha também o ativa.
-- **Janelas de apoio:** a engrenagem abre as Configurações, e o ícone ao lado dela abre o Raciocínio.
+- **Botões:** na bolinha, passe o mouse para ver os botões. No cartão, ficam no alto: recolher, microfone e Central.
 
 ---
 
@@ -158,14 +158,14 @@ microfone
 | `merlin/personalidades/` | Merlin e Jarvis (padrão), mais os assistentes da pasta `assistentes/` |
 | `merlin/voz/` | síntese (Piper e clonagem), efeitos, reprodução e interrupção |
 | `merlin/nucleo/` | o fluxo de cada pedido, sessão, memória da conversa, raciocínio |
-| `merlin/interface/` | janelas (principal, configurações, assistentes, habilidades, raciocínio) |
+| `merlin/interface/` | janelas: a principal (bolinha e cartão) e a Central (ajustes, editor, habilidades) |
 | `merlin/config.py` | ajustes técnicos (tempos, limites, caminhos) |
 | `main.py` | monta as peças e liga umas nas outras |
 
 ### Personalizar
 
-- **Assistentes:** pela janela **Assistentes** (Configurações → "Criar e editar assistentes"). Lá você define nome, palavras de chamada, voz, aparência, jeito de conversar, frases prontas e expressões típicas. A IA local pode sugerir tudo a partir de uma descrição. Os assistentes ficam em `assistentes/*.json`.
-- **Habilidades:** crie um arquivo em `merlin/habilidades/` (veja um vizinho como modelo) e a ação em `merlin/acoes/`. Ela entra sozinha no que a IA lê e nas ações, e aparece no painel de Habilidades.
+- **Assistentes:** pela aba **Editor** da Central. Lá você define nome, palavras de chamada, voz, aparência, jeito de conversar, frases prontas e expressões típicas. A IA local pode sugerir tudo a partir de uma descrição. Os assistentes ficam em `assistentes/*.json`.
+- **Habilidades:** crie um arquivo em `merlin/habilidades/` (veja um vizinho como modelo) e a ação em `merlin/acoes/`. Ela entra sozinha no que a IA lê e nas ações, e aparece na aba Habilidades da Central.
 - **Ajustes técnicos:** em `merlin/config.py`, por exemplo a pausa que encerra uma frase (`PAUSA_FIM_FRASE`) e o tempo de inatividade (`TEMPO_INATIVIDADE`).
 
 ---
@@ -202,6 +202,6 @@ Ao criar uma habilidade, acrescente frases dela em `ferramentas/frases_avaliacao
 | "Não consegui falar com o meu cérebro" | O Ollama está aberto? O modelo escolhido foi baixado (`ollama list`)? |
 | A janela não abre | WebView2 Runtime instalado? |
 | Reconhecimento lento | Sem placa NVIDIA, ele usa o modelo `small` no processador. Confira se `modelos\large-v3-turbo` existe. |
-| Não reage ao nome | Fale o nome do assistente escolhido nas Configurações; veja as palavras de chamada no configurador. |
+| Não reage ao nome | O anel da bolinha está vermelho? É o mudo: passe o mouse e clique no microfone. Senão, fale o nome do assistente escolhido na Central e veja as palavras de chamada no Editor. |
 | Voz clonada demora na primeira fala | Normal: o modelo leva ~16 s para carregar. As falas seguintes levam 1 a 2 s. |
 | Aviso de `flash-attn` ou `torchaudio` no terminal | Inofensivo. |

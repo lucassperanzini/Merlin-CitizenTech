@@ -38,21 +38,24 @@
 
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; overflow: hidden; }
+  html { background: var(--fundo); }
   body {
     display: flex; flex-direction: column; align-items: center;
     background: var(--fundo); color: var(--texto);
+    /* O cartão: a janela é recortada com cantos de 16 px (merlin/interface/moldura.py: RAIO_CARTAO) */
+    border: 1px solid color-mix(in srgb, var(--ouro) 30%, transparent); border-radius: 16px;
     font-family: "Segoe UI", system-ui, sans-serif;
     user-select: none;
   }
   h1 {
-    margin: 18px 0 4px; font-size: 20px; font-weight: 600;
-    letter-spacing: .5em; text-indent: .5em; color: var(--ouro);
+    align-self: flex-start; margin: 18px 0 4px 20px; font-size: 16px; font-weight: 600;
+    letter-spacing: .4em; color: var(--ouro);
   }
   #palco { width: 100%; flex: 0 1 auto; min-height: 0; }
   #palco.abrindo { animation: abrir .7s cubic-bezier(.2, .8, .2, 1); }
   @keyframes abrir { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
-  svg { display: block; width: 100%; height: auto; max-height: 56vh; }
-  #esfera { display: none; width: 100%; height: 52vh; }
+  svg { display: block; width: 100%; height: auto; max-height: 42vh; }
+  #esfera { display: none; width: 100%; height: 40vh; }
   html[data-visual="esfera"] #palco svg { display: none; }
   html[data-visual="esfera"] #esfera { display: block; }
 
@@ -80,33 +83,74 @@
   body.ouvindo.voz #pupila { transform: scale(calc(1 + var(--nivel) * .55)); }
   body.ouvindo.voz circle[fill="#25cdf5"] { opacity: calc(.6 + var(--nivel) * .4); }
 
-  #ondas { display: block; width: 100%; height: 110px; flex: none; }
+  #ondas { display: block; width: 100%; height: 64px; flex: none; }
+  /* Estado em uma linha: um ponto que pulsa conforme o que ele está fazendo, e uma palavra curta */
   #status {
-    flex: none; font-size: 14px; letter-spacing: .04em; color: #8a97b3; text-align: center;
+    flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; margin: -2px 0 4px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: #8a97b3;
   }
+  #status .ponto {
+    width: 6px; height: 6px; border-radius: 50%; flex: none;
+    background: var(--brilho); box-shadow: 0 0 8px var(--brilho); animation: respirar 2.4s ease-in-out infinite;
+  }
+  @keyframes respirar { 50% { opacity: .3; transform: scale(.8); } }
   body.ouvindo.voz #status { color: var(--fibra); }
+  body.ouvindo.voz #status .ponto { animation: none; }
+  body.pensando #status .ponto { animation-duration: .7s; }
+  body.falando #status .ponto { animation-duration: 1.1s; }
 
-  /* A conversa: o que a pessoa disse e, embaixo, o que o assistente respondeu */
+  /* A conversa, como num chat: você à direita, o assistente à esquerda, na cor dele.
+     As trocas anteriores ficam mais apagadas; a última fica em destaque */
   #legenda {
-    flex: 1; width: 100%; padding: 10px 36px 14px; overflow-y: auto; min-height: 0;
-    font-size: 18px; line-height: 1.45; text-align: center;
+    flex: 1; width: 100%; min-height: 0; overflow-y: auto; padding: 8px 16px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+    font-size: 14.5px; line-height: 1.45; text-align: left;
+    scrollbar-width: none;  /* sem barra: a conversa rola sozinha conforme flui */
+    scroll-behavior: smooth;
+    /* As mensagens que rolam para cima somem aos poucos, em vez de serem cortadas secas */
+    -webkit-mask-image: linear-gradient(transparent, #000 28px);
+    mask-image: linear-gradient(transparent, #000 28px);
   }
-  #fala-assistente { margin-top: 12px; font-size: 16px; color: #b9c6e4; }
-  #fala-assistente:empty { display: none; }
-  #fala-assistente .quem {
-    display: block; margin-bottom: 2px; font-size: 11.5px; font-weight: 600; letter-spacing: .14em;
-    color: var(--ouro);
+  #legenda > :first-child { margin-top: auto; }  /* poucas mensagens ficam embaixo, perto de quem lê */
+  .msg {
+    max-width: 88%; padding: 8px 12px 9px; border-radius: 12px; user-select: text;
+    animation: surgir .22s ease-out; transition: opacity .3s;
   }
+  @keyframes surgir { from { opacity: 0; transform: translateY(4px); } }
+  /* Cada palavra da resposta surge com um fade, acompanhando a voz */
+  .palavra { animation: aparecer .4s ease-out both; }
+  @keyframes aparecer { from { opacity: 0; filter: blur(3px); } }
+  .msg .quem { display: block; margin-bottom: 3px; font-size: 10px; font-weight: 600; letter-spacing: .16em; }
+  .msg.pessoa {
+    align-self: flex-end; background: #151c2b; color: var(--texto); border-bottom-right-radius: 4px;
+  }
+  .msg.pessoa .quem { color: #8a97b3; text-align: right; }
+  .msg.assistente {
+    align-self: flex-start; color: #dbe6ff; border-bottom-left-radius: 4px;
+    background: color-mix(in srgb, var(--ouro) 9%, #0b0f18);
+    border: 1px solid color-mix(in srgb, var(--ouro) 28%, transparent);
+  }
+  .msg.assistente .quem { color: var(--ouro); }
+  /* Só a última troca (sua fala e a resposta) fica em destaque */
+  .msg.antiga { opacity: .5; }
+  /* "Pensando": três pontos enquanto a resposta não começa */
+  .digitando { display: inline-flex; gap: 4px; padding: 4px 0 2px; }
+  .digitando i { width: 6px; height: 6px; border-radius: 50%; background: var(--ouro); animation: ponto 1.1s infinite ease-in-out; }
+  .digitando i:nth-child(2) { animation-delay: .15s; }
+  .digitando i:nth-child(3) { animation-delay: .3s; }
+  @keyframes ponto { 0%, 70%, 100% { opacity: .25; transform: none; } 35% { opacity: 1; transform: translateY(-3px); } }
+  @media (prefers-reduced-motion: reduce) { .msg, .palavra, .digitando i { animation: none !important; } }
   .icone {
-    position: fixed; top: 12px; right: 14px; width: 34px; height: 34px; padding: 6px;
+    position: fixed; top: 12px; right: 12px; width: 32px; height: 32px; padding: 6px;
     border: 0; border-radius: 8px; background: transparent; color: #8a97b3; cursor: pointer;
   }
-  #raciocinio { right: 54px; }
-  #microfone { right: 94px; }
+  #microfone { right: 48px; }
+  #recolher { right: 84px; }
   #microfone .risco { display: none; }
   html.mudo #microfone { color: var(--mudo); }
   html.mudo #microfone .risco { display: inline; }
   html.mudo #status { color: var(--mudo); }
+  html.mudo #status .ponto { background: var(--mudo); box-shadow: none; animation: none; }
   .icone:hover { color: var(--texto); background: #0d111b; }
   .icone:focus-visible { outline: 2px solid var(--ouro); outline-offset: 1px; }
   .icone svg { width: 100%; height: 100%; max-height: none; }
@@ -114,8 +158,43 @@
   /* Em espera, numa bolinha no canto da tela: só a esfera, que ativa o assistente com um clique */
   /* Em espera: a bolinha (120 px) em cima e, embaixo, o nome do assistente numa faixa arredondada.
      As medidas batem com o recorte da janela (merlin/interface/moldura.py: LADO_COMPACTO, ESPACO_NOME, ALTURA_NOME) */
-  html.compacto body { justify-content: flex-start; cursor: pointer; }
-  html.compacto :is(h1, #ondas, #status, #legenda) { display: none; }
+  html.compacto body { justify-content: flex-start; cursor: pointer; border: 0; border-radius: 0; }
+  html.compacto #recolher { display: none; }
+  html.compacto :is(h1, #ondas, #status, #legenda, #aba-raciocinio, #painel-raciocinio) { display: none; }
+
+  /* Raciocínio da IA ao lado do cartão: uma aba na borda esquerda abre o painel e a janela cresce para a
+     esquerda, como parte do mesmo cartão (merlin/interface/moldura.py: LARGURA_PAINEL) */
+  /* A aba fica do lado de fora do cartão, à esquerda (merlin/interface/moldura.py: LARGURA_ABA, ALTURA_ABA).
+     O cartão fica preso à borda direita da janela: quando ela cresce para a esquerda (o painel abrindo), o conteúdo
+     não se mexe e o painel vai aparecendo, sem saltos. --cartao vem do Python (JANELA_LARGURA). */
+  :root { --painel: 360px; --aba: 18px; --cartao: 400px; }
+  html:not(.compacto) body { position: fixed; top: 0; right: 0; bottom: 0; width: var(--cartao); }
+  html:not(.debug) :is(#aba-raciocinio, #painel-raciocinio) { display: none !important; }
+  html:not(.compacto) #debug { display: none; }  /* só na órbita da bolinha */
+  html.compacto.debug #debug { color: #0b0f18; background: var(--ouro); border-color: var(--ouro); }
+  /* A aba fica na borda esquerda do que aparece: colada no cartão e, com o painel aberto, no painel. Ela
+     desliza junto com o recorte da janela (merlin/interface/moldura.py: DURACAO_RAPIDA, curva de suavizar) */
+  #aba-raciocinio {
+    position: fixed; right: var(--cartao); top: 50%; z-index: 2; transform: translateY(-50%);
+    transition: right .26s cubic-bezier(.33, 1, .68, 1);
+    width: var(--aba); height: 64px; padding: 0; border: 1px solid color-mix(in srgb, var(--ouro) 35%, transparent);
+    border-right: 0; border-radius: 10px 0 0 10px; background: #0b0f18; color: var(--ouro); cursor: pointer;
+  }
+  #aba-raciocinio:hover { background: color-mix(in srgb, var(--ouro) 16%, #0b0f18); }
+  #aba-raciocinio:focus-visible { outline: 2px solid var(--ouro); outline-offset: 1px; }
+  #aba-raciocinio svg { width: 12px; height: 12px; max-height: none; margin: auto; transition: transform .2s; }
+  #painel-raciocinio { display: none; }
+  /* Com o painel aberto por inteiro, o cartão e o painel viram uma moldura só */
+  html.debug.painel-colado:not(.compacto) body { border-left: 0; border-radius: 0 16px 16px 0; }
+  html.aba-aberta #aba-raciocinio { right: calc(var(--cartao) + var(--painel)); }
+  html.com-raciocinio #aba-raciocinio svg { transform: rotate(180deg); }
+  html.com-raciocinio #painel-raciocinio {
+    display: block; position: fixed; right: var(--cartao); top: 0; bottom: 0; width: var(--painel);
+    overflow: hidden; background: var(--fundo); border-radius: 16px 0 0 16px;
+    border: 1px solid color-mix(in srgb, var(--ouro) 30%, transparent);
+    border-right-color: color-mix(in srgb, var(--ouro) 14%, transparent);  /* a divisão com o cartão */
+  }
+  #painel-raciocinio .quadro { display: block; width: 100%; height: 100%; border: 0; }
   html.compacto #palco { flex: none; width: 120px; height: 120px; }
   html.compacto #esfera { height: 100%; }
   html.compacto #palco svg { height: 100%; max-height: none; }
@@ -124,9 +203,50 @@
   html.compacto .icone {
     padding: 6px; border-radius: 50%; color: var(--ouro);
     background: #0b0f18; border: 1px solid color-mix(in srgb, var(--ouro) 45%, transparent);
+    opacity: 0; pointer-events: none; transition: opacity .15s;
   }
+  /* Os botões só aparecem com o mouse por perto (merlin/interface/janela.py também os põe no recorte da janela) */
+  html.compacto.com-botoes .icone { opacity: 1; pointer-events: auto; }
+
+  /* Anel da bolinha: o estado num relance, sem texto. Normal na cor do assistente; vermelho no mudo;
+     laranja piscando se o Ollama (a IA) não responde */
+  html.compacto { --anel: color-mix(in srgb, var(--ouro) 50%, transparent); }
+  html.compacto.ia-fora { --anel: #ff9f43; }
+  html.compacto.mudo { --anel: var(--mudo); }
+  html.compacto #palco::after {
+    content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+    box-shadow: inset 0 0 0 2px var(--anel), inset 0 0 18px color-mix(in srgb, var(--anel) 50%, transparent);
+    transition: box-shadow .3s;
+  }
+  html.compacto.ia-fora:not(.mudo) #palco::after { animation: alerta 1.6s ease-in-out infinite; }
+  @keyframes alerta { 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { html.compacto #palco::after { animation: none !important; } }
   html.compacto .icone:hover { background: #141a28; border-color: var(--ouro); }
   html.compacto.mudo #microfone { color: var(--mudo); border-color: var(--mudo); }
+  /* O nome da bolinha abre a lista de assistentes */
+  html.compacto #nome-compacto { cursor: pointer; }
+  html.compacto.com-botoes #nome-compacto::after { content: " ▾"; }
+  html.compacto #nome-compacto:hover { background: color-mix(in srgb, var(--ouro) 14%, #0b0f18); }
+  #menu-assistentes { display: none; }
+  html.compacto.menu-aberto #menu-assistentes {
+    display: flex; flex-direction: column; gap: 2px; position: absolute; padding: 8px; overflow-y: auto;
+    background: #0b0f18; border: 1px solid color-mix(in srgb, var(--ouro) 40%, transparent); border-radius: 14px;
+    scrollbar-width: thin; scrollbar-color: #1b2638 transparent;
+  }
+  #menu-assistentes .rotulo {
+    padding: 2px 8px 6px; font-size: 10px; font-weight: 600; letter-spacing: .2em; color: #8a97b3;
+  }
+  #menu-assistentes button {
+    flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 0; border-radius: 8px;
+    background: transparent; color: var(--texto); font: 600 12px "Segoe UI", sans-serif; letter-spacing: .08em;
+    text-align: left; cursor: pointer;
+  }
+  #menu-assistentes button::before { content: ""; width: 6px; height: 6px; border-radius: 50%; flex: none; }
+  #menu-assistentes button[aria-current="true"] { color: var(--ouro); }
+  #menu-assistentes button[aria-current="true"]::before { background: var(--ouro); box-shadow: 0 0 6px var(--ouro); }
+  #menu-assistentes button:hover, #menu-assistentes button:focus-visible {
+    outline: none; background: color-mix(in srgb, var(--ouro) 16%, transparent);
+  }
   html.compacto #nome-compacto {
     display: block; flex: none; width: 100%; height: 24px; margin-top: 4px; padding: 0 10px;
     line-height: 24px; text-align: center; font-size: 12px; font-weight: 600; letter-spacing: .12em;
@@ -138,25 +258,35 @@
   <h1 id="titulo"></h1>
   <div id="palco"><!--OLHO--><canvas id="esfera" aria-label="Esfera do assistente"></canvas>
   </div>
-  <div id="nome-compacto" aria-hidden="true"></div>
+  <div id="nome-compacto" role="button" tabindex="-1" title="Trocar de assistente" aria-haspopup="menu"></div>
+  <div id="menu-assistentes" role="menu" aria-label="Trocar de assistente"></div>
   <canvas id="ondas" aria-hidden="true"></canvas>
-  <div id="status">Aguardando sua voz</div>
-  <div id="legenda">
-    <div id="fala-pessoa" aria-live="polite"></div>
-    <div id="fala-assistente" aria-live="polite"></div>
-  </div>
+  <div id="status" role="status"><i class="ponto" aria-hidden="true"></i><span id="status-texto">Pode falar</span></div>
+  <div id="legenda" role="log" aria-live="polite" aria-label="Conversa"></div>
+  <button id="aba-raciocinio" type="button" title="Mostrar o raciocínio da IA" aria-label="Mostrar o raciocínio da IA"
+          aria-expanded="false" aria-controls="painel-raciocinio">
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M7.5 2.5 4 6l3.5 3.5"/>
+    </svg>
+  </button>
+  <aside id="painel-raciocinio" aria-label="Raciocínio da IA"><!--QUADRO:raciocinio--></aside>
+  <button id="recolher" class="icone" type="button" title="Recolher para a bolinha" aria-label="Recolher para a bolinha">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M6 6l11 11M18 9v9H9"/>
+    </svg>
+  </button>
+  <button id="debug" class="icone" type="button" title="Ligar o modo debug (raciocínio da IA)"
+          aria-label="Ligar o modo debug (raciocínio da IA)" aria-pressed="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="8" y="6" width="8" height="13" rx="4"/>
+      <path d="M9.5 6.5 8 4M14.5 6.5 16 4M8 11H4M20 11h-4M8 15.5l-3.5 2M16 15.5l3.5 2M12 10v8"/>
+    </svg>
+  </button>
   <button id="microfone" class="icone" type="button" title="Desligar o microfone" aria-label="Desligar o microfone" aria-pressed="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <rect x="9" y="3" width="6" height="11" rx="3"/>
       <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/>
       <path class="risco" d="M4 4l16 16"/>
-    </svg>
-  </button>
-  <button id="raciocinio" class="icone" type="button" title="Raciocínio da IA" aria-label="Abrir o raciocínio da IA">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M4 6h16M4 12h10M4 18h7"/>
-      <circle cx="17.5" cy="16.5" r="3"/>
-      <path d="m19.7 18.7 2 2"/>
     </svg>
   </button>
   <button id="engrenagem" class="icone" type="button" title="Configurações" aria-label="Abrir configurações">
@@ -172,6 +302,20 @@
   const palco = document.getElementById("palco");
   const legenda = document.getElementById("legenda");
   const dados = /*DADOS*/;
+  if (dados.cartao) document.documentElement.style.setProperty("--cartao", dados.cartao + "px");
+
+  // O quadro do raciocínio espera o pywebview ficar pronto aqui, na janela, para começar (merlin/interface/central.py)
+  let prontos = window.pywebview && window.pywebview.api ? null : [];
+  function quandoPronto(fn) {
+    if (prontos === null) fn();
+    else prontos.push(fn);
+  }
+  window.addEventListener("pywebviewready", () => {
+    const pendentes = prontos || [];
+    prontos = null;
+    pendentes.forEach(fn => fn());
+  });
+  let personalidadeAtual = null;  // id do assistente em uso: marcado na lista do nome da bolinha
 
   const titulo = document.getElementById("titulo");
   const canvasEsfera = document.getElementById("esfera");
@@ -179,7 +323,65 @@
   let janelaVisivel = false;
 
   document.getElementById("engrenagem").addEventListener("click", () => window.pywebview.api.abrir_configuracoes());
-  document.getElementById("raciocinio").addEventListener("click", () => window.pywebview.api.abrir_raciocinio());
+  document.getElementById("recolher").addEventListener("click", () => window.pywebview.api.recolher());
+
+  // Modo debug (botão da órbita): com ele ligado, o cartão mostra a aba do raciocínio da IA
+  const botaoDebug = document.getElementById("debug");
+  function definirDebug(ligado) {
+    document.documentElement.classList.toggle("debug", ligado);
+    if (!ligado) document.documentElement.classList.remove("com-raciocinio", "painel-colado", "aba-aberta");
+    const texto = ligado ? "Desligar o modo debug (raciocínio da IA)" : "Ligar o modo debug (raciocínio da IA)";
+    botaoDebug.title = texto;
+    botaoDebug.setAttribute("aria-label", texto);
+    botaoDebug.setAttribute("aria-pressed", String(ligado));
+  }
+  botaoDebug.addEventListener("click", async () => definirDebug(await window.pywebview.api.alternar_debug()));
+  definirDebug(!!dados.debug);
+
+  // Aba da borda esquerda: abre e fecha o raciocínio ao lado do cartão
+  const abaRaciocinio = document.getElementById("aba-raciocinio");
+  // O quadro do raciocínio é a página da Central; aqui, dentro do cartão, o cabeçalho fica compacto
+  const ESTILO_NO_CARTAO = `
+    header { padding: 12px 14px 10px; gap: 8px; }
+    h1 { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: #8a97b3; }
+    label.seguir { font-size: 11.5px; }
+    button { padding: 3px 9px; font-size: 12px; }
+    #lista { padding: 10px 12px 16px; scrollbar-width: none; scroll-behavior: smooth; }
+    label.seguir { display: none; }`;  /* sem barra nem opção: acompanha sempre o mais recente */
+  function irParaOFim() {
+    const doc = document.getElementById("quadro-raciocinio")?.contentDocument;
+    if (!doc || !doc.body) return;
+    if (!doc.getElementById("estilo-cartao")) {
+      const estilo = doc.createElement("style");
+      estilo.id = "estilo-cartao";
+      estilo.textContent = ESTILO_NO_CARTAO;
+      doc.head.append(estilo);
+    }
+    const seguir = doc.getElementById("seguir"), lista = doc.getElementById("lista");
+    if (seguir) seguir.checked = true;  // ao abrir, acompanha o que a IA está fazendo agora
+    if (lista) lista.scrollTop = lista.scrollHeight;
+  }
+  async function painelRaciocinio(aberto) {
+    // O painel fica pronto à esquerda do cartão, fora da janela; a janela cresce e ele vai aparecendo
+    // A aba começa a deslizar junto com o recorte, nos dois sentidos; o painel some só no fim do fechamento
+    if (aberto) {
+      raiz.classList.add("com-raciocinio", "aba-aberta");
+      requestAnimationFrame(irParaOFim);
+      await window.pywebview.api.painel_raciocinio(true);
+      raiz.classList.add("painel-colado");
+    } else {
+      raiz.classList.remove("painel-colado", "aba-aberta");
+      await window.pywebview.api.painel_raciocinio(false);
+      raiz.classList.remove("com-raciocinio");
+    }
+    if (!aberto) window.pywebview.api.painel_raciocinio(false);
+    const texto = aberto ? "Esconder o raciocínio da IA" : "Mostrar o raciocínio da IA";
+    abaRaciocinio.title = texto;
+    abaRaciocinio.setAttribute("aria-label", texto);
+    abaRaciocinio.setAttribute("aria-expanded", String(aberto));
+  }
+  abaRaciocinio.addEventListener("click", () =>
+    painelRaciocinio(!document.documentElement.classList.contains("com-raciocinio")));
 
   // Mudo: o Python decide e devolve o estado novo, para o botão nunca mostrar o contrário do que está valendo
   const botaoMicrofone = document.getElementById("microfone");
@@ -197,6 +399,7 @@
   botaoMicrofone.addEventListener("click", async () => definirMudo(await window.pywebview.api.alternar_microfone()));
 
   function definirPersonalidade(p) {
+    personalidadeAtual = p.id;
     visual = p.visual;
     document.documentElement.dataset.visual = p.visual;
     // Cor de destaque escolhida no configurador; sem ela, vale a cor padrão do visual
@@ -215,20 +418,25 @@
   }
   function falarComVolume(volumes, passo) {
     window.Esfera.falar(volumes, passo);
+    vozAssistente = { volumes, passo, inicio: performance.now() };  // a onda também acompanha a voz dele
   }
 
-  const statusTexto = document.getElementById("status");
+  const statusTexto = document.getElementById("status-texto");
   let estadoAtual = "ouvindo";
   let nivelAtual = 0;
 
   function atualizarStatus() {
-    const textos = { pensando: "Processando", falando: "Falando" };
+    const textos = { pensando: "Pensando", falando: "Falando" };
     statusTexto.textContent = textos[estadoAtual]
       || (microfoneMudo ? "Microfone desligado" : null)
-      || (nivelAtual > 0 ? "Ouvindo sua voz" : "Aguardando sua voz");
+      || (nivelAtual > 0 ? "Ouvindo você" : "Pode falar");
   }
   function definirEstado(estado) {
     estadoAtual = estado;
+    if (estado !== "falando") vozAssistente = null;
+    iniciarOndas();
+    if (estado === "pensando") mostrarDigitando();
+    else if (estado === "ouvindo") tirarDigitando();
     window.Esfera.definirEstado(estado);
     document.body.className = estado;
     document.body.classList.toggle("voz", nivelAtual > 0);
@@ -243,24 +451,44 @@
     iniciarOndas();
   }
 
-  // Ondas: a altura acompanha os decibéis da voz captada pelo microfone
+  // Onda de som: sempre viva enquanto o cartão está aberto.
+  // Ouvindo, segue o volume da sua voz; falando, o da voz dele; pensando, pulsa devagar; em silêncio, respira de leve.
   const ondas = document.getElementById("ondas");
   const pincel = ondas.getContext("2d");
   const CAMADAS = [
-    { ciclos: 2.0, velocidade: 4.5, altura: 1.0, opacidade: 1, espessura: 2.5 },
-    { ciclos: 3.1, velocidade: -3.2, altura: 0.68, opacidade: 0.55, espessura: 1.8 },
-    { ciclos: 4.4, velocidade: 6.1, altura: 0.42, opacidade: 0.3, espessura: 1.4 },
+    { ciclos: 1.6, velocidade: 2.6, altura: 1.0, opacidade: 1, espessura: 2.2 },
+    { ciclos: 2.5, velocidade: -1.9, altura: 0.7, opacidade: 0.5, espessura: 1.6 },
+    { ciclos: 3.4, velocidade: 3.6, altura: 0.45, opacidade: 0.28, espessura: 1.2 },
   ];
+  const RESPIRO = 0.06;  // altura mínima: a onda nunca fica morta
   let amplitude = 0;
   let fase = 0;
   let ultimoQuadro = 0;
   let ondasRodando = false;
+  let vozAssistente = null;
+
+  function volumeDaVozDele(agora) {
+    const v = vozAssistente;
+    if (!v) return 0;
+    const i = Math.floor((agora - v.inicio) / 1000 / v.passo);
+    return i >= 0 && i < v.volumes.length ? v.volumes[i] : 0;
+  }
+  function alvoDaOnda(agora) {
+    if (estadoAtual === "falando") return RESPIRO + volumeDaVozDele(agora) * 0.85;
+    if (estadoAtual === "pensando") return 0.16 + 0.08 * Math.sin(agora / 240);
+    if (microfoneMudo) return 0;
+    return Math.max(RESPIRO * (0.75 + 0.25 * Math.sin(agora / 900)), nivelAtual);
+  }
+  function rgba(cor, alfa) {  // "#2bd3f2" -> "rgba(43, 211, 242, alfa)"
+    const hex = cor.trim().replace("#", "");
+    const n = parseInt(hex.length === 3 ? hex.replace(/./g, c => c + c) : hex, 16);
+    return `rgba(${n >> 16 & 255}, ${n >> 8 & 255}, ${n & 255}, ${alfa})`;
+  }
 
   function desenharOndas(agora) {
     const dt = Math.min((agora - ultimoQuadro) / 1000, 0.05);
     ultimoQuadro = agora;
-    const alvo = estadoAtual === "ouvindo" ? nivelAtual : 0;
-    amplitude += (alvo - amplitude) * Math.min(1, dt * 14);
+    amplitude += (alvoDaOnda(agora) - amplitude) * Math.min(1, dt * 12);
     fase += dt;
 
     const escala = window.devicePixelRatio || 1;
@@ -272,31 +500,40 @@
     }
     pincel.setTransform(escala, 0, 0, escala, 0, 0);
     pincel.clearRect(0, 0, largura, altura);
-    pincel.strokeStyle = getComputedStyle(document.body).getPropertyValue("--brilho");
-    pincel.lineCap = "round";
 
-    const margem = largura * 0.08;
+    const cor = getComputedStyle(document.body).getPropertyValue("--brilho") || "#2bd3f2";
+    const margem = largura * 0.1;
     const util = largura - margem * 2;
+    // As pontas somem aos poucos, e a linha brilha de leve
+    const gradiente = pincel.createLinearGradient(margem, 0, margem + util, 0);
+    gradiente.addColorStop(0, rgba(cor, 0));
+    gradiente.addColorStop(0.5, rgba(cor, 1));
+    gradiente.addColorStop(1, rgba(cor, 0));
+    pincel.strokeStyle = gradiente;
+    pincel.lineCap = "round";
+    pincel.shadowColor = rgba(cor, 0.6);
+    pincel.shadowBlur = 10;
+
     for (const c of CAMADAS) {
-      pincel.globalAlpha = c.opacidade;
+      pincel.globalAlpha = c.opacidade * (microfoneMudo && estadoAtual === "ouvindo" ? 0.35 : 1);
       pincel.lineWidth = c.espessura;
       pincel.beginPath();
-      for (let x = 0; x <= util; x += 3) {
+      for (let x = 0; x <= util; x += 2) {
         const p = x / util;
-        const envelope = Math.sin(Math.PI * p) ** 2; // as pontas ficam presas ao centro
+        const envelope = Math.sin(Math.PI * p) ** 2;  // as pontas ficam presas ao centro
         const y = altura / 2 + Math.sin(p * c.ciclos * 2 * Math.PI + fase * c.velocidade)
-          * envelope * amplitude * c.altura * (altura / 2 - 4);
+          * envelope * amplitude * c.altura * (altura / 2 - 6);
         if (x === 0) pincel.moveTo(margem + x, y);
         else pincel.lineTo(margem + x, y);
       }
       pincel.stroke();
     }
+    pincel.globalAlpha = 1;
 
-    // Em silêncio a linha fica parada e o desenho para, para não gastar processamento à toa
-    if (alvo > 0 || amplitude > 0.004) {
+    // Só desenha com o cartão aberto: na bolinha e escondida, não gasta processamento
+    if (janelaVisivel && !document.documentElement.classList.contains("compacto")) {
       requestAnimationFrame(desenharOndas);
     } else {
-      amplitude = 0;
       ondasRodando = false;
     }
   }
@@ -307,11 +544,51 @@
     requestAnimationFrame(desenharOndas);
   }
   iniciarOndas();
-  // O que a pessoa disse; uma pergunta nova apaga a resposta anterior
+  // A conversa como num chat. Texto vazio limpa tudo (a cada ativação, a conversa começa do zero).
+  const MAXIMO_MENSAGENS = 16;  // as mais antigas saem, para a página não crescer sem fim
+  let respostaAtual = null;  // o texto da resposta que está sendo escrita
+
+  function novaMensagem(classe, quem) {
+    const msg = document.createElement("div");
+    msg.className = `msg ${classe}`;
+    const rotulo = document.createElement("span");
+    rotulo.className = "quem";
+    rotulo.textContent = quem;
+    const texto = document.createElement("span");
+    texto.className = "texto";
+    msg.append(rotulo, texto);
+    tirarDigitando();
+    legenda.append(msg);
+    while (legenda.children.length > MAXIMO_MENSAGENS) legenda.firstElementChild.remove();
+    marcarAntigas();
+    legenda.scrollTop = legenda.scrollHeight;
+    return texto;
+  }
+  // Em destaque, só a última fala da pessoa e o que veio depois dela
+  function marcarAntigas() {
+    const msgs = [...legenda.querySelectorAll(".msg")];
+    const ultimaPessoa = msgs.map(m => m.classList.contains("pessoa")).lastIndexOf(true);
+    msgs.forEach((m, i) => m.classList.toggle("antiga", i < ultimaPessoa));
+  }
   function definirLegenda(texto) {
     animacaoTexto = null;
-    document.getElementById("fala-pessoa").textContent = texto;
-    document.getElementById("fala-assistente").replaceChildren();
+    respostaAtual = null;
+    if (!texto) { legenda.replaceChildren(); return; }
+    novaMensagem("pessoa", "VOCÊ").textContent = texto;
+    if (estadoAtual === "pensando") mostrarDigitando();
+  }
+  // Enquanto ele pensa, três pontos no lugar da resposta (só depois de uma fala sua)
+  function mostrarDigitando() {
+    const ultima = legenda.lastElementChild;
+    if (!ultima || !ultima.classList.contains("pessoa") || legenda.querySelector(".digitando")) return;
+    const msg = document.createElement("div");
+    msg.className = "msg assistente digitando-msg";
+    msg.innerHTML = '<span class="digitando" aria-label="Pensando"><i></i><i></i><i></i></span>';
+    legenda.append(msg);
+    legenda.scrollTop = legenda.scrollHeight;
+  }
+  function tirarDigitando() {
+    legenda.querySelector(".digitando-msg")?.remove();
   }
   // A resposta do assistente aparece palavra por palavra, acompanhando a voz (como num chat de IA).
   // Cada trecho de áudio chega com o texto e a duração; as palavras se distribuem por essa duração,
@@ -321,16 +598,15 @@
 
   function comecarResposta() {
     animacaoTexto = null;
-    const quem = document.createElement("span");
-    quem.className = "quem";
-    quem.textContent = (document.title || "").toUpperCase();
-    const fala = document.createElement("span");
-    fala.id = "fala-texto";
-    document.getElementById("fala-assistente").replaceChildren(quem, fala);
+    respostaAtual = novaMensagem("assistente", (document.title || "").toUpperCase());
   }
   function escrever(palavra) {
-    const fala = document.getElementById("fala-texto");
-    fala.textContent += (fala.textContent ? " " : "") + palavra;
+    if (!respostaAtual) return;
+    if (respostaAtual.childNodes.length) respostaAtual.append(" ");
+    const span = document.createElement("span");
+    span.className = "palavra";
+    span.textContent = palavra;
+    respostaAtual.append(span);
     legenda.scrollTop = legenda.scrollHeight;
   }
   function completarTrecho() {  // a voz do trecho anterior já acabou: o que faltava aparece de uma vez
@@ -339,7 +615,7 @@
     animacaoTexto = null;
   }
   function mostrarTrecho(texto, duracao) {
-    if (!document.getElementById("fala-texto")) comecarResposta();
+    if (!respostaAtual) comecarResposta();
     completarTrecho();
     const palavras = texto.split(/\s+/).filter(Boolean);
     if (!duracao || duracao <= 0) { palavras.forEach(escrever); return; }
@@ -364,8 +640,10 @@
   }
   const raiz = document.documentElement;
   document.body.addEventListener("click", evento => {
-    // Na bolinha, um clique ativa o assistente; nos botões em volta dela, só faz o que o botão faz
-    if (raiz.classList.contains("compacto") && !evento.target.closest(".icone")) window.pywebview.api.ativar();
+    // Na bolinha, um clique ativa o assistente; nos botões, no nome e na lista, só faz o que eles fazem
+    if (raiz.classList.contains("compacto") && !evento.target.closest(".icone, #nome-compacto, #menu-assistentes")) {
+      window.pywebview.api.ativar();
+    }
   });
 
   // As peças da bolinha vão para o lugar exato do recorte da janela, calculado no Python
@@ -379,8 +657,85 @@
   }
   const pecasCompactas = () => [palco, document.getElementById("nome-compacto"), ...document.querySelectorAll(".icone")];
 
+  // Mouse perto da bolinha: os botões aparecem. Ao sair, esperam um pouco antes de sumir, para dar tempo
+  // de atravessar o vão entre a bolinha e eles (o vão fica fora da janela e conta como "saiu")
+  let botoesVisiveis = false, timerBotoes = null;
+  function mostrarBotoes(visiveis) {
+    if (visiveis === botoesVisiveis) return;
+    botoesVisiveis = visiveis;
+    if (visiveis) {
+      window.pywebview.api.botoes_compactos(true);
+      raiz.classList.add("com-botoes");
+    } else {
+      fecharMenu();
+      raiz.classList.remove("com-botoes");
+      setTimeout(() => { if (!botoesVisiveis) window.pywebview.api.botoes_compactos(false); }, 160);  // depois do fade
+    }
+  }
+  raiz.addEventListener("mouseenter", () => {
+    clearTimeout(timerBotoes);
+    if (raiz.classList.contains("compacto")) mostrarBotoes(true);
+  });
+  raiz.addEventListener("mouseleave", () => {
+    clearTimeout(timerBotoes);
+    if (raiz.classList.contains("compacto")) timerBotoes = setTimeout(() => mostrarBotoes(false), 700);
+  });
+
+  // Lista de assistentes: abre com um clique no nome, fecha ao escolher, com Esc, num novo clique ou ao sair o mouse.
+  // Abre embaixo do nome; a janela sobe para a lista caber sem passar da área livre da tela.
+  const ALTURA_ITEM = 30, ALTURA_ROTULO = 24, MARGEM_LISTA = 26, ALTURA_MAXIMA_LISTA = 220;
+  const menu = document.getElementById("menu-assistentes");
+  let desenhoAtual = null;
+  async function abrirMenu() {
+    if (!desenhoAtual) return;
+    const lista = await window.pywebview.api.listar_assistentes();
+    const altura = Math.min(ALTURA_MAXIMA_LISTA, ALTURA_ROTULO + lista.length * ALTURA_ITEM + MARGEM_LISTA);
+    const atual = personalidadeAtual;
+    const rotulo = document.createElement("div");
+    rotulo.className = "rotulo";
+    rotulo.textContent = "TROCAR PARA";
+    menu.replaceChildren(rotulo, ...lista.map(p => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.setAttribute("role", "menuitem");
+      item.textContent = p.nome.toUpperCase();
+      item.setAttribute("aria-current", String(p.id === atual));
+      item.addEventListener("click", () => {
+        fecharMenu();
+        if (p.id !== atual) window.pywebview.api.trocar_assistente(p.id);
+      });
+      return item;
+    }));
+    const n = desenhoAtual.nome;
+    Object.assign(menu.style, { left: n.x + "px", top: (desenhoAtual.altura + 6) + "px", width: n.largura + "px",
+                                height: (altura - 6) + "px" });
+    raiz.classList.add("menu-aberto");
+    await window.pywebview.api.menu_assistentes(true, altura);
+    menu.querySelector('[aria-current="true"]')?.focus();
+  }
+  async function fecharMenu() {
+    if (!raiz.classList.contains("menu-aberto")) return;
+    await window.pywebview.api.menu_assistentes(false);
+    raiz.classList.remove("menu-aberto");
+  }
+  document.getElementById("nome-compacto").addEventListener("click", () => {
+    if (!raiz.classList.contains("compacto")) return;
+    if (raiz.classList.contains("menu-aberto")) fecharMenu();
+    else abrirMenu();
+  });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") fecharMenu(); });
+
+  function definirIaFora(fora) {
+    raiz.classList.toggle("ia-fora", fora);
+    palco.title = fora ? "A IA (Ollama) não está respondendo" : "";
+  }
+
   function aoCompactar(desenho) {
     raiz.classList.add("compacto");
+    raiz.classList.remove("com-raciocinio", "painel-colado", "aba-aberta");
+    abaRaciocinio.setAttribute("aria-expanded", "false");
+    raiz.classList.remove("menu-aberto");
+    desenhoAtual = desenho;
     const b = desenho.bolinha, n = desenho.nome;
     colocar(palco, b.x, b.y, b.lado, b.lado);
     colocar(document.getElementById("nome-compacto"), n.x, n.y, n.largura, n.altura);
@@ -397,7 +752,9 @@
     atualizarAnimacao();
   }
   function aoMostrar() {
-    raiz.classList.remove("compacto");
+    raiz.classList.remove("compacto", "com-botoes", "menu-aberto");
+    clearTimeout(timerBotoes);
+    botoesVisiveis = false;
     pecasCompactas().forEach(soltar);
     document.querySelectorAll(".icone").forEach(botao => botao.style.removeProperty("display"));
     window.Esfera.limitarQuadros(60);

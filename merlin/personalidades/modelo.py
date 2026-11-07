@@ -60,18 +60,6 @@ def prompt_despedida(nome: str, jeito: str, sem_tratamentos: bool = False) -> st
             "Não repita as despedidas recentes:\n{evitar}")
 
 
-def prompt_encerramento(nome: str, jeito: str, sem_tratamentos: bool = False) -> str:
-    return (f"{_inicio(nome)} {_limpo(jeito)} A pessoa acaba de desligar você por completo: você vai parar de "
-            "escutar e não ouvirá mais ninguém até ser iniciado de novo. Escreva uma despedida falada em português "
-            "do Brasil correto e natural, com uma ou duas frases curtas, no jeito do personagem. Fale de você na "
-            "primeira pessoa, contando que está se desligando, com uma imagem ligada a este tema: {tema}. "
-            "Não diga que basta chamar. Não faça perguntas."
-            + (SEM_TRATAMENTOS if sem_tratamentos else "")
-            + " Inspire-se no ritmo deste exemplo, sem copiar as palavras: {exemplo} "
-            "Responda só com a despedida, sem aspas, emojis ou formatação. "
-            "Não repita as despedidas recentes:\n{evitar}")
-
-
 def montar_instrucoes(dados: dict) -> dict:
     """Remonta as instruções das saudações e despedidas a partir do nome, do jeito e das duas opções
     ("sempre dizer o nome" e "sem senhor/mestre", guardadas nos próprios conjuntos de frases).
@@ -84,10 +72,9 @@ def montar_instrucoes(dados: dict) -> dict:
     dados["jeito"] = jeito
     saudacao = dados.get("saudacao", {})
     diz_nome = bool(saudacao.get("exige_nome"))
-    sem_tratamentos = any(dados.get(p, {}).get("proibir_tratamentos") for p in ("saudacao", "despedida", "encerramento"))
+    sem_tratamentos = any(dados.get(p, {}).get("proibir_tratamentos") for p in ("saudacao", "despedida"))
     prompts = {"saudacao": prompt_saudacao(nome, jeito, diz_nome, sem_tratamentos),
-               "despedida": prompt_despedida(nome, jeito, sem_tratamentos),
-               "encerramento": prompt_encerramento(nome, jeito, sem_tratamentos)}
+               "despedida": prompt_despedida(nome, jeito, sem_tratamentos)}
     for parte, prompt in prompts.items():
         conjunto = {**dados.get(parte, {}), "prompt": prompt, "proibir_tratamentos": sem_tratamentos}
         # Exemplos de ritmo para o {exemplo}: as primeiras frases prontas
@@ -107,6 +94,4 @@ def novo_assistente(nome: str = "", jeito: str = "") -> dict:
         "saudacao": {"prompt": prompt_saudacao(nome, jeito), "temas": [], "reservas": [], "exemplos": []},
         "despedida": {"prompt": prompt_despedida(nome, jeito), "temas": [], "reservas": [], "exemplos": [],
                       "sem_perguntas": True, "tamanho_maximo": 120},
-        "encerramento": {"prompt": prompt_encerramento(nome, jeito), "temas": [], "reservas": [], "exemplos": [],
-                         "sem_perguntas": True, "tamanho_maximo": 120},
     }

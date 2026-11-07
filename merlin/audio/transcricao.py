@@ -41,6 +41,7 @@ def carregar_na_cpu() -> WhisperModel:
 class Transcritor:
     def __init__(self):
         self._modelo = None
+        self.dispositivo = ""  # "gpu" ou "cpu" depois de carregado: aparece no status das configurações
 
     def precarregar(self) -> None:
         self._obter_modelo()
@@ -61,13 +62,14 @@ class Transcritor:
             self._modelo = self._carregar()
         return self._modelo
 
-    @staticmethod
-    def _carregar() -> WhisperModel:
+    def _carregar(self) -> WhisperModel:
         registrar_bibliotecas_nvidia()
         try:
             modelo = carregar_na_placa_de_video()
             logger.info("[VOZ] Reconhecimento na placa de vídeo (%s).", MODELO_WHISPER_GPU)
+            self.dispositivo = "gpu"
             return modelo
         except Exception as erro:
             logger.warning("[VOZ] Placa de vídeo indisponível (%s); usando a CPU (%s).", erro, MODELO_WHISPER_CPU)
+            self.dispositivo = "cpu"
             return carregar_na_cpu()

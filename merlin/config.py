@@ -12,7 +12,7 @@ PAUSA_FIM_FRASE = 1.0  # segundos sem voz humana que encerram a frase: mais curt
                        # mais longo deixa pausar para pensar no meio do pedido
 MAX_TROCAS_LEMBRADAS = 6  # quantas perguntas e respostas da conversa atual o Merlin lembra
 
-MODELO_IA = "qwen2.5:7b"  # padrão; a escolha feita nas configurações fica salva nas preferências
+MODELO_IA = "qwen2.5:8b"  # padrão; a escolha feita nas configurações fica salva nas preferências
 # Até este número de habilidades, a IA escolhe a intenção de uma vez; acima, em duas etapas (grupo e depois
 # intenção), para cada pergunta continuar curta. Veja ferramentas/avaliar_classificador.py.
 LIMITE_UMA_ETAPA = 12
@@ -40,7 +40,8 @@ ARQ_THREE = PASTA_RAIZ / "recursos" / "vendor" / "three.min.js"
 ARQ_ESFERA = PASTA_RAIZ / "recursos" / "esfera.js"
 VOLUME_SOM_ATIVACAO = 0.7  # de 0 (mudo) a 1
 
-JANELA_LARGURA, JANELA_ALTURA = 680, 820
+# Janela ativa: um cartão encostado no canto direito, acima da bolinha, para não cobrir o programa em uso
+JANELA_LARGURA, JANELA_ALTURA = 400, 620  # em pontos (viram pixels conforme a escala da tela)
 
 # Vozes neurais OFFLINE (Piper). Os arquivos .onnx ficam na pasta "vozes".
 # As vozes com efeito (mago, Jarvis) ficam no arquivo de cada personalidade; o seletor junta as duas listas.

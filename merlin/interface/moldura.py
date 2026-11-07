@@ -1,10 +1,11 @@
-"""Formato da janela no Windows: a bolinha sem moldura no canto da tela e a transição até a janela cheia.
+"""Formato da janela no Windows: a bolinha no canto da tela, o cartão da janela ativa logo acima dela e a
+transição entre os dois.
 Usa a API do Windows direto no handle da janela, porque o pywebview não troca a moldura nem anima o tamanho."""
 import ctypes
 import ctypes.wintypes as wt
 import math
 import time
-from typing import NamedTuple
+from typing import Callable, NamedTuple
 
 user32 = ctypes.windll.user32
 gdi32 = ctypes.windll.gdi32
@@ -16,10 +17,10 @@ MOLDURA = WS_CAPTION | WS_THICKFRAME
 SWP_NOSIZE, SWP_NOMOVE, SWP_NOZORDER, SWP_NOACTIVATE, SWP_FRAMECHANGED = 0x1, 0x2, 0x4, 0x10, 0x20
 MONITOR_DEFAULTTONEAREST = 2
 dwmapi = ctypes.windll.dwmapi
-DWMWA_NCRENDERING_POLICY, DWMNCRP_USEWINDOWSTYLE, DWMNCRP_DISABLED = 2, 0, 1
-DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DEFAULT, DWMWCP_DONOTROUND = 33, 0, 1
-DWMWA_BORDER_COLOR, DWMWA_COLOR_DEFAULT, DWMWA_COLOR_NONE = 34, 0xFFFFFFFF, 0xFFFFFFFE
-DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_AUTOMATICO, DWMSBT_NENHUM = 38, 0, 1
+DWMWA_NCRENDERING_POLICY, DWMNCRP_DISABLED = 2, 1
+DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND = 33, 1
+DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE = 34, 0xFFFFFFFE
+DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_NENHUM = 38, 1
 
 # A janela compacta: a bolinha em cima, uma faixa com o nome do assistente embaixo e, do lado de fora da bolinha,
 # botões redondos num arco à esquerda (o lado de dentro da tela, já que a bolinha fica no canto direito).
@@ -28,12 +29,17 @@ LADO_COMPACTO = 120  # diâmetro da bolinha
 LARGURA_NOME = 150  # um pouco mais larga que a bolinha, para caber o nome
 ESPACO_NOME = 4  # entre a bolinha e a faixa do nome
 ALTURA_NOME = 24
-BOTOES_COMPACTOS = ("engrenagem", "microfone", "raciocinio")  # ids dos botões na página, de cima para baixo
+BOTOES_COMPACTOS = ("engrenagem", "microfone", "debug")  # ids dos botões na página, de cima para baixo
 ANGULOS_BOTOES = (148, 180, 212)  # graus a partir da direita, no sentido anti-horário: 180 é bem à esquerda
 DIAMETRO_BOTAO = 28
 ORBITA_BOTOES = 84  # do centro da bolinha ao centro de cada botão: sobra um vão entre eles e a bolinha
 MARGEM_COMPACTA = 18
-DURACAO_ANIMACAO = 0.38  # segundos
+RAIO_CARTAO = 16  # cantos arredondados do cartão da janela ativa
+LARGURA_PAINEL = 360  # o painel do raciocínio, aberto à esquerda do cartão pela aba da borda (--painel na página)
+LARGURA_ABA, ALTURA_ABA = 18, 64  # a aba que abre o painel, do lado de fora do cartão, à esquerda (--aba na página)
+ESPACO_LISTA = 6  # entre a faixa do nome e a lista de assistentes (o mesmo vão na página)
+DURACAO_ANIMACAO = 0.38  # segundos: a bolinha virando cartão e vice-versa
+DURACAO_RAPIDA = 0.26  # segundos: painéis e listas que abrem e fecham dentro da mesma forma
 QUADROS_POR_SEGUNDO = 60
 
 user32.SetWindowRgn.argtypes = [wt.HWND, wt.HANDLE, wt.BOOL]
@@ -91,11 +97,28 @@ def tamanho_compacto(escala: float) -> tuple[int, int]:
     return round(desenho["largura"] * escala), round(desenho["altura"] * escala)
 
 
-def retangulo_do_canto(area: Retangulo, escala: float) -> Retangulo:
-    """Canto inferior direito da área livre da tela (sem a barra de tarefas)."""
+def retangulo_do_canto(area: Retangulo, escala: float, altura_extra: int = 0) -> Retangulo:
+    """Canto inferior direito da área livre da tela (sem a barra de tarefas).
+    altura_extra (em pontos) aumenta a janela embaixo da faixa do nome, para a lista de assistentes. A janela sobe
+    esse tanto: a lista cabe embaixo do nome sem passar da área livre da tela."""
     largura, altura = tamanho_compacto(escala)
+    altura += round(altura_extra * escala)
     margem = round(MARGEM_COMPACTA * escala)
     return Retangulo(area.x + area.largura - largura - margem, area.y + area.altura - altura - margem, largura, altura)
+
+
+def retangulo_do_cartao(area: Retangulo, escala: float, largura: int, altura: int) -> Retangulo:
+    """A janela ativa: encostada no canto inferior direito da área livre, onde fica a bolinha, crescendo para cima.
+    Em telas baixas, encolhe para caber."""
+    margem = round(MARGEM_COMPACTA * escala)
+    largura = min(round(largura * escala), area.largura - 2 * margem)
+    altura = min(round(altura * escala), area.altura - 2 * margem)
+    return Retangulo(area.x + area.largura - largura - margem, area.y + area.altura - altura - margem, largura, altura)
+
+
+def arredondamento_do_cartao(r: Retangulo, escala: float) -> float:
+    """O arredondamento de posicionar() é uma fração do lado menor: converte o raio dos cantos para ela."""
+    return min(1.0, 2 * RAIO_CARTAO * escala / max(1, min(r.largura, r.altura)))
 
 
 def formas_compactas(escala: float):
@@ -115,53 +138,47 @@ def formas_compactas(escala: float):
 class Moldura:
     def __init__(self, hwnd: int):
         self._hwnd = hwnd
-        self._estilo_original = user32.GetWindowLongW(hwnd, GWL_STYLE)
-        self._fundo_do_windows = DWMSBT_AUTOMATICO  # o efeito de fundo da janela cheia, guardado ao virar bolinha
-        # Guardados com a janela ainda no tamanho normal: é para eles que ela volta
-        self.cheia = self._retangulo_janela()
-        self.conteudo = self._retangulo_conteudo()
 
-    def canto(self) -> Retangulo:
+    def canto(self, altura_extra: int = 0) -> Retangulo:
+        return retangulo_do_canto(self._area_livre(), self._escala(), altura_extra)
+
+    def cartao(self, largura: int, altura: int) -> tuple[Retangulo, float]:
+        """Onde fica a janela ativa e o quanto arredondar os cantos dela."""
+        escala = self._escala()
+        r = retangulo_do_cartao(self._area_livre(), escala, largura, altura)
+        return r, arredondamento_do_cartao(r, escala)
+
+    def _area_livre(self) -> Retangulo:
+        """A tela onde a janela está, sem a barra de tarefas."""
         monitor = user32.MonitorFromWindow(self._hwnd, MONITOR_DEFAULTTONEAREST)
         info = _InfoMonitor(cbSize=ctypes.sizeof(_InfoMonitor))
         user32.GetMonitorInfoW(monitor, ctypes.byref(info))
         r = info.rcWork
-        return retangulo_do_canto(Retangulo(r.left, r.top, r.right - r.left, r.bottom - r.top), self._escala())
+        return Retangulo(r.left, r.top, r.right - r.left, r.bottom - r.top)
 
     def _escala(self) -> float:
         return user32.GetDpiForWindow(self._hwnd) / 96 or 1
 
-    # Só os bits da moldura mudam: o resto do estilo (inclusive se a janela está visível) fica como estiver agora
     def sem_moldura(self) -> None:
+        """A bolinha e o cartão são desenhados pela página: a janela fica sem barra de título e sem borda.
+        Só os bits da moldura mudam; o resto do estilo (inclusive se a janela está visível) fica como estiver."""
         self._trocar_estilo(self._estilo_atual() & ~MOLDURA)
-        self._efeitos_do_windows(False)
+        self._desligar_efeitos_do_windows()
 
-    def com_moldura(self) -> None:
-        self._efeitos_do_windows(True)
-        self._trocar_estilo(self._estilo_atual() | (self._estilo_original & MOLDURA))
-
-    def _efeitos_do_windows(self, ligados: bool) -> None:
-        """O Windows 11 arredonda os cantos, contorna e sombreia a janela pelo retângulo dela, ignorando o recorte
-        redondo: em volta da bolinha sobravam cantos brancos e uma sombra quadrada. Na bolinha, tudo isso sai.
+    def _desligar_efeitos_do_windows(self) -> None:
+        """O Windows 11 arredonda os cantos, contorna e sombreia a janela pelo retângulo dela, ignorando o recorte:
+        em volta da bolinha sobravam cantos brancos e uma sombra quadrada.
 
         No modo escuro, o pywebview ainda liga o fundo translúcido do Windows 11 (Mica), também desenhado no
-        retângulo inteiro: aparecia um quadrado cinza em volta da bolinha. Ele é desligado na bolinha e volta
-        como estava na janela cheia."""
-        if not ligados:
-            self._fundo_do_windows = self._ler_atributo(DWMWA_SYSTEMBACKDROP_TYPE, self._fundo_do_windows)
-        efeitos = ((DWMWA_NCRENDERING_POLICY, DWMNCRP_USEWINDOWSTYLE, DWMNCRP_DISABLED),
-                   (DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DEFAULT, DWMWCP_DONOTROUND),
-                   (DWMWA_BORDER_COLOR, DWMWA_COLOR_DEFAULT, DWMWA_COLOR_NONE),
-                   (DWMWA_SYSTEMBACKDROP_TYPE, self._fundo_do_windows, DWMSBT_NENHUM))
-        for atributo, ligado, desligado in efeitos:
-            valor = ctypes.c_uint(ligado if ligados else desligado)
+        retângulo inteiro: aparecia um quadrado cinza em volta da bolinha."""
+        efeitos = ((DWMWA_NCRENDERING_POLICY, DWMNCRP_DISABLED),
+                   (DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND),
+                   (DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE),
+                   (DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_NENHUM))
+        for atributo, valor in efeitos:
+            valor = ctypes.c_uint(valor)
             dwmapi.DwmSetWindowAttribute(self._hwnd, atributo, ctypes.byref(valor), ctypes.sizeof(valor))
 
-    def _ler_atributo(self, atributo: int, padrao: int) -> int:
-        valor = ctypes.c_uint(padrao)
-        if dwmapi.DwmGetWindowAttribute(self._hwnd, atributo, ctypes.byref(valor), ctypes.sizeof(valor)) != 0:
-            return padrao
-        return valor.value
 
     def _estilo_atual(self) -> int:
         return user32.GetWindowLongW(self._hwnd, GWL_STYLE)
@@ -176,41 +193,112 @@ class Moldura:
         regiao = gdi32.CreateRoundRectRgn(0, 0, r.largura + 1, r.altura + 1, diametro, diametro)
         user32.SetWindowRgn(self._hwnd, regiao, True)  # o Windows passa a ser o dono da região
 
-    def posicionar_compacta(self, r: Retangulo) -> None:
-        """A forma final da espera: a bolinha, a faixa arredondada com o nome e os botões em volta."""
+    def posicionar_cartao(self, r: Retangulo, com_painel: float, com_aba: bool = True) -> None:
+        """O cartão no lugar dele e, no modo debug, a aba do raciocínio do lado de fora, à esquerda.
+        com_painel vai de 0 (fechado) a 1 (aberto); os valores do meio são os quadros da transição.
+
+        No modo debug, a janela já tem o espaço do painel reservado à esquerda e NÃO muda de tamanho ao abrir ou
+        fechar: só o recorte (o que aparece) cresce para a esquerda. Mudar o tamanho pela borda esquerda fazia o
+        cartão tremer, porque o Windows mostra o desenho antigo deslocado até a página se redesenhar."""
+        escala = self._escala()
+        janela = self.janela_do_cartao(r, com_aba)
+        self._mover(janela)
+        painel = round(LARGURA_PAINEL * escala * float(com_painel)) if com_aba else 0
+        self._recortar_lado_direito(janela, r.largura + painel, round(2 * RAIO_CARTAO * escala), com_aba)
+
+    def _mover(self, r: Retangulo) -> None:
+        """Muda a posição e o tamanho só se mudaram: um SetWindowPos igual ainda faria a página se redesenhar."""
+        if self._retangulo_atual() != r:
+            user32.SetWindowPos(self._hwnd, None, r.x, r.y, r.largura, r.altura, SWP_NOZORDER | SWP_NOACTIVATE)
+
+    def _retangulo_atual(self) -> Retangulo:
+        atual = wt.RECT()
+        user32.GetWindowRect(self._hwnd, ctypes.byref(atual))
+        return Retangulo(atual.left, atual.top, atual.right - atual.left, atual.bottom - atual.top)
+
+    def _recortar_lado_direito(self, janela: Retangulo, visivel: int, diametro: int, com_aba: bool) -> None:
+        """Mostra só a faixa da direita da janela, com a largura visivel; com a aba, ela fica na borda esquerda
+        dessa faixa, entrando um pouco nela para emendar sem fresta."""
+        borda = janela.largura - visivel
+        regiao = gdi32.CreateRoundRectRgn(borda, 0, janela.largura + 1, janela.altura + 1, diametro, diametro)
+        if com_aba:
+            escala = self._escala()
+            aba, altura_aba = round(LARGURA_ABA * escala), round(ALTURA_ABA * escala)
+            topo = (janela.altura - altura_aba) // 2
+            peca = gdi32.CreateRoundRectRgn(borda - aba, topo, borda + diametro, topo + altura_aba + 1,
+                                            diametro, diametro)
+            gdi32.CombineRgn(regiao, regiao, peca, RGN_OR)
+            gdi32.DeleteObject(peca)
+        user32.SetWindowRgn(self._hwnd, regiao, True)  # o Windows passa a ser o dono da região
+
+    def janela_do_cartao(self, r: Retangulo, com_aba: bool = True) -> Retangulo:
+        """O retângulo da janela para o cartão r. No modo debug (com a aba), já inclui à esquerda o espaço do
+        painel do raciocínio e da aba, para a janela não precisar mudar de tamanho ao abrir o painel."""
+        if not com_aba:
+            return r
+        escala = self._escala()
+        extra = round(LARGURA_ABA * escala) + round(LARGURA_PAINEL * escala)
+        return Retangulo(r.x - extra, r.y, r.largura + extra, r.altura)
+
+    def animar_cartao(self, canto: Retangulo, cartao: Retangulo, com_aba: bool, abrindo: bool) -> None:
+        """A bolinha virando cartão (abrindo) ou o cartão voltando para a bolinha. A janela vai do canto até o
+        retângulo final do cartão (com o espaço do painel, no modo debug), mas só a faixa da direita aparece,
+        do tamanho da bolinha ao do cartão, com os cantos indo de redondos a arredondados."""
+        cheia = self.janela_do_cartao(cartao, com_aba)
+        lado_bolinha = min(canto.largura, canto.altura)
+        diametro_cartao = round(2 * RAIO_CARTAO * self._escala())
+
+        def quadro(e):
+            p = e if abrindo else 1 - e
+            r = interpolar(canto, cheia, p)
+            self._mover(r)
+            visivel = round(canto.largura + (cartao.largura - canto.largura) * p)
+            diametro = round(lado_bolinha + (diametro_cartao - lado_bolinha) * p)
+            self._recortar_lado_direito(r, min(visivel, r.largura), diametro, False)
+
+        self.transicao(quadro)
+
+    def posicionar_compacta(self, r: Retangulo, com_botoes: bool = False, com_menu: bool = False) -> None:
+        """A forma final da espera: a bolinha e a faixa arredondada com o nome. Os botões em volta só entram no
+        recorte com o mouse por perto: fora do recorte, eles nem aparecem nem recebem cliques.
+        Com a lista de assistentes aberta (clique no nome), entra também a área dela, embaixo do nome."""
         user32.SetWindowPos(self._hwnd, None, r.x, r.y, r.largura, r.altura, SWP_NOZORDER | SWP_NOACTIVATE)
         (ce, ct, cd, cb), (fe, ft, fd, fb), botoes = formas_compactas(self._escala())
         regiao = gdi32.CreateEllipticRgn(ce, ct, cd + 1, cb + 1)
         pecas = [gdi32.CreateRoundRectRgn(fe, ft, fd + 1, fb + 1, fb - ft, fb - ft)]
-        pecas += [gdi32.CreateEllipticRgn(e, t, d + 1, b + 1) for e, t, d, b in botoes]
+        if com_botoes:
+            pecas += [gdi32.CreateEllipticRgn(e, t, d + 1, b + 1) for e, t, d, b in botoes]
+        topo = fb + round(ESPACO_LISTA * self._escala())
+        if com_menu and r.altura > topo:  # a lista: na largura da faixa do nome, embaixo dela até o fim da janela
+            diametro = round(2 * RAIO_CARTAO * self._escala())
+            pecas.append(gdi32.CreateRoundRectRgn(fe, topo, fd + 1, r.altura + 1, diametro, diametro))
         for peca in pecas:
             gdi32.CombineRgn(regiao, regiao, peca, RGN_OR)
             gdi32.DeleteObject(peca)
         user32.SetWindowRgn(self._hwnd, regiao, True)  # o Windows passa a ser o dono da região
 
-    def animar(self, de: Retangulo, para: Retangulo, arredondar_de: float, arredondar_para: float) -> None:
+    def transicao(self, quadro: Callable[[float], None], duracao: float = DURACAO_ANIMACAO) -> None:
+        """A base de todo abrir e fechar da janela: chama quadro(e) a cada quadro, com e indo de 0 a 1 de forma
+        suave (rápido no começo, devagar no fim); o último quadro é sempre 1, a forma final.
+        Cada transição só descreve como a janela fica em e; o ritmo e a suavidade são os mesmos para todas."""
         inicio = time.perf_counter()
         while True:
-            t = min((time.perf_counter() - inicio) / DURACAO_ANIMACAO, 1.0)
-            e = suavizar(t)
-            self.posicionar(interpolar(de, para, e), arredondar_de + (arredondar_para - arredondar_de) * e)
+            t = min((time.perf_counter() - inicio) / duracao, 1.0)
+            quadro(suavizar(t))
             if t >= 1.0:
                 return
             time.sleep(1 / QUADROS_POR_SEGUNDO)
+
+    def animar_painel(self, cartao: Retangulo, de: float, para: float, com_aba: bool = True) -> None:
+        """O painel do raciocínio abrindo (de 0 para 1) ou fechando (de 1 para 0) ao lado do cartão."""
+        self.transicao(lambda e: self.posicionar_cartao(cartao, de + (para - de) * e, com_aba), DURACAO_RAPIDA)
+
+    def animar_lista(self, de: int, para: int, com_botoes: bool) -> None:
+        """A lista de assistentes abrindo (ou fechando) embaixo do nome da bolinha: de e para em pontos."""
+        self.transicao(lambda e: self.posicionar_compacta(self.canto(de + (para - de) * e), com_botoes, True),
+                       DURACAO_RAPIDA)
 
     def _trocar_estilo(self, estilo: int) -> None:
         user32.SetWindowLongW(self._hwnd, GWL_STYLE, estilo)
         user32.SetWindowPos(self._hwnd, None, 0, 0, 0, 0,
                             SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED)
-
-    def _retangulo_janela(self) -> Retangulo:
-        r = wt.RECT()
-        user32.GetWindowRect(self._hwnd, ctypes.byref(r))
-        return Retangulo(r.left, r.top, r.right - r.left, r.bottom - r.top)
-
-    def _retangulo_conteudo(self) -> Retangulo:
-        """A área da página, sem a barra de título: a animação termina exatamente sobre ela."""
-        r, origem = wt.RECT(), wt.POINT(0, 0)
-        user32.GetClientRect(self._hwnd, ctypes.byref(r))
-        user32.ClientToScreen(self._hwnd, ctypes.byref(origem))
-        return Retangulo(origem.x, origem.y, r.right, r.bottom)

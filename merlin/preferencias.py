@@ -49,6 +49,16 @@ class Preferencias:
         self._dados["modelo_ia"] = modelo
         self._salvar()
 
+    @property
+    def modo_debug(self) -> bool:
+        """Botão da órbita: mostra a aba do raciocínio da IA no cartão."""
+        return bool(self._dados.get("modo_debug", False))
+
+    @modo_debug.setter
+    def modo_debug(self, ligado: bool) -> None:
+        self._dados["modo_debug"] = bool(ligado)
+        self._salvar()
+
     def _migrar_formato_antigo(self) -> None:
         # Antes havia uma única voz, que era a do Merlin
         if "voz" in self._dados and not isinstance(self._dados.get("vozes"), dict):

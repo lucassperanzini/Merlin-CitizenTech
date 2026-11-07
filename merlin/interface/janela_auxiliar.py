@@ -1,4 +1,4 @@
-"""Janela secundária (configurações, raciocínio): abre uma vez só, volta para a frente se já estiver aberta
+"""Janela secundária (a Central): abre uma vez só, volta para a frente se já estiver aberta
 e fecha junto com o programa."""
 import threading
 from pathlib import Path
@@ -20,25 +20,29 @@ class JanelaAuxiliar:
         self._janela = None
         self._trava = threading.Lock()
 
-    def abrir(self) -> None:
-        """Abre a janela, ou traz para a frente se já estiver aberta."""
+    def _html(self) -> str:
+        return self._pagina.read_text(encoding="utf-8")
+
+    def abrir(self) -> bool:
+        """Abre a janela, ou traz para a frente se já estiver aberta. Retorna True se ela foi criada agora."""
         with self._trava:
             if self._janela is not None:
                 try:
                     self._janela.show()
                     self._janela.restore()
-                    return
+                    return False
                 except Exception:
                     self._janela = None  # foi fechada pelo X
             largura, altura = self._tamanho
             self._janela = webview.create_window(
-                self._titulo, html=self._pagina.read_text(encoding="utf-8"), js_api=self._api,
+                self._titulo, html=self._html(), js_api=self._api,
                 width=largura, height=altura, resizable=self._redimensionavel,
                 on_top=self._sempre_na_frente, background_color=FUNDO,
             )
             self._janela.events.closed += self._ao_fechar
             if hasattr(self._api, "_usar_janela"):  # para a página poder abrir caixas de escolher arquivo
                 self._api._usar_janela(self._janela)
+            return True
 
     def fechar(self) -> None:
         with self._trava:

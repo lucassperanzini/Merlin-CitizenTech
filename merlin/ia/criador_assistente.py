@@ -27,7 +27,6 @@ Preencha:
 - temas: 8 imagens ou assuntos ligados ao personagem, de uma a três palavras cada, para variar as falas.
 - saudacoes: {quantidade} saudações curtas e diferentes, que ele diz ao ser chamado, oferecendo ajuda.
 - despedidas: {quantidade} despedidas curtas, sem perguntas, dizendo que volta quando for chamado.
-- encerramentos: {quantidade} despedidas curtas, sem perguntas, de quando é desligado de vez.
 
 Todas as frases: português correto, no estilo do personagem, cada uma com no máximo 110 caracteres, terminando com ponto final, de exclamação ou de interrogação, sem aspas, emojis ou palavrões."""
 
@@ -41,10 +40,8 @@ ESQUEMA = {
         "temas": {"type": "array", "items": {"type": "string"}},
         "saudacoes": {"type": "array", "items": {"type": "string"}},
         "despedidas": {"type": "array", "items": {"type": "string"}},
-        "encerramentos": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["jeito", "apresentacao", "variacoes_do_nome", "expressoes", "temas", "saudacoes", "despedidas",
-                 "encerramentos"],
+    "required": ["jeito", "apresentacao", "variacoes_do_nome", "expressoes", "temas", "saudacoes", "despedidas"],
 }
 
 
@@ -72,7 +69,7 @@ class CriadorAssistente:
         temas = [str(t).strip() for t in sugestao.get("temas", []) if str(t).strip()][:10]
         expressoes = [" ".join(str(e).split()) for e in sugestao.get("expressoes", []) if str(e).strip()]
         dados["expressoes"] = [e for e in dict.fromkeys(expressoes) if len(e) <= 80 and "{" not in e][:6]
-        for parte, chave in (("saudacao", "saudacoes"), ("despedida", "despedidas"), ("encerramento", "encerramentos")):
+        for parte, chave in (("saudacao", "saudacoes"), ("despedida", "despedidas")):
             regras = dados[parte]
             conjunto = ConjuntoFrases("", (), (), sem_perguntas=regras.get("sem_perguntas", False),
                                       tamanho_maximo=regras.get("tamanho_maximo", 170))

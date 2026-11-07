@@ -19,7 +19,7 @@ from merlin.ia import prompt_intencao
 # Gerado a partir das habilidades: TipoIntencao.ABRIR_PROGRAMA, TipoIntencao.CONVERSAR, ...
 TipoIntencao = Enum("TipoIntencao", [(h.nome.upper(), h.nome) for h in HABILIDADES], type=str)
 
-# Pedidos que fazem algo no computador. Conversa, despedida e encerramento não entram aqui.
+# Pedidos que fazem algo no computador. Conversa e despedida não entram aqui.
 ACOES_NO_COMPUTADOR = frozenset(TipoIntencao(h.nome) for h in HABILIDADES if h.mexe_no_computador)
 
 MAX_CORRECOES = 4  # uma regra pode levar a outra habilidade, que tem as próprias regras; isto evita ciclos

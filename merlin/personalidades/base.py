@@ -43,7 +43,6 @@ class Personalidade:
     prompt_conversa: str
     saudacao: ConjuntoFrases
     despedida: ConjuntoFrases
-    encerramento: ConjuntoFrases
     vozes_proprias: tuple[VozPropria, ...] = ()
     cor: str = ""  # cor de destaque na janela (ex.: "#d9ac5a"); vazio = a cor padrão do visual
     descricao: str = ""  # como a pessoa descreveu o assistente no configurador

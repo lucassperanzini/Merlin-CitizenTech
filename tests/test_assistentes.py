@@ -13,8 +13,7 @@ MERLIN, JARVIS = EMBUTIDAS["merlin"], EMBUTIDAS["jarvis"]
 
 def assistente_valido(nome="Sexta-feira", **mudancas):
     dados = modelo.novo_assistente(nome, "Você é animada e chama a pessoa de chefe.")
-    for parte, frase in (("saudacao", "Oi, chefe! Em que posso ajudar"), ("despedida", "Volto quando chamar, chefe"),
-                         ("encerramento", "Desligando agora, chefe")):
+    for parte, frase in (("saudacao", "Oi, chefe! Em que posso ajudar"), ("despedida", "Volto quando chamar, chefe")):
         dados[parte]["reservas"] = [f"{frase}, versão {i}." for i in range(5)]
         dados[parte]["temas"] = ["o trabalho", "o café"]
     dados["palavras_ativacao"] = ["sexta-feira", "sexta feira"]
@@ -146,14 +145,14 @@ class TestServico(PastaTemporaria):
 
     def test_instrucoes_sao_montadas_sozinhas_a_partir_do_nome(self):
         dados = assistente_valido()
-        for parte in ("saudacao", "despedida", "encerramento"):
+        for parte in ("saudacao", "despedida"):
             dados[parte]["prompt"] = "texto antigo sem o nome"  # o que viesse da tela não importa mais
         self.servico.salvar(dados)
         p = PERSONALIDADES["sexta_feira"]
         self.assertIn("Você é Sexta-feira", p.saudacao.prompt)
         self.assertIn("{tema}", p.despedida.prompt)
         self.servico.salvar(self.servico.abrir("sexta_feira") | {"nome": "Sábado"})  # renomear atualiza tudo
-        self.assertIn("Você é Sábado", PERSONALIDADES["sexta_feira"].encerramento.prompt)
+        self.assertIn("Você é Sábado", PERSONALIDADES["sexta_feira"].despedida.prompt)
 
     def test_sem_ia_e_sem_texto_de_conversa_monta_pela_descricao(self):
         dados = assistente_valido(prompt_conversa="", descricao="Você é calma e me chama de Lucas.", jeito="")
@@ -184,14 +183,14 @@ class TestServico(PastaTemporaria):
 
     def test_opcao_sem_tratamentos(self):
         dados = assistente_valido()
-        for parte in ("saudacao", "despedida", "encerramento"):
+        for parte in ("saudacao", "despedida"):
             dados[parte]["proibir_tratamentos"] = True
         dados["despedida"]["reservas"][0] = "Até logo, senhor."
         self.assertIn("tratamento proibido", self.servico.salvar(dados)["erro"])
         dados["despedida"]["reservas"][0] = "Até logo, chefe."
         self.assertNotIn("erro", self.servico.salvar(dados))
         p = PERSONALIDADES["sexta_feira"]
-        self.assertTrue(p.encerramento.proibir_tratamentos)
+        self.assertTrue(p.saudacao.proibir_tratamentos)
         self.assertIn("Não use tratamentos como senhor", p.despedida.prompt)
 
     def test_temas_separados(self):
@@ -229,7 +228,7 @@ class TestSugestaoDaIA(unittest.TestCase):
             "jeito": "Você é animada e chama a pessoa de chefe.", "apresentacao": "Sexta-feira na área, chefe!",
             "variacoes_do_nome": ["sexta feira", "sesta-feira", "x"], "temas": ["o café", "o trabalho"],
             "saudacoes": boas + ["frase sem ponto final", "Que porra é essa?"],
-            "despedidas": boas + ["Até mais, chefe! Precisa de algo mais?"], "encerramentos": boas,
+            "despedidas": boas + ["Até mais, chefe! Precisa de algo mais?"],
         }
         dados = CriadorAssistente(ClienteFalso(json.dumps(resposta))).sugerir("Sexta-feira", "animada")
         self.assertEqual(dados["palavras_ativacao"], ["sexta-feira", "sexta feira", "sesta-feira"])  # "x" é curta
@@ -331,6 +330,6 @@ class TestExpressoes(unittest.TestCase):
         boas = [f"Fala, mano, pronto para ajudar, opção {i}." for i in range(5)]
         resposta = {"jeito": "Você é sarcástico.", "apresentacao": "Rick na área, velho!", "variacoes_do_nome": ["rik"],
                     "expressoes": ["velho", "mano", "velho", "x" * 90], "temas": ["o rolê"],
-                    "saudacoes": boas, "despedidas": boas, "encerramentos": boas}
+                    "saudacoes": boas, "despedidas": boas}
         dados = CriadorAssistente(ClienteFalso(json.dumps(resposta))).sugerir("Rick", "sarcástico")
         self.assertEqual(dados["expressoes"], ["velho", "mano"])  # sem repetidas nem compridas demais
