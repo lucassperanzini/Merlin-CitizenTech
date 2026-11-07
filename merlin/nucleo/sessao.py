@@ -24,20 +24,31 @@ class Sessao:
         self._memoria = memoria
         self._som_ativacao = som_ativacao
         self._pendencia = None
+        self._cartao_aberto = False
 
-    def ativar(self) -> None:
+    def ativar(self, mostrar: bool = True) -> None:
+        """mostrar=False é o modo discreto: ativa (e toca o som) sem abrir o cartão, para um pedido rápido.
+        Chamar de novo com mostrar=True abre o cartão, se ele ainda estiver fechado."""
         self._estado.registrar_atividade()
         if not self._estado.ativo.is_set():
             self._estado.ativo.set()
-            self._canal.mostrar()
+            self._abrir_cartao(mostrar)
             if self._som_ativacao:
                 self._som_ativacao.tocar()
+        else:
+            self._abrir_cartao(mostrar)
+
+    def _abrir_cartao(self, mostrar: bool) -> None:
+        if mostrar and not self._cartao_aberto:
+            self._cartao_aberto = True
+            self._canal.mostrar()
 
     def desativar(self) -> None:
         self._pendencia = None  # ao sair, nenhuma pergunta continua valendo
         if self._memoria:
             self._memoria.limpar()  # a próxima ativação começa uma conversa nova
         self._estado.ativo.clear()
+        self._cartao_aberto = False
         self._canal.esconder()
 
     def aguardar_confirmacao(self, pendencia: Pendencia) -> None:

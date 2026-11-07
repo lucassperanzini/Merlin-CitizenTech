@@ -73,73 +73,52 @@
   circle[fill="#25cdf5"] { fill: var(--brilho); }
   circle[stroke="#66e8ff"] { stroke: var(--fibra); }
 
-  /* A aura pulsa enquanto ele fala */
-  circle[fill="url(#auraGrad)"] { transform-box: fill-box; transform-origin: center; }
-  body.falando circle[fill="url(#auraGrad)"] { animation: pulsar .7s ease-in-out infinite alternate; }
-  @keyframes pulsar { from { transform: scale(.94); } to { transform: scale(1.04); } }
-
-  /* A pupila dilata e o brilho da íris cresce com o volume da voz */
-  #pupila { transform-box: fill-box; transform-origin: center; transition: transform .09s linear; }
-  body.ouvindo.voz #pupila { transform: scale(calc(1 + var(--nivel) * .55)); }
-  body.ouvindo.voz circle[fill="#25cdf5"] { opacity: calc(.6 + var(--nivel) * .4); }
+  /* O olho só tem duas animações: a piscada (disparada de tempos em tempos, ver piscar()) e a íris se movendo.
+     As outras (aura pulsando, anéis girando, pupila respirando ou dilatando com a voz) saíram: obrigavam a placa de
+     vídeo a redesenhar o olho e os filtros de brilho a cada quadro, mesmo em espera. */
 
   #ondas { display: block; width: 100%; height: 64px; flex: none; }
-  /* Estado em uma linha: um ponto que pulsa conforme o que ele está fazendo, e uma palavra curta */
-  #status {
-    flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; margin: -2px 0 4px;
-    font-size: 10.5px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: #8a97b3;
+  /* Sem linha de estado: a onda, a legenda e os três pontinhos já mostram o que ele está fazendo.
+     A única exceção é o mudo, avisado em texto: senão a pessoa falaria sem entender por que ele não reage */
+  #aviso-mudo { display: none; }
+  html.mudo:not(.compacto) #aviso-mudo {
+    display: block; flex: none; margin: -2px 0 6px; text-align: center;
+    font-size: 10.5px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--mudo);
   }
-  #status .ponto {
-    width: 6px; height: 6px; border-radius: 50%; flex: none;
-    background: var(--brilho); box-shadow: 0 0 8px var(--brilho); animation: respirar 2.4s ease-in-out infinite;
-  }
-  @keyframes respirar { 50% { opacity: .3; transform: scale(.8); } }
-  body.ouvindo.voz #status { color: var(--fibra); }
-  body.ouvindo.voz #status .ponto { animation: none; }
-  body.pensando #status .ponto { animation-duration: .7s; }
-  body.falando #status .ponto { animation-duration: 1.1s; }
 
-  /* A conversa, como num chat: você à direita, o assistente à esquerda, na cor dele.
-     As trocas anteriores ficam mais apagadas; a última fica em destaque */
-  #legenda {
-    flex: 1; width: 100%; min-height: 0; overflow-y: auto; padding: 8px 16px 16px;
-    display: flex; flex-direction: column; gap: 10px;
-    font-size: 14.5px; line-height: 1.45; text-align: left;
-    scrollbar-width: none;  /* sem barra: a conversa rola sozinha conforme flui */
-    scroll-behavior: smooth;
-    /* As mensagens que rolam para cima somem aos poucos, em vez de serem cortadas secas */
-    -webkit-mask-image: linear-gradient(transparent, #000 28px);
-    mask-image: linear-gradient(transparent, #000 28px);
+  /* A conversa como legenda: só a troca atual. A sua frase pequena e apagada em cima; a resposta grande e clara
+     embaixo, palavra por palavra. Uma fala nova sua faz a troca anterior sumir com um fade.
+     O histórico completo fica no painel do raciocínio (modo debug). */
+  #legenda { flex: 1; width: 100%; min-height: 0; position: relative; text-align: center; }
+  .troca {
+    position: absolute; inset: 2px 24px 18px; display: flex; flex-direction: column; gap: 8px;
+    animation: surgir .3s ease-out; transition: opacity .3s, transform .3s;
   }
-  #legenda > :first-child { margin-top: auto; }  /* poucas mensagens ficam embaixo, perto de quem lê */
-  .msg {
-    max-width: 88%; padding: 8px 12px 9px; border-radius: 12px; user-select: text;
-    animation: surgir .22s ease-out; transition: opacity .3s;
+  .troca.saindo { opacity: 0; transform: translateY(-6px); }
+  @keyframes surgir { from { opacity: 0; transform: translateY(6px); } }
+  .voce {
+    flex: none; font-size: 12.5px; line-height: 1.4; color: #8a97b3; overflow-wrap: anywhere;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   }
-  @keyframes surgir { from { opacity: 0; transform: translateY(4px); } }
+  .voce b { margin-right: 6px; font-size: 9.5px; font-weight: 600; letter-spacing: .2em; color: #5b6780; }
+  .resposta {
+    flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; scroll-behavior: smooth;
+    font-size: 17px; line-height: 1.5; color: #e6eeff; overflow-wrap: anywhere; user-select: text;
+  }
+  /* Resposta longa: rola sozinha, e o que sobe some aos poucos */
+  .resposta.rolando {
+    -webkit-mask-image: linear-gradient(transparent, #000 22px); mask-image: linear-gradient(transparent, #000 22px);
+  }
   /* Cada palavra da resposta surge com um fade, acompanhando a voz */
   .palavra { animation: aparecer .4s ease-out both; }
   @keyframes aparecer { from { opacity: 0; filter: blur(3px); } }
-  .msg .quem { display: block; margin-bottom: 3px; font-size: 10px; font-weight: 600; letter-spacing: .16em; }
-  .msg.pessoa {
-    align-self: flex-end; background: #151c2b; color: var(--texto); border-bottom-right-radius: 4px;
-  }
-  .msg.pessoa .quem { color: #8a97b3; text-align: right; }
-  .msg.assistente {
-    align-self: flex-start; color: #dbe6ff; border-bottom-left-radius: 4px;
-    background: color-mix(in srgb, var(--ouro) 9%, #0b0f18);
-    border: 1px solid color-mix(in srgb, var(--ouro) 28%, transparent);
-  }
-  .msg.assistente .quem { color: var(--ouro); }
-  /* Só a última troca (sua fala e a resposta) fica em destaque */
-  .msg.antiga { opacity: .5; }
-  /* "Pensando": três pontos enquanto a resposta não começa */
-  .digitando { display: inline-flex; gap: 4px; padding: 4px 0 2px; }
+  /* "Pensando": três pontos no lugar da resposta */
+  .digitando { display: inline-flex; gap: 5px; padding-top: 6px; }
   .digitando i { width: 6px; height: 6px; border-radius: 50%; background: var(--ouro); animation: ponto 1.1s infinite ease-in-out; }
   .digitando i:nth-child(2) { animation-delay: .15s; }
   .digitando i:nth-child(3) { animation-delay: .3s; }
   @keyframes ponto { 0%, 70%, 100% { opacity: .25; transform: none; } 35% { opacity: 1; transform: translateY(-3px); } }
-  @media (prefers-reduced-motion: reduce) { .msg, .palavra, .digitando i { animation: none !important; } }
+  @media (prefers-reduced-motion: reduce) { .troca, .palavra, .digitando i { animation: none !important; } }
   .icone {
     position: fixed; top: 12px; right: 12px; width: 32px; height: 32px; padding: 6px;
     border: 0; border-radius: 8px; background: transparent; color: #8a97b3; cursor: pointer;
@@ -149,8 +128,6 @@
   #microfone .risco { display: none; }
   html.mudo #microfone { color: var(--mudo); }
   html.mudo #microfone .risco { display: inline; }
-  html.mudo #status { color: var(--mudo); }
-  html.mudo #status .ponto { background: var(--mudo); box-shadow: none; animation: none; }
   .icone:hover { color: var(--texto); background: #0d111b; }
   .icone:focus-visible { outline: 2px solid var(--ouro); outline-offset: 1px; }
   .icone svg { width: 100%; height: 100%; max-height: none; }
@@ -160,7 +137,7 @@
      As medidas batem com o recorte da janela (merlin/interface/moldura.py: LADO_COMPACTO, ESPACO_NOME, ALTURA_NOME) */
   html.compacto body { justify-content: flex-start; cursor: pointer; border: 0; border-radius: 0; }
   html.compacto #recolher { display: none; }
-  html.compacto :is(h1, #ondas, #status, #legenda, #aba-raciocinio, #painel-raciocinio) { display: none; }
+  html.compacto :is(h1, #ondas, #legenda, #aba-raciocinio, #painel-raciocinio) { display: none; }
 
   /* Raciocínio da IA ao lado do cartão: uma aba na borda esquerda abre o painel e a janela cresce para a
      esquerda, como parte do mesmo cartão (merlin/interface/moldura.py: LARGURA_PAINEL) */
@@ -199,6 +176,15 @@
   html.compacto #esfera { height: 100%; }
   html.compacto #palco svg { height: 100%; max-height: none; }
   #nome-compacto { display: none; }
+  /* Modo discreto: a resposta curta num balão à esquerda da bolinha (merlin/interface/moldura.py: LARGURA_BALAO) */
+  #balao { display: none; }
+  html.compacto #balao {
+    display: block; position: absolute; max-width: 260px; padding: 9px 14px; border-radius: 14px;
+    background: #0b0f18; border: 1px solid color-mix(in srgb, var(--ouro) 40%, transparent);
+    color: var(--texto); font-size: 13px; line-height: 1.4; text-align: left; overflow-wrap: anywhere;
+    pointer-events: none; opacity: 0; transform: translateX(10px); transition: opacity .25s, transform .25s;
+  }
+  html.compacto #balao.visivel { opacity: 1; transform: none; }
   /* Em volta da bolinha, do lado de fora: os botões redondos (a posição vem de merlin/interface/moldura.py) */
   html.compacto .icone {
     padding: 6px; border-radius: 50%; color: var(--ouro);
@@ -260,9 +246,10 @@
   </div>
   <div id="nome-compacto" role="button" tabindex="-1" title="Trocar de assistente" aria-haspopup="menu"></div>
   <div id="menu-assistentes" role="menu" aria-label="Trocar de assistente"></div>
+  <div id="balao" role="status" aria-live="polite"></div>
   <canvas id="ondas" aria-hidden="true"></canvas>
-  <div id="status" role="status"><i class="ponto" aria-hidden="true"></i><span id="status-texto">Pode falar</span></div>
-  <div id="legenda" role="log" aria-live="polite" aria-label="Conversa"></div>
+  <div id="aviso-mudo" role="status">Microfone desligado</div>
+  <div id="legenda" aria-live="polite" aria-label="Conversa"></div>
   <button id="aba-raciocinio" type="button" title="Mostrar o raciocínio da IA" aria-label="Mostrar o raciocínio da IA"
           aria-expanded="false" aria-controls="painel-raciocinio">
     <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -394,7 +381,6 @@
     botaoMicrofone.setAttribute("aria-label", texto);
     botaoMicrofone.setAttribute("aria-pressed", String(mudo));
     if (mudo) definirNivel(0);
-    atualizarStatus();
   }
   botaoMicrofone.addEventListener("click", async () => definirMudo(await window.pywebview.api.alternar_microfone()));
 
@@ -421,16 +407,9 @@
     vozAssistente = { volumes, passo, inicio: performance.now() };  // a onda também acompanha a voz dele
   }
 
-  const statusTexto = document.getElementById("status-texto");
   let estadoAtual = "ouvindo";
   let nivelAtual = 0;
 
-  function atualizarStatus() {
-    const textos = { pensando: "Pensando", falando: "Falando" };
-    statusTexto.textContent = textos[estadoAtual]
-      || (microfoneMudo ? "Microfone desligado" : null)
-      || (nivelAtual > 0 ? "Ouvindo você" : "Pode falar");
-  }
   function definirEstado(estado) {
     estadoAtual = estado;
     if (estado !== "falando") vozAssistente = null;
@@ -440,14 +419,12 @@
     window.Esfera.definirEstado(estado);
     document.body.className = estado;
     document.body.classList.toggle("voz", nivelAtual > 0);
-    atualizarStatus();
   }
   function definirNivel(nivel) {
     nivelAtual = nivel;
     window.Esfera.definirVolume(nivel);
     document.documentElement.style.setProperty("--nivel", nivel);
     document.body.classList.toggle("voz", nivel > 0);
-    atualizarStatus();
     iniciarOndas();
   }
 
@@ -544,51 +521,52 @@
     requestAnimationFrame(desenharOndas);
   }
   iniciarOndas();
-  // A conversa como num chat. Texto vazio limpa tudo (a cada ativação, a conversa começa do zero).
-  const MAXIMO_MENSAGENS = 16;  // as mais antigas saem, para a página não crescer sem fim
-  let respostaAtual = null;  // o texto da resposta que está sendo escrita
+  // A conversa como legenda: só a troca atual (a sua frase e a resposta). Texto vazio limpa tudo: a cada
+  // ativação, a conversa começa do zero.
+  let trocaAtual = null;
+  let respostaAtual = null;  // onde a resposta que está sendo falada é escrita
 
-  function novaMensagem(classe, quem) {
-    const msg = document.createElement("div");
-    msg.className = `msg ${classe}`;
-    const rotulo = document.createElement("span");
-    rotulo.className = "quem";
-    rotulo.textContent = quem;
-    const texto = document.createElement("span");
-    texto.className = "texto";
-    msg.append(rotulo, texto);
-    tirarDigitando();
-    legenda.append(msg);
-    while (legenda.children.length > MAXIMO_MENSAGENS) legenda.firstElementChild.remove();
-    marcarAntigas();
-    legenda.scrollTop = legenda.scrollHeight;
-    return texto;
+  function novaTroca() {
+    const anterior = trocaAtual;
+    if (anterior) {
+      anterior.classList.add("saindo");
+      setTimeout(() => anterior.remove(), 320);
+    }
+    trocaAtual = document.createElement("div");
+    trocaAtual.className = "troca";
+    legenda.append(trocaAtual);
+    respostaAtual = null;
+    return trocaAtual;
   }
-  // Em destaque, só a última fala da pessoa e o que veio depois dela
-  function marcarAntigas() {
-    const msgs = [...legenda.querySelectorAll(".msg")];
-    const ultimaPessoa = msgs.map(m => m.classList.contains("pessoa")).lastIndexOf(true);
-    msgs.forEach((m, i) => m.classList.toggle("antiga", i < ultimaPessoa));
+  function areaDaResposta() {
+    if (!trocaAtual) novaTroca();
+    let area = trocaAtual.querySelector(".resposta");
+    if (!area) {
+      area = document.createElement("div");
+      area.className = "resposta";
+      trocaAtual.append(area);
+    }
+    return area;
   }
   function definirLegenda(texto) {
     animacaoTexto = null;
     respostaAtual = null;
-    if (!texto) { legenda.replaceChildren(); return; }
-    novaMensagem("pessoa", "VOCÊ").textContent = texto;
+    if (!texto) { legenda.replaceChildren(); trocaAtual = null; return; }
+    const voce = document.createElement("div");
+    voce.className = "voce";
+    const quem = document.createElement("b");
+    quem.textContent = "VOCÊ";
+    voce.append(quem, texto);
+    novaTroca().append(voce);
     if (estadoAtual === "pensando") mostrarDigitando();
   }
   // Enquanto ele pensa, três pontos no lugar da resposta (só depois de uma fala sua)
   function mostrarDigitando() {
-    const ultima = legenda.lastElementChild;
-    if (!ultima || !ultima.classList.contains("pessoa") || legenda.querySelector(".digitando")) return;
-    const msg = document.createElement("div");
-    msg.className = "msg assistente digitando-msg";
-    msg.innerHTML = '<span class="digitando" aria-label="Pensando"><i></i><i></i><i></i></span>';
-    legenda.append(msg);
-    legenda.scrollTop = legenda.scrollHeight;
+    if (!trocaAtual || !trocaAtual.querySelector(".voce") || trocaAtual.querySelector(".palavra, .digitando")) return;
+    areaDaResposta().innerHTML = '<span class="digitando" aria-label="Pensando"><i></i><i></i><i></i></span>';
   }
   function tirarDigitando() {
-    legenda.querySelector(".digitando-msg")?.remove();
+    trocaAtual?.querySelector(".digitando")?.remove();
   }
   // A resposta do assistente aparece palavra por palavra, acompanhando a voz (como num chat de IA).
   // Cada trecho de áudio chega com o texto e a duração; as palavras se distribuem por essa duração,
@@ -598,7 +576,10 @@
 
   function comecarResposta() {
     animacaoTexto = null;
-    respostaAtual = novaMensagem("assistente", (document.title || "").toUpperCase());
+    // Uma segunda resposta sem fala sua no meio substitui a anterior, como uma legenda nova
+    if (trocaAtual && trocaAtual.querySelector(".palavra")) novaTroca();
+    tirarDigitando();
+    respostaAtual = areaDaResposta();
   }
   function escrever(palavra) {
     if (!respostaAtual) return;
@@ -607,7 +588,8 @@
     span.className = "palavra";
     span.textContent = palavra;
     respostaAtual.append(span);
-    legenda.scrollTop = legenda.scrollHeight;
+    respostaAtual.classList.toggle("rolando", respostaAtual.scrollHeight > respostaAtual.clientHeight);
+    respostaAtual.scrollTop = respostaAtual.scrollHeight;
   }
   function completarTrecho() {  // a voz do trecho anterior já acabou: o que faltava aparece de uma vez
     if (!animacaoTexto) return;
@@ -725,6 +707,36 @@
   });
   document.addEventListener("keydown", e => { if (e.key === "Escape") fecharMenu(); });
 
+  // Modo discreto: a bolinha muda de cor enquanto pensa e fala, e a resposta curta aparece num balão ao lado
+  function definirEstadoBolinha(estado) {
+    const e = estado === "ouvindo" ? "espera" : estado;
+    window.Esfera.definirEstado(e);
+    document.body.className = e;
+  }
+  const balao = document.getElementById("balao");
+  let timerBalao = null;
+  async function mostrarBalao(texto) {
+    if (!desenhoAtual) return;
+    clearTimeout(timerBalao);
+    const b = desenhoAtual.balao;
+    balao.classList.remove("visivel");
+    balao.textContent = texto;
+    balao.style.maxWidth = Math.min(260, b.direita - 4) + "px";
+    Object.assign(balao.style, { left: "0px", top: "0px" });
+    const largura = balao.offsetWidth, altura = balao.offsetHeight;
+    const x = b.direita - largura, y = Math.max(0, b.centro_y - altura / 2);
+    Object.assign(balao.style, { left: x + "px", top: y + "px" });
+    await window.pywebview.api.balao_compacto([x, y, largura, altura]);  // entra no recorte, depois aparece
+    requestAnimationFrame(() => balao.classList.add("visivel"));
+    timerBalao = setTimeout(esconderBalao, Math.max(4000, texto.length * 80));
+  }
+  function esconderBalao() {
+    clearTimeout(timerBalao);
+    if (!balao.classList.contains("visivel")) return;
+    balao.classList.remove("visivel");
+    setTimeout(() => { if (!balao.classList.contains("visivel")) window.pywebview.api.balao_compacto(null); }, 260);
+  }
+
   function definirIaFora(fora) {
     raiz.classList.toggle("ia-fora", fora);
     palco.title = fora ? "A IA (Ollama) não está respondendo" : "";
@@ -763,12 +775,21 @@
     definirEstado("ouvindo");
     janelaVisivel = true;
     atualizarAnimacao();
-    // Reinicia as animações do SVG para o olho não abrir no meio de uma piscada
+    // Reinicia a animação da íris do começo, com o olho aberto
     palco.querySelector("svg").setCurrentTime(0);
     palco.classList.remove("abrindo");
     void palco.offsetWidth;
     palco.classList.add("abrindo");
   }
+  // Piscada: disparada a cada 5 a 8 segundos, só quando o olho está na tela. Fora dela, nada se anima.
+  function piscar() {
+    if (visual === "olho" && janelaVisivel && !document.hidden) {
+      palco.querySelectorAll("svg .piscada").forEach(a => a.beginElement());
+    }
+    setTimeout(piscar, 5000 + Math.random() * 3000);
+  }
+  setTimeout(piscar, 3000);
+
   function aoEsconder() {
     raiz.classList.remove("compacto");
     janelaVisivel = false;

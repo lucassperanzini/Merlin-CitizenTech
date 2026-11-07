@@ -17,10 +17,10 @@ QUANTIDADE_FRASES = 6  # um pouco mais que o mínimo, porque algumas podem ser r
 
 PROMPT = """Você vai criar a personalidade de um assistente pessoal por voz, que fala português do Brasil.
 Nome do assistente: {nome}
-Como a pessoa o descreveu: {descricao}
+Quem ele é: {descricao}
 
 Preencha:
-- jeito: duas ou três frases, falando com o assistente ("Você é...", "Trate a pessoa por..."), descrevendo o temperamento, o estilo das respostas e como ele chama a pessoa. Sem regras técnicas e sem listar gírias (elas vão em expressoes).
+- jeito: duas ou três frases, falando com o assistente ("Você é...", "Trate a pessoa por..."), descrevendo como ele fala: o tom, o humor, o tamanho das respostas e como ele chama a pessoa. Não repita a história dele (ela já está em "Quem ele é"), sem regras técnicas e sem listar gírias (elas vão em expressoes).
 - expressoes: até 6 gírias ou bordões que ele usa, sem palavrões, cada um no formato "expressão — quando usar". Só expressões que combinem com a descrição; nenhuma, se o personagem não tiver gírias.
 - apresentacao: uma frase curta que ele diz quando é escolhido, citando o próprio nome.
 - variacoes_do_nome: até 6 jeitos como um reconhecedor de voz pode escrever o nome dele errado, em minúsculas (ex.: para "Jarvis": jarves, javis, jervis).
@@ -60,6 +60,7 @@ class CriadorAssistente:
         jeito = str(sugestao.get("jeito", "")).strip() or descricao
         dados = modelo.novo_assistente(nome, jeito)
         dados["descricao"] = descricao
+        dados["contexto"] = descricao  # o "Quem ele é" que a pessoa escreveu continua como ela escreveu
         dados["jeito"] = jeito
         apresentacao = _frases([sugestao.get("apresentacao")], ConjuntoFrases("", (), ()))
         if apresentacao:

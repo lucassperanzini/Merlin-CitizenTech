@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 DURACAO_CALIBRAGEM = 2
 LARGURA_AMOSTRA = 2  # 16 bits
+ESPERA_NO_MUDO = 0.1  # segundos entre as olhadas no botão de mudo, com o microfone fechado
+ESPERA_APOS_FALHA = 2  # segundos antes de tentar reabrir um microfone que não abriu (ex.: headset desconectado)
 
 
 class Ouvinte:
@@ -71,26 +73,43 @@ class Ouvinte:
             return True
 
     def _escutar(self):
+        """No mudo, o microfone fica FECHADO: nenhum áudio chega ao programa (e o Windows deixa de mostrar o
+        assistente como usando o microfone). Ao sair do mudo, ele é aberto de novo."""
         detector = DetectorVoz()
         segmentador = Segmentador(PAUSA_FIM_FRASE, LIMITE_FRASE)
-        with self._microfone as fonte:
-            while not self._estado.encerrando.is_set():
-                dados = fonte.stream.read(AMOSTRAS)
-                if self._estado.microfone_desligado.is_set():
-                    segmentador.descartar()  # a frase que estava sendo falada ao apertar o mudo não vira comando
-                    continue
-                if self._desviar_para_gravacao(dados):
-                    segmentador.descartar()  # a leitura da amostra não pode virar comando
-                    continue
-                try:
-                    frase = segmentador.adicionar(dados, detector.probabilidade(dados))
-                except Exception as erro:  # um trecho com problema não pode derrubar a escuta
-                    logger.error("Erro no detector de voz: %s", erro)
-                    detector.reiniciar()
-                    segmentador.descartar()
-                    continue
-                if frase:
-                    self._frases.put(sr.AudioData(frase, TAXA, LARGURA_AMOSTRA))
+        encerrando, mudo = self._estado.encerrando, self._estado.microfone_desligado
+        while not encerrando.is_set():
+            if mudo.is_set():
+                encerrando.wait(ESPERA_NO_MUDO)
+                continue
+            try:
+                with self._microfone as fonte:
+                    logger.info("[MICROFONE] Aberto.")
+                    self._ouvir_ate_o_mudo(fonte, detector, segmentador)
+                if mudo.is_set():
+                    logger.info("[MICROFONE] Fechado (mudo).")
+            except Exception as erro:  # sem microfone, o assistente segue aberto e tenta de novo
+                logger.error("[MICROFONE] Não consegui usar o microfone: %s", erro)
+                encerrando.wait(ESPERA_APOS_FALHA)
+            # O que estava pela metade quando o microfone fechou não vira comando
+            detector.reiniciar()
+            segmentador.descartar()
+
+    def _ouvir_ate_o_mudo(self, fonte, detector, segmentador):
+        while not self._estado.encerrando.is_set() and not self._estado.microfone_desligado.is_set():
+            dados = fonte.stream.read(AMOSTRAS)
+            if self._desviar_para_gravacao(dados):
+                segmentador.descartar()  # a leitura da amostra não pode virar comando
+                continue
+            try:
+                frase = segmentador.adicionar(dados, detector.probabilidade(dados))
+            except Exception as erro:  # um trecho com problema não pode derrubar a escuta
+                logger.error("Erro no detector de voz: %s", erro)
+                detector.reiniciar()
+                segmentador.descartar()
+                continue
+            if frase:
+                self._frases.put(sr.AudioData(frase, TAXA, LARGURA_AMOSTRA))
 
     def _transcrever_frases(self):
         while not self._estado.encerrando.is_set():
@@ -101,6 +120,8 @@ class Ouvinte:
             self._ao_ouvir(audio)
 
     def _ao_ouvir(self, audio):
+        if self._estado.microfone_desligado.is_set():
+            return  # uma frase de pouco antes do mudo, ainda na fila: não é transcrita
         if self._estado.ativo.is_set() and not self._estado.falando.is_set():
             self._canal.estado(EstadoVisual.PENSANDO)  # a frase terminou e está sendo transcrita
         try:

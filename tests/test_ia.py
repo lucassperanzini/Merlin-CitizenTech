@@ -7,9 +7,10 @@ from merlin.ia.confirmacao import ClassificadorConfirmacao, RespostaConfirmacao
 from merlin.ia.frases import GeradorFrases, frase_valida, valida_para
 from merlin.ia.divisao import DivisorTarefas
 from merlin.ia.intencoes import ClassificadorIntencao, TipoIntencao
-from merlin.personalidades.jarvis import PERSONALIDADE as JARVIS
-from merlin.personalidades.merlin import PERSONALIDADE as MERLIN
+from merlin.personalidades import EMBUTIDAS
 from tests.falsos import ClienteFalso
+
+MERLIN, JARVIS = EMBUTIDAS["merlin"], EMBUTIDAS["jarvis"]
 
 
 def classificar(alvo, intencao, busca="", comando="frase"):

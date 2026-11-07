@@ -336,3 +336,56 @@ class TestTrabalhador(Base):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestModoDiscreto(Base):
+    """Chamou já com um pedido: ação rápida responde num balão ao lado da bolinha, sem abrir o cartão."""
+
+    def _com(self, tipo, fala=None, **kwargs):
+        self.classificador.intencao = Intencao(tipo, "chrome", "x")
+        if fala is not None:
+            self.processador._acoes[tipo] = lambda intencao: Resultado(fala, **kwargs)
+
+    def test_acao_rapida_fica_no_balao_e_volta_a_esperar(self):
+        self._com(TipoIntencao.ABRIR_PROGRAMA, "abri o chrome")
+        self.processador.processar("merlin, abre o chrome")
+        self.assertNotIn("mostrar", self.canal.eventos)
+        self.assertTrue(any(e.startswith("aviso: ") for e in self.canal.eventos))
+        self.assertEqual(len(self.locutor.falas), 1)
+        self.assertFalse(self.estado.ativo.is_set())  # o próximo pedido precisa do nome de novo
+
+    def test_conversa_abre_o_cartao_com_a_legenda_depois(self):
+        self._com(TipoIntencao.CONVERSAR, "Roma é a capital.", frase_completa=True)
+        self.processador.processar("merlin, qual a capital da itália")
+        eventos = self.canal.eventos
+        self.assertIn("mostrar", eventos)
+        self.assertLess(eventos.index("mostrar"), eventos.index("Merlin, qual a capital da itália"))
+        self.assertFalse(any(e.startswith("aviso: ") for e in eventos))
+        self.assertTrue(self.estado.ativo.is_set())
+
+    def test_resposta_longa_abre_o_cartao(self):
+        self._com(TipoIntencao.ABRIR_PROGRAMA, "abri o chrome " + "e mais um detalhe " * 8)
+        self.processador.processar("merlin, abre o chrome")
+        self.assertIn("mostrar", self.canal.eventos)
+
+    def test_pergunta_de_confirmacao_abre_o_cartao(self):
+        def pede_confirmacao(intencao):
+            self.sessao.aguardar_confirmacao(self._pendencia())
+            return Resultado("Posso clicar em excluir?", frase_completa=True, finaliza=True)
+
+        self.classificador.intencao = Intencao(TipoIntencao.CLICAR_BOTAO, "excluir", "x")
+        self.processador._acoes[TipoIntencao.CLICAR_BOTAO] = pede_confirmacao
+        self.processador.processar("merlin, clica em excluir")
+        self.assertIn("mostrar", self.canal.eventos)
+        self.assertTrue(self.sessao.tem_pendencia())
+
+    def test_so_o_nome_continua_abrindo_o_cartao(self):
+        self.processador.processar("merlin")
+        self.assertIn("mostrar", self.canal.eventos)
+
+    def test_ja_ativo_nao_usa_o_balao(self):
+        self.sessao.ativar()
+        self._com(TipoIntencao.ABRIR_PROGRAMA, "abri o chrome")
+        self.processador.processar("abre o chrome")
+        self.assertFalse(any(e.startswith("aviso: ") for e in self.canal.eventos))
+        self.assertTrue(self.estado.ativo.is_set())

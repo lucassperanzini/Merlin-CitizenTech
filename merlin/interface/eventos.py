@@ -23,6 +23,7 @@ class TipoEvento(Enum):
     ENVELOPE_FALA = "envelope_fala"
     PERSONALIDADE = "personalidade"
     ABRIR_CONFIGURACOES = "abrir_configuracoes"
+    AVISO = "aviso"  # modo discreto: uma resposta curta num balão ao lado da bolinha, sem abrir o cartão
 
 
 class CanalInterface:
@@ -59,6 +60,9 @@ class CanalInterface:
 
     def personalidade(self) -> None:
         self._fila.put((TipoEvento.PERSONALIDADE, None))
+
+    def aviso(self, texto: str) -> None:
+        self._fila.put((TipoEvento.AVISO, texto))
 
     def abrir_configuracoes(self) -> None:
         self._fila.put((TipoEvento.ABRIR_CONFIGURACOES, None))

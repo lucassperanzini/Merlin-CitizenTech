@@ -4,14 +4,14 @@ import unittest
 from pathlib import Path
 
 from merlin.ia.intencoes import ClassificadorIntencao, TipoIntencao
-from merlin.personalidades import PERSONALIDADES
-from merlin.personalidades.jarvis import PERSONALIDADE as JARVIS
-from merlin.personalidades.merlin import PERSONALIDADE as MERLIN
+from merlin.personalidades import EMBUTIDAS, PERSONALIDADES
 from merlin.preferencias import Preferencias
 from merlin.texto import remover_palavra_ativacao, tem_palavra_ativacao
 from merlin.voz.catalogo import todas_as_vozes
 from merlin.voz.envelope import envelope_do_audio
 from tests.falsos import ClienteFalso
+
+MERLIN, JARVIS = EMBUTIDAS["merlin"], EMBUTIDAS["jarvis"]
 
 
 class TestPreferencias(unittest.TestCase):
@@ -21,7 +21,7 @@ class TestPreferencias(unittest.TestCase):
         self.arquivo = Path(pasta.name) / "config.json"
 
     def test_padrao_e_o_merlin(self):
-        self.assertIs(Preferencias(self.arquivo).personalidade, MERLIN)
+        self.assertEqual(Preferencias(self.arquivo).personalidade.id, "merlin")
 
     def test_formato_antigo_vira_a_voz_do_merlin(self):
         self.arquivo.write_text(json.dumps({"voz": "pt_BR-cadu-medium"}), encoding="utf-8")
@@ -45,11 +45,11 @@ class TestPreferencias(unittest.TestCase):
     def test_personalidade_desconhecida_e_ignorada(self):
         p = Preferencias(self.arquivo)
         p.personalidade = "hal9000"
-        self.assertIs(p.personalidade, MERLIN)
+        self.assertEqual(p.personalidade.id, "merlin")
 
     def test_arquivo_estragado_nao_quebra(self):
         self.arquivo.write_text("[1, 2", encoding="utf-8")
-        self.assertIs(Preferencias(self.arquivo).personalidade, MERLIN)
+        self.assertEqual(Preferencias(self.arquivo).personalidade.id, "merlin")
 
 
 class TestPersonalidades(unittest.TestCase):

@@ -26,6 +26,9 @@ class CanalFalso:
     def legenda(self, texto):
         self.eventos.append(texto)
 
+    def aviso(self, texto):
+        self.eventos.append(f"aviso: {texto}")
+
 
 class ClienteFalso:
     """Devolve sempre a resposta configurada e guarda o que recebeu."""

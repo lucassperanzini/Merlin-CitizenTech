@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 Acao = Callable[[Intencao], Resultado]
 
 AVISO_SEM_IA = "Não consegui falar com o meu cérebro. Verifique se o Ollama está rodando."
+LIMITE_DO_BALAO = 90  # modo discreto: respostas até este tamanho cabem no balão ao lado da bolinha
 
 
 def formatar_legenda(frase: str) -> str:
@@ -46,18 +47,24 @@ class ProcessadorComandos:
         self._confirmador = confirmador
         self._saudacao = saudacao
         self._acoes = acoes
+        self._intencoes: list[Intencao] = []  # as do último pedido, para decidir se cabe no balão
 
     def processar(self, frase: str) -> None:
         palavras = self._palavras_ativacao()
         ativou_agora = not self._estado.ativo.is_set()
-        if ativou_agora:
-            if not tem_palavra_ativacao(frase, palavras):
-                return
-            self._sessao.ativar()
-
+        if ativou_agora and not tem_palavra_ativacao(frase, palavras):
+            return
         comando = remover_palavra_ativacao(frase, palavras)
+        legenda = formatar_legenda(frase)
+        # Modo discreto: chamou já com um pedido ("Merlin, abre o chrome"). Ele é resolvido sem abrir o cartão;
+        # se a resposta não couber num balão ao lado da bolinha (uma conversa, uma pergunta, um erro), o cartão abre.
+        discreto = ativou_agora and bool(comando)
+        if ativou_agora:
+            self._sessao.ativar(mostrar=not discreto)
+
         # A janela mostra o que a pessoa disse, como foi entendido: assim ela vê na hora se o Whisper errou
-        self._canal.legenda(formatar_legenda(frase))
+        if not discreto:
+            self._canal.legenda(legenda)
         self._canal.estado(EstadoVisual.PENSANDO)
         self._raciocinio.registrar(TipoPasso.OUVI, formatar_legenda(frase),
                                    ativou_agora="sim" if ativou_agora else "", comando=comando if comando != frase else "",
@@ -83,9 +90,42 @@ class ProcessadorComandos:
         except Exception as erro:
             logger.error("[IA] Erro: %s", erro)
             self._raciocinio.registrar(TipoPasso.ERRO, "Não consegui falar com a IA", erro=erro)
+            if discreto:
+                self._abrir_cartao(legenda)
             self._locutor.falar(AVISO_SEM_IA)
             return
-        self._responder(self._executar_tarefas(comando, tarefas), comando)
+        resultados = self._executar_tarefas(comando, tarefas)
+        if discreto and self._cabe_no_balao(resultados):
+            self._responder_no_balao(resultados)
+            return
+        if discreto:
+            self._abrir_cartao(legenda)
+        self._responder(resultados, comando)
+
+    def _abrir_cartao(self, legenda: str) -> None:
+        """O pedido discreto precisou do cartão: ele abre já mostrando o que a pessoa disse."""
+        self._sessao.ativar()
+        self._canal.legenda(legenda)
+        self._canal.estado(EstadoVisual.PENSANDO)
+
+    def _cabe_no_balao(self, resultados: list[Resultado]) -> bool:
+        """Só ações rápidas no computador, com resposta curta e sem pergunta pendente, ficam no balão."""
+        return (bool(self._intencoes) and all(i.tipo in ACOES_NO_COMPUTADOR for i in self._intencoes)
+                and not any(r.frase_completa for r in resultados) and not self._sessao.tem_pendencia()
+                and len(montar_resposta(resultados)) <= LIMITE_DO_BALAO)
+
+    def _responder_no_balao(self, resultados: list[Resultado]) -> None:
+        """Fala a resposta num balão ao lado da bolinha e volta a esperar: o próximo pedido precisa do nome de
+        novo (sem o cartão aberto, a pessoa não saberia que ele continua ouvindo)."""
+        resposta = montar_resposta(resultados)
+        self._raciocinio.registrar(TipoPasso.FALA, resposta, motivo="resposta curta: no balão, sem abrir o cartão")
+        self._canal.aviso(resposta)
+        self._locutor.falar(resposta)
+        for resultado in resultados:
+            if resultado.depois:
+                resultado.depois()
+        if self._estado.ativo.is_set():
+            self._sessao.desativar()
 
     def _palavras_ativacao(self):
         personalidade = self._preferencias.personalidade if self._preferencias else personalidade_padrao()
@@ -108,8 +148,10 @@ class ProcessadorComandos:
 
     def _executar_tarefas(self, comando: str, tarefas: list[str]) -> list[Resultado]:
         resultados = []
+        self._intencoes = []
         try:
             intencoes = self._entender(comando, tarefas)
+            self._intencoes = intencoes
         except Exception as erro:
             logger.error("[IA] Erro: %s", erro)
             self._raciocinio.registrar(TipoPasso.ERRO, "Não consegui falar com a IA", erro=erro)

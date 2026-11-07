@@ -87,7 +87,8 @@ def montar_instrucoes(dados: dict) -> dict:
 def novo_assistente(nome: str = "", jeito: str = "") -> dict:
     """Os dados de um assistente novo, ainda sem as frases (que a IA sugere ou a pessoa escreve)."""
     return {
-        "id": "", "nome": nome, "descricao": "", "jeito": jeito, "palavras_ativacao": [nome.lower()] if nome else [],
+        "id": "", "nome": nome, "descricao": "", "contexto": "", "jeito": jeito,
+        "palavras_ativacao": [nome.lower()] if nome else [],
         "voz_padrao": "pt_BR-faber-medium", "visual": "esfera", "cor": "", "som": "Digital",
         "apresentacao": f"{nome} às suas ordens." if nome else "", "dica_vocabulario": "",
         "prompt_conversa": prompt_conversa(nome, jeito) if nome else "",  # vazio: montado ao salvar

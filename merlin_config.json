@@ -4,7 +4,7 @@
     "jarvis": "jarvis_digital",
     "rick": "clonada:voz_1"
   },
-  "personalidade": "rick",
-  "modelo_ia": "qwen3:8b",
+  "personalidade": "merlin",
+  "modelo_ia": "llama3.2:latest",
   "modo_debug": true
 }

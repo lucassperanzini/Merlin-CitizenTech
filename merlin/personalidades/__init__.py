@@ -1,50 +1,44 @@
-"""As personalidades (assistentes) disponíveis.
+"""As personalidades (assistentes) disponíveis. Todas são arquivos .json, no mesmo formato:
 
-Duas origens:
-- código: um arquivo por personalidade nesta pasta (merlin.py, jarvis.py), com os textos afinados à mão;
-- configurador: arquivos .json em assistentes/, criados pela janela "Assistentes". Um .json com o id de uma
-  personalidade do código é um ajuste dela (apagar o arquivo restaura o padrão).
+- originais: recursos/assistentes_padrao/ (Merlin e Jarvis). Não podem ser excluídos pela interface, e
+  "Restaurar original" volta para eles;
+- configurador: assistentes/, criados ou ajustados na aba Editor. Um .json com o id de um original é um ajuste
+  dele (vale no lugar do original; apagar o arquivo restaura o padrão). Um id novo é um assistente novo.
 
 PERSONALIDADES e NOMES_DO_ASSISTENTE são atualizados no lugar por recarregar(): quem importou os dois vê as mudanças.
 """
-import importlib
-import pkgutil
+import json
+import logging
 
-from merlin.config import PASTA_ASSISTENTES, PERSONALIDADE_PADRAO_ID
+from merlin.config import PASTA_ASSISTENTES, PASTA_ASSISTENTES_PADRAO, PERSONALIDADE_PADRAO_ID
 from merlin.personalidades import armazenamento
 from merlin.personalidades.base import ConjuntoFrases, Personalidade, VozPropria
 
 __all__ = ["ConjuntoFrases", "Personalidade", "VozPropria", "PERSONALIDADES", "EMBUTIDAS", "NOMES_DO_ASSISTENTE",
            "personalidade_padrao", "recarregar"]
 
-NAO_SAO_PERSONALIDADES = {"base", "armazenamento", "modelo"}
+logger = logging.getLogger(__name__)
 
 
-def _do_codigo() -> dict[str, Personalidade]:
-    modulos = []
-    for info in pkgutil.iter_modules(__path__):
-        if info.name in NAO_SAO_PERSONALIDADES:
-            continue
-        modulo = importlib.import_module(f"{__name__}.{info.name}")
-        if hasattr(modulo, "PERSONALIDADE"):
-            modulos.append(modulo)
-    modulos.sort(key=lambda m: (getattr(m, "ORDEM", 100), m.PERSONALIDADE.nome))
-    encontradas = {}
-    for modulo in modulos:
-        p = modulo.PERSONALIDADE
-        if p.id in encontradas:
-            raise ValueError(f"Duas personalidades com o id '{p.id}'")
-        encontradas[p.id] = p
-    return encontradas
+def _originais(pasta=PASTA_ASSISTENTES_PADRAO) -> dict[str, Personalidade]:
+    """Os assistentes originais, na ordem do campo "ordem" de cada arquivo (é a ordem dos seletores)."""
+    lidos = []
+    for arquivo in sorted(pasta.glob("*.json")):
+        dados = json.loads(arquivo.read_text(encoding="utf-8"))
+        dados["id"] = arquivo.stem
+        lidos.append((dados.get("ordem", 100), dados.get("nome", ""), armazenamento.de_dados(dados)))
+    if not lidos:
+        raise FileNotFoundError(f"Nenhum assistente original em {pasta}")
+    return {p.id: p for _, _, p in sorted(lidos, key=lambda item: item[:2])}
 
 
-EMBUTIDAS = _do_codigo()  # as do código, sem ajustes: o "padrão" para restaurar
+EMBUTIDAS = _originais()  # os originais, sem ajustes: o "padrão" para restaurar (e que não podem ser excluídos)
 PERSONALIDADES: dict[str, Personalidade] = {}
 NOMES_DO_ASSISTENTE: set[str] = set()  # o classificador escreve um destes no "alvo" quando a frase é para o assistente
 
 
 def recarregar(pasta=PASTA_ASSISTENTES) -> None:
-    """Junta as do código com as do configurador (ajustes no lugar do original; novas depois, por nome)."""
+    """Junta os originais com os do configurador (ajustes no lugar do original; novos depois, por nome)."""
     do_configurador = {p.id: p for p in armazenamento.carregar(pasta, EMBUTIDAS)}
     juntas = {i: do_configurador.get(i, p) for i, p in EMBUTIDAS.items()}
     juntas.update(sorted(((i, p) for i, p in do_configurador.items() if i not in EMBUTIDAS),

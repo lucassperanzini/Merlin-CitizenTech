@@ -92,17 +92,20 @@
 
     <section>
       <h2>Personalidade</h2>
-      <label class="inteiro">Descrição: como ele é e como trata você
-        <textarea id="descricao" rows="2" placeholder="Ex.: como ele é, como fala e como chama você, em uma ou duas frases"></textarea>
+      <label class="inteiro">Quem ele é
+        <textarea id="contexto" rows="3" placeholder="Ex.: uma bibliotecária aposentada que conhece histórias de todo canto e trata você como um neto curioso."></textarea>
       </label>
+      <p class="ajuda" style="margin-top:4px">A história e o contexto do personagem: o que ele é, o que faz, de onde vem, qual a relação com você.
+        A IA usa como pano de fundo, só quando fizer sentido, sem recitar.</p>
       <div class="linha" style="margin-top:8px">
         <button id="sugerir" type="button" class="principal">Sugerir o resto com IA</button>
-        <span class="ajuda" style="margin:0">Leva uns 10 segundos. Preenche os campos abaixo; você revisa antes de salvar.</span>
+        <span class="ajuda" style="margin:0">Leva uns 10 segundos. A partir de quem ele é, preenche como ele fala, as frases e as expressões; você revisa antes de salvar.</span>
       </div>
       <div class="grade" style="margin-top:12px">
         <label class="inteiro">Apresentação (dita ao escolher este assistente)<input id="apresentacao"></label>
-        <label class="inteiro">Como ele conversa (instruções para a IA)<textarea id="conversa" rows="5"
-          placeholder="Deixe em branco para montar a partir do nome e da descrição."></textarea></label>
+        <label class="inteiro">Como ele fala<textarea id="conversa" rows="5"
+          placeholder="O tom, o humor, o tamanho das respostas e como ele chama você. Ex.: fala com calma e carinho, em frases curtas, e chama você pelo nome."></textarea></label>
+        <p class="ajuda inteiro" style="margin-top:-4px">Vale para toda resposta. A história dele vai em "Quem ele é", acima.</p>
         <div class="inteiro" style="display:grid; gap:4px">
           <span style="font-size:13px; color:var(--suave)">Expressões típicas</span>
           <div class="expressoes" id="expressoes">
@@ -214,7 +217,7 @@
     $("cor-padrao").checked = !dados.cor;
     $("cor").value = dados.cor || "#35d6ff";
     $("cor").disabled = !dados.cor;
-    $("descricao").value = dados.descricao || "";
+    $("contexto").value = dados.contexto || "";
     $("apresentacao").value = dados.apresentacao || "";
     $("conversa").value = dados.prompt_conversa || "";
     mostrarExpressoes(dados.expressoes || []);
@@ -243,7 +246,7 @@
       palavras_ativacao: $("palavras").value.split(",").map(s => s.trim()).filter(Boolean),
       voz_padrao: $("voz").value, som: $("som").value, visual: $("visual").value,
       cor: $("cor-padrao").checked ? "" : $("cor").value,
-      descricao: $("descricao").value.trim(), apresentacao: $("apresentacao").value.trim(),
+      contexto: $("contexto").value.trim(), apresentacao: $("apresentacao").value.trim(),
       prompt_conversa: $("conversa").value.trim(),
       expressoes: coletarExpressoes(),
       frequencia_expressoes: Number($("frequencia").value),
@@ -302,7 +305,7 @@
     const botao = $("sugerir");
     botao.disabled = true;
     avisar("A IA está criando a personalidade…");
-    const r = await api().sugerir($("nome").value, $("descricao").value);
+    const r = await api().sugerir($("nome").value, $("contexto").value);
     botao.disabled = false;
     if (r.erro) { avisar(r.erro, "erro"); return; }
     // fica com as escolhas de voz, som, aparência e cor já feitas; a IA só traz textos e palavras de chamada

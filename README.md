@@ -9,6 +9,7 @@ Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho a
 ## O que ele faz
 
 - **Ativação por voz:** diga o nome do assistente ("Merlin, abre o chrome").
+- **Modo discreto:** um pedido rápido junto com o nome ("Merlin, abre o spotify") é resolvido sem abrir o cartão: a resposta aparece num balão ao lado da bolinha e ele volta a esperar. Conversas, perguntas de confirmação, erros e respostas longas abrem o cartão.
 - **Tarefas no computador:** abrir e fechar programas, pesquisar na internet, clicar em botões de qualquer janela ("dá play", "salva", "clica em cancelar no word"). Antes de clicar em algo perigoso (excluir, pagar, enviar), ele pergunta.
 - **Várias tarefas numa frase:** "abre o chrome e fecha o telegram" vira uma resposta só ("Abri o chrome e fechei o telegram").
 - **Conversa:** responde perguntas no jeito da personalidade e lembra o que foi dito na conversa atual.
@@ -47,11 +48,12 @@ Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho a
 |---|---|
 | Código do assistente | `main.py`, `merlin/` |
 | Páginas das janelas, sons de ativação, olho e esfera | `recursos/` |
+| Os assistentes originais, Merlin e Jarvis (não podem ser excluídos; "Restaurar original" volta para eles) | `recursos/assistentes_padrao/*.json` |
 | **Vozes do Piper** em português (Faber, Cadu, Jeff; ~63 MB cada) | `vozes/*.onnx` |
 | Ferramentas (baixar modelos, instalar a clonagem, avaliar a IA, gerar sons) | `ferramentas/` |
 | Testes automáticos | `tests/` |
 | Suas preferências (assistente, voz e modelo escolhidos) | `merlin_config.json` |
-| Assistentes criados ou ajustados por você no configurador | `assistentes/*.json` |
+| Assistentes criados por você e ajustes dos originais, feitos no Editor | `assistentes/*.json` |
 | Amostras de áudio usadas para comparar as vozes do mago (não são necessárias para rodar) | `amostras_mago/` |
 
 ### Você baixa de fora
@@ -155,7 +157,7 @@ microfone
 | `merlin/ia/` | conversa com o Ollama: intenções, divisão de tarefas, confirmações, conversa, sugestão de assistentes |
 | `merlin/habilidades/` | **uma habilidade por arquivo**: descrição e exemplos para a IA, regras, e qual ação executar |
 | `merlin/acoes/` | o que é feito no Windows: janelas, botões, programas, navegador |
-| `merlin/personalidades/` | Merlin e Jarvis (padrão), mais os assistentes da pasta `assistentes/` |
+| `merlin/personalidades/` | carrega os assistentes (todos em .json): os originais de `recursos/assistentes_padrao/` e os da pasta `assistentes/` |
 | `merlin/voz/` | síntese (Piper e clonagem), efeitos, reprodução e interrupção |
 | `merlin/nucleo/` | o fluxo de cada pedido, sessão, memória da conversa, raciocínio |
 | `merlin/interface/` | janelas: a principal (bolinha e cartão) e a Central (ajustes, editor, habilidades) |
@@ -164,7 +166,7 @@ microfone
 
 ### Personalizar
 
-- **Assistentes:** pela aba **Editor** da Central. Lá você define nome, palavras de chamada, voz, aparência, jeito de conversar, frases prontas e expressões típicas. A IA local pode sugerir tudo a partir de uma descrição. Os assistentes ficam em `assistentes/*.json`.
+- **Assistentes:** pela aba **Editor** da Central. Lá você define nome, palavras de chamada, voz, aparência, quem ele é, como ele fala, frases prontas e expressões típicas. A IA local pode sugerir o resto a partir de "Quem ele é". Todos os assistentes são arquivos .json no mesmo formato: os originais (Merlin e Jarvis) em `recursos/assistentes_padrao/`, e os seus e os ajustes dos originais em `assistentes/`.
 - **Habilidades:** crie um arquivo em `merlin/habilidades/` (veja um vizinho como modelo) e a ação em `merlin/acoes/`. Ela entra sozinha no que a IA lê e nas ações, e aparece na aba Habilidades da Central.
 - **Ajustes técnicos:** em `merlin/config.py`, por exemplo a pausa que encerra uma frase (`PAUSA_FIM_FRASE`) e o tempo de inatividade (`TEMPO_INATIVIDADE`).
 

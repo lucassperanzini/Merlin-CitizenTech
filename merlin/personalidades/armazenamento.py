@@ -1,7 +1,8 @@
 """Assistentes criados ou ajustados no configurador: cada um é um arquivo .json em assistentes/.
 
-Um arquivo com o id de um assistente do código (merlin, jarvis) é um ajuste dele: vale no lugar do original,
-e apagar o arquivo restaura o padrão. Um id novo é um assistente novo.
+Um arquivo com o id de um assistente original (merlin, jarvis, em recursos/assistentes_padrao/) é um ajuste dele:
+vale no lugar do original, e apagar o arquivo restaura o padrão. Um id novo é um assistente novo.
+Os originais usam este mesmo formato.
 Os dados são conferidos ao salvar e ao carregar: um arquivo com problema é ignorado (com aviso no log),
 para nunca impedir o assistente de abrir.
 """
@@ -13,7 +14,8 @@ from dataclasses import replace
 from pathlib import Path
 
 from merlin.config import PASTA_ASSISTENTES, PASTA_RAIZ
-from merlin.personalidades.base import ConjuntoFrases, Personalidade
+from merlin.personalidades.base import ConjuntoFrases, Personalidade, VozPropria
+from merlin.voz.efeitos import EfeitoVoz
 
 logger = logging.getLogger(__name__)
 
@@ -46,11 +48,16 @@ def para_dados(p: Personalidade) -> dict:
     """Uma personalidade em dados simples, prontos para o configurador e para o arquivo."""
     som = next((rotulo for rotulo, arquivo in SONS.items() if p.som_ativacao.name == arquivo), "Mágico")
     dados = {
-        "id": p.id, "nome": p.nome, "descricao": p.descricao, "jeito": p.jeito, "expressoes": list(p.expressoes),
+        "id": p.id, "nome": p.nome, "descricao": p.descricao, "contexto": p.contexto, "jeito": p.jeito,
+        "expressoes": list(p.expressoes),
         "frequencia_expressoes": p.frequencia_expressoes, "nao_comentar_instrucoes": p.nao_comentar_instrucoes,
         "palavras_ativacao": list(p.palavras_ativacao), "voz_padrao": p.voz_padrao,
         "visual": p.visual, "cor": p.cor, "som": som,
         "apresentacao": p.apresentacao, "dica_vocabulario": p.dica_vocabulario, "prompt_conversa": p.prompt_conversa,
+        # Vozes criadas para o assistente: uma voz do Piper com efeitos (aparecem no seletor de vozes)
+        "vozes_proprias": [{"rotulo": v.rotulo, "id": v.id, "efeito": {
+            "modelo": v.efeito.modelo, "tom": v.efeito.tom, "lentidao": v.efeito.lentidao,
+            "tremor": v.efeito.tremor, "eco": v.efeito.eco}} for v in p.vozes_proprias],
     }
     for parte in PARTES:
         c: ConjuntoFrases = getattr(p, parte)
@@ -106,9 +113,10 @@ def de_dados(dados: dict, base: Personalidade | None = None) -> Personalidade:
         apresentacao=str(dados.get("apresentacao") or f"{nome} às suas ordens.").strip(),
         dica_vocabulario=str(dados.get("dica_vocabulario") or f"{nome}, abra o navegador. {nome}, pesquise na internet."),
         prompt_conversa=str(dados["prompt_conversa"]).strip(),
-        vozes_proprias=base.vozes_proprias if base else (),
+        vozes_proprias=_vozes_proprias(dados.get("vozes_proprias")) or (base.vozes_proprias if base else ()),
         cor=cor,
         descricao=str(dados.get("descricao", "")).strip(),
+        contexto=str(dados.get("contexto", "")).strip(),
         jeito=str(dados.get("jeito", "")).strip(),
         expressoes=expressoes,
         frequencia_expressoes=frequencia,
@@ -118,6 +126,15 @@ def de_dados(dados: dict, base: Personalidade | None = None) -> Personalidade:
 
 
 NOMES_PARTES = {"saudacao": "saudações", "despedida": "despedidas"}
+
+
+def _vozes_proprias(itens) -> tuple[VozPropria, ...]:
+    try:
+        return tuple(VozPropria(str(v["rotulo"]), str(v["id"]), EfeitoVoz(
+            modelo=str(v["efeito"]["modelo"]), tom=float(v["efeito"]["tom"]), lentidao=float(v["efeito"]["lentidao"]),
+            tremor=float(v["efeito"]["tremor"]), eco=float(v["efeito"]["eco"]))) for v in itens or ())
+    except (KeyError, TypeError, ValueError) as erro:
+        raise DadosInvalidos(f"Uma voz própria está incompleta ({erro}).") from erro
 
 
 def ajustar_frase(frase: str) -> str:

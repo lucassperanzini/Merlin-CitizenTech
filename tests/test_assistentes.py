@@ -231,6 +231,7 @@ class TestSugestaoDaIA(unittest.TestCase):
             "despedidas": boas + ["Até mais, chefe! Precisa de algo mais?"],
         }
         dados = CriadorAssistente(ClienteFalso(json.dumps(resposta))).sugerir("Sexta-feira", "animada")
+        self.assertEqual(dados["contexto"], "animada")  # o "Quem ele é" escrito pela pessoa fica como está
         self.assertEqual(dados["palavras_ativacao"], ["sexta-feira", "sexta feira", "sesta-feira"])  # "x" é curta
         # a sem ponto final foi corrigida; a com palavrão ficou de fora
         self.assertEqual(dados["saudacao"]["reservas"], boas + ["frase sem ponto final."])
@@ -333,3 +334,50 @@ class TestExpressoes(unittest.TestCase):
                     "saudacoes": boas, "despedidas": boas}
         dados = CriadorAssistente(ClienteFalso(json.dumps(resposta))).sugerir("Rick", "sarcástico")
         self.assertEqual(dados["expressoes"], ["velho", "mano"])  # sem repetidas nem compridas demais
+
+
+class TestQuemEleE(unittest.TestCase):
+    """"Quem ele é" (contexto) é pano de fundo; "Como ele fala" (prompt_conversa) é regra de toda resposta."""
+
+    def test_contexto_entra_na_conversa_como_pano_de_fundo(self):
+        from dataclasses import replace
+
+        from merlin.ia.conversa import instrucoes_da_conversa
+        com = replace(MERLIN, contexto="Um mago de mil anos que mora numa torre.")
+        texto = instrucoes_da_conversa(com)
+        self.assertIn("Um mago de mil anos que mora numa torre", texto)
+        self.assertIn("sem recitar", texto)
+        self.assertLess(texto.index(MERLIN.prompt_conversa), texto.index("Um mago de mil anos"))
+        self.assertNotIn("pano de fundo", instrucoes_da_conversa(MERLIN))  # sem contexto, nada é acrescentado
+
+    def test_contexto_e_salvo_e_lido_de_volta(self):
+        dados = assistente_valido()
+        dados["contexto"] = "Assistente de uma empresa de café."
+        dados["prompt_conversa"] = modelo.prompt_conversa("Sexta-feira", "Fala animada.")
+        p = armazenamento.de_dados(modelo.montar_instrucoes(dados))
+        self.assertEqual(p.contexto, "Assistente de uma empresa de café.")
+        self.assertEqual(armazenamento.para_dados(p)["contexto"], "Assistente de uma empresa de café.")
+
+    def test_assistentes_atuais_comecam_sem_contexto(self):
+        self.assertEqual(MERLIN.contexto, "")
+        self.assertEqual(JARVIS.contexto, "")
+
+
+class TestOriginaisEmJson(unittest.TestCase):
+    """Merlin e Jarvis são arquivos .json como os outros; só não podem ser excluídos pela interface."""
+
+    def test_originais_vem_dos_arquivos_padrao_na_ordem_certa(self):
+        from merlin.config import PASTA_ASSISTENTES_PADRAO
+        self.assertEqual(sorted(a.stem for a in PASTA_ASSISTENTES_PADRAO.glob("*.json")), ["jarvis", "merlin"])
+        self.assertEqual(list(EMBUTIDAS), ["merlin", "jarvis"])
+
+    def test_vozes_proprias_vao_e_voltam_do_arquivo(self):
+        dados = json.loads(json.dumps(armazenamento.para_dados(JARVIS)))
+        self.assertEqual(dados["vozes_proprias"][0]["id"], "jarvis_digital")
+        self.assertEqual(armazenamento.de_dados(dados), JARVIS)
+
+    def test_voz_propria_incompleta_e_recusada(self):
+        dados = armazenamento.para_dados(MERLIN)
+        dados["vozes_proprias"] = [{"rotulo": "x", "id": "x"}]
+        with self.assertRaises(DadosInvalidos):
+            armazenamento.de_dados(dados)

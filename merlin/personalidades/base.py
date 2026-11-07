@@ -45,7 +45,10 @@ class Personalidade:
     despedida: ConjuntoFrases
     vozes_proprias: tuple[VozPropria, ...] = ()
     cor: str = ""  # cor de destaque na janela (ex.: "#d9ac5a"); vazio = a cor padrão do visual
-    descricao: str = ""  # como a pessoa descreveu o assistente no configurador
+    descricao: str = ""  # como a pessoa descreveu o assistente no configurador (antes de existir o contexto)
+    # Quem ele é: história, profissão, relação com a pessoa. Pano de fundo da conversa, sem ser recitado.
+    # O jeito de falar fica em prompt_conversa ("Como ele fala", no configurador).
+    contexto: str = ""
     jeito: str = ""  # como ele é e trata a pessoa: base das instruções montadas pelo configurador
     expressoes: tuple[str, ...] = ()  # gírias e bordões que ele usa (sem comentar que usa)
     frequencia_expressoes: float = 0.5  # em que fração das respostas as expressões são oferecidas (0 a 1)

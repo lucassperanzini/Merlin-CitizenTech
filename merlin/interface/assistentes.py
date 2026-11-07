@@ -49,7 +49,7 @@ class ServicoAssistentes:
     # --- IA
     def sugerir(self, nome: str, descricao: str) -> dict:
         if not nome.strip() or not descricao.strip():
-            return {"erro": "Para a IA sugerir, preencha o nome e descreva o assistente em uma ou duas frases."}
+            return {"erro": "Para a IA sugerir, preencha o nome e conte quem ele é em uma ou duas frases."}
         try:
             return self._criador.sugerir(nome.strip(), descricao.strip())
         except Exception as erro:
@@ -63,9 +63,10 @@ class ServicoAssistentes:
         dados["id"] = identificador
         if identificador not in EMBUTIDAS:
             # As instruções não aparecem na tela: são remontadas do nome e do jeito a cada vez que salva.
-            # Merlin e Jarvis mantêm as suas, escritas à mão.
+            # Os originais (Merlin e Jarvis) mantêm as suas, escritas à mão no arquivo deles.
             if not str(dados.get("prompt_conversa", "")).strip() and dados.get("nome", "").strip():
-                jeito = modelo.extrair_jeito(dados["nome"], dados.get("jeito") or dados.get("descricao") or "")
+                jeito = modelo.extrair_jeito(dados["nome"], dados.get("jeito") or dados.get("descricao")
+                                             or dados.get("contexto") or "")
                 dados["prompt_conversa"] = modelo.prompt_conversa(dados["nome"].strip(), jeito)
             modelo.montar_instrucoes(dados)  # depois: a base é o texto da conversa
         try:

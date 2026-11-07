@@ -39,7 +39,8 @@ class ApiJanela:
     """Funções que a página pode chamar. O pywebview expõe tudo o que é público, por isso os atributos são privados."""
 
     def __init__(self, central, sessao, estado=None, mostrar_botoes=None, abrir_menu=None, trocar_assistente=None,
-                 raciocinio=None, painel=None, debug=None):
+                 raciocinio=None, painel=None, debug=None, balao=None):
+        self._balao = balao
         self.raciocinio = raciocinio  # a API da página do raciocínio, no painel à esquerda do cartão
         self._painel = painel
         self._debug = debug
@@ -72,6 +73,12 @@ class ApiJanela:
         """Mouse chegou perto da bolinha (ou saiu): os botões em volta entram (ou saem) do recorte da janela."""
         if self._mostrar_botoes:
             self._mostrar_botoes(bool(visiveis))
+
+    def balao_compacto(self, caixa=None):
+        """O balão do modo discreto apareceu (x, y, largura, altura em pontos) ou sumiu (nada): ele entra no
+        recorte da janela só enquanto está na tela."""
+        if self._balao:
+            self._balao(tuple(float(v) for v in caixa) if caixa else None)
 
     def menu_assistentes(self, aberto, altura=0):
         """Clique no nome da bolinha: a lista de assistentes abre embaixo do nome, com a altura pedida (em pontos)."""
@@ -116,6 +123,7 @@ class JanelaMerlin:
         self._menu_aberto = False  # a lista de assistentes, aberta com um clique no nome da bolinha
         self._altura_menu = 0  # em pontos: quanto a janela cresce, embaixo do nome, para a lista caber
         self._painel_aberto = False  # o raciocínio ao lado do cartão (aba da borda esquerda)
+        self._balao = None  # o balão do modo discreto, quando está na tela: (x, y, largura, altura) em pontos
         self._tem_raciocinio = raciocinio is not None
         self._trava_forma = threading.Lock()  # a animação e o mouse mexem no recorte da janela, de threads diferentes
         self._ia_fora = False
@@ -125,7 +133,8 @@ class JanelaMerlin:
         self.janela = webview.create_window(
             preferencias.personalidade.nome, html=self._montar_pagina(),
             js_api=ApiJanela(central, sessao, estado, self._mostrar_botoes_compactos, self._abrir_menu_compacto,
-                             trocar_assistente, raciocinio, self._abrir_painel, self._alternar_debug),
+                             trocar_assistente, raciocinio, self._abrir_painel, self._alternar_debug,
+                             self._mostrar_balao),
             width=largura, height=altura, x=x, y=y,
             resizable=False, on_top=True, hidden=True, background_color="#05070C",
             min_size=(100, 100),  # o padrão (200 de largura) não deixaria a bolinha do canto ficar redonda
@@ -192,6 +201,10 @@ class JanelaMerlin:
             self._central.abrir_aba("assistente")
         elif tipo is TipoEvento.ESTADO and self._visivel:
             self._chamar_pagina("definirEstado", dado.value)
+        elif tipo is TipoEvento.ESTADO and self._compacta:  # modo discreto: a bolinha pensa e fala sem abrir
+            self._chamar_pagina("definirEstadoBolinha", dado.value)
+        elif tipo is TipoEvento.AVISO and self._compacta:
+            self._chamar_pagina("mostrarBalao", dado)
         elif tipo is TipoEvento.LEGENDA and self._visivel:
             self._chamar_pagina("definirLegenda", dado)
         elif tipo is TipoEvento.RESPOSTA and self._visivel:
@@ -207,8 +220,10 @@ class JanelaMerlin:
         self._visivel = True
         self._nivel = 0.0
         self._chamar_pagina("aoMostrar")
+        self._chamar_pagina("esconderBalao")
         with self._trava_forma:
             self._botoes_visiveis = self._menu_aberto = self._painel_aberto = False
+            self._balao = None
             if self._compacta and self._moldura:
                 self._compacta = False
                 m = self._moldura
@@ -221,6 +236,7 @@ class JanelaMerlin:
     def _esconder(self):
         self._visivel = False
         if self._compacta:
+            self._chamar_pagina("definirEstadoBolinha", "espera")  # depois de um pedido no modo discreto
             return  # já está no canto
         if self._moldura:
             self._compactar_pagina()
@@ -275,6 +291,11 @@ class JanelaMerlin:
                 self._moldura.posicionar_cartao(cartao, False, ligado)
         return ligado
 
+    def _mostrar_balao(self, caixa):
+        with self._trava_forma:
+            self._balao = caixa
+            self._aplicar_forma_compacta()
+
     def _abrir_menu_compacto(self, aberto: bool, altura: int = 0):
         with self._trava_forma:
             de = self._altura_menu if self._menu_aberto else 0
@@ -289,7 +310,7 @@ class JanelaMerlin:
         if self._compacta and self._moldura:
             m = self._moldura
             extra = self._altura_menu if self._menu_aberto else 0
-            m.posicionar_compacta(m.canto(extra), self._botoes_visiveis, self._menu_aberto)
+            m.posicionar_compacta(m.canto(extra), self._botoes_visiveis, self._menu_aberto, self._balao)
 
     def _checar_ia(self):
         """O Ollama responde? Se cair (ou voltar), o anel da bolinha muda de cor."""

@@ -33,6 +33,10 @@ BOTOES_COMPACTOS = ("engrenagem", "microfone", "debug")  # ids dos botões na p�
 ANGULOS_BOTOES = (148, 180, 212)  # graus a partir da direita, no sentido anti-horário: 180 é bem à esquerda
 DIAMETRO_BOTAO = 28
 ORBITA_BOTOES = 84  # do centro da bolinha ao centro de cada botão: sobra um vão entre eles e a bolinha
+# Modo discreto: o balão com a resposta curta aparece à esquerda da bolinha. O espaço dele fica reservado na janela
+# (fora do recorte, invisível e sem receber cliques) para ela não precisar mudar de tamanho quando ele aparece.
+LARGURA_BALAO = 280
+RAIO_BALAO = 14
 MARGEM_COMPACTA = 18
 RAIO_CARTAO = 16  # cantos arredondados do cartão da janela ativa
 LARGURA_PAINEL = 360  # o painel do raciocínio, aberto à esquerda do cartão pela aba da borda (--painel na página)
@@ -76,7 +80,8 @@ def desenho_compacto() -> dict:
     """Onde fica cada peça da janela compacta, em pontos, a partir do canto de cima à esquerda dela.
     É a fonte única: o recorte da janela sai daqui, e a página recebe o mesmo desenho para posicionar as peças."""
     raio, raio_botao = LADO_COMPACTO / 2, DIAMETRO_BOTAO / 2
-    cx, cy = ORBITA_BOTOES + raio_botao, raio  # centro da bolinha: o botão mais à esquerda encosta na borda
+    # Centro da bolinha: depois do espaço do balão, com o botão mais à esquerda encostado nele
+    cx, cy = LARGURA_BALAO + ORBITA_BOTOES + raio_botao, raio
     botoes = [{"id": id_botao,
                "x": round(cx + ORBITA_BOTOES * math.cos(math.radians(angulo)) - raio_botao, 1),
                "y": round(cy - ORBITA_BOTOES * math.sin(math.radians(angulo)) - raio_botao, 1),
@@ -89,7 +94,14 @@ def desenho_compacto() -> dict:
         "nome": {"x": cx - LARGURA_NOME / 2, "y": LADO_COMPACTO + ESPACO_NOME,
                  "largura": LARGURA_NOME, "altura": ALTURA_NOME},
         "botoes": botoes,
+        # O balão termina um pouco antes dos botões e fica centrado na altura da bolinha
+        "balao": {"direita": LARGURA_BALAO - 6, "centro_y": cy},
     }
+
+
+def largura_visivel_compacta(escala: float) -> int:
+    """A largura do que aparece da bolinha (com o nome e os botões), sem o espaço reservado ao balão."""
+    return round((desenho_compacto()["largura"] - LARGURA_BALAO) * escala)
 
 
 def tamanho_compacto(escala: float) -> tuple[int, int]:
@@ -245,24 +257,27 @@ class Moldura:
         retângulo final do cartão (com o espaço do painel, no modo debug), mas só a faixa da direita aparece,
         do tamanho da bolinha ao do cartão, com os cantos indo de redondos a arredondados."""
         cheia = self.janela_do_cartao(cartao, com_aba)
-        lado_bolinha = min(canto.largura, canto.altura)
+        bolinha = largura_visivel_compacta(self._escala())  # o espaço do balão, à esquerda, não aparece
+        lado_bolinha = min(bolinha, canto.altura)
         diametro_cartao = round(2 * RAIO_CARTAO * self._escala())
 
         def quadro(e):
             p = e if abrindo else 1 - e
             r = interpolar(canto, cheia, p)
             self._mover(r)
-            visivel = round(canto.largura + (cartao.largura - canto.largura) * p)
+            visivel = round(bolinha + (cartao.largura - bolinha) * p)
             diametro = round(lado_bolinha + (diametro_cartao - lado_bolinha) * p)
             self._recortar_lado_direito(r, min(visivel, r.largura), diametro, False)
 
         self.transicao(quadro)
 
-    def posicionar_compacta(self, r: Retangulo, com_botoes: bool = False, com_menu: bool = False) -> None:
+    def posicionar_compacta(self, r: Retangulo, com_botoes: bool = False, com_menu: bool = False,
+                            balao: tuple[float, float, float, float] | None = None) -> None:
         """A forma final da espera: a bolinha e a faixa arredondada com o nome. Os botões em volta só entram no
         recorte com o mouse por perto: fora do recorte, eles nem aparecem nem recebem cliques.
-        Com a lista de assistentes aberta (clique no nome), entra também a área dela, embaixo do nome."""
-        user32.SetWindowPos(self._hwnd, None, r.x, r.y, r.largura, r.altura, SWP_NOZORDER | SWP_NOACTIVATE)
+        Com a lista de assistentes aberta (clique no nome), entra também a área dela, embaixo do nome.
+        balao: (x, y, largura, altura) em pontos, do balão do modo discreto, quando ele está na tela."""
+        self._mover(r)
         (ce, ct, cd, cb), (fe, ft, fd, fb), botoes = formas_compactas(self._escala())
         regiao = gdi32.CreateEllipticRgn(ce, ct, cd + 1, cb + 1)
         pecas = [gdi32.CreateRoundRectRgn(fe, ft, fd + 1, fb + 1, fb - ft, fb - ft)]
@@ -272,6 +287,11 @@ class Moldura:
         if com_menu and r.altura > topo:  # a lista: na largura da faixa do nome, embaixo dela até o fim da janela
             diametro = round(2 * RAIO_CARTAO * self._escala())
             pecas.append(gdi32.CreateRoundRectRgn(fe, topo, fd + 1, r.altura + 1, diametro, diametro))
+        if balao:
+            escala = self._escala()
+            x, y, largura, altura = (round(v * escala) for v in balao)
+            diametro = round(2 * RAIO_BALAO * escala)
+            pecas.append(gdi32.CreateRoundRectRgn(x, y, x + largura + 1, y + altura + 1, diametro, diametro))
         for peca in pecas:
             gdi32.CombineRgn(regiao, regiao, peca, RGN_OR)
             gdi32.DeleteObject(peca)
