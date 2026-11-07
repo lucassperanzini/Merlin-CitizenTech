@@ -28,6 +28,12 @@ def criar_acao(recursos):
 
 HABILIDADE = Habilidade(
     nome="fechar_programa",
+    titulo='Fechar programa',
+    regras_resumo=(
+        'Se a frase começa com abrir, iniciar, ligar ou executar, vira “Abrir programa”.',
+        '“Fecha essa janela”, sem citar programa, é dispensar o assistente.',
+        'Fechar o próprio assistente é dispensá-lo.',
+    ),
     grupo=grupos.PROGRAMAS,
     ordem=20,
     descricao="a pessoa manda fechar, encerrar ou sair de um programa ou janela aberta no computador. "

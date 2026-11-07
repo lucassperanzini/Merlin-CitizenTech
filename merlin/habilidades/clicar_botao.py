@@ -33,6 +33,12 @@ def criar_acao(recursos):
 
 HABILIDADE = Habilidade(
     nome="clicar_botao",
+    titulo='Clicar em botão',
+    regras_resumo=(
+        'A frase precisa começar com uma ordem (clica, aperta, dá play, salva, pula…); perguntas viram conversa.',
+        'Sem dizer qual botão, o assistente pergunta “Em qual botão?”.',
+        'Botões perigosos (excluir, pagar, enviar…) ou escolhidos pela IA pedem confirmação antes.',
+    ),
     grupo=grupos.TELA,
     ordem=41,
     descricao="a pessoa manda clicar, apertar ou pressionar um botão ou opção de um programa, ou manda fazer algo que "

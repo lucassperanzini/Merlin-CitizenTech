@@ -47,3 +47,30 @@ class TestEfeitos(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestEncurtarPausas(unittest.TestCase):
+    def _voz(self, segundos):
+        t = np.arange(int(segundos * TAXA)) / TAXA
+        return (0.5 * np.sin(2 * np.pi * 200 * t)).astype(np.float32)
+
+    def test_pausa_longa_no_meio_vira_curta(self):
+        from merlin.voz.efeitos import PAUSA_MAXIMA, encurtar_pausas
+        audio = np.concatenate([self._voz(1), np.zeros(int(1.2 * TAXA), np.float32), self._voz(1)])
+        saida = encurtar_pausas(audio, TAXA)
+        self.assertAlmostEqual(len(saida) / TAXA, 2 + PAUSA_MAXIMA, delta=0.05)
+
+    def test_pausa_curta_fica_como_esta(self):
+        from merlin.voz.efeitos import encurtar_pausas
+        audio = np.concatenate([self._voz(1), np.zeros(int(0.2 * TAXA), np.float32), self._voz(1)])
+        self.assertEqual(len(encurtar_pausas(audio, TAXA)), len(audio))
+
+    def test_silencio_das_pontas_nao_e_mexido(self):
+        from merlin.voz.efeitos import encurtar_pausas
+        audio = np.concatenate([np.zeros(TAXA, np.float32), self._voz(1), np.zeros(TAXA, np.float32)])
+        self.assertEqual(len(encurtar_pausas(audio, TAXA)), len(audio))  # as pontas são do cortar_silencio
+
+    def test_audio_vazio_ou_mudo(self):
+        from merlin.voz.efeitos import encurtar_pausas
+        self.assertEqual(len(encurtar_pausas(np.zeros(0, np.float32), TAXA)), 0)
+        self.assertEqual(len(encurtar_pausas(np.zeros(TAXA, np.float32), TAXA)), TAXA)

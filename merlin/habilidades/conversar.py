@@ -16,6 +16,10 @@ def criar_acao(recursos):
 
 HABILIDADE = Habilidade(
     nome=NOME,
+    titulo='Conversar',
+    regras_resumo=(
+        'É o caso geral: tudo o que não é outra habilidade. Nunca executa ações.',
+    ),
     grupo=grupos.CONVERSA,
     ordem=99,
     descricao="qualquer outra coisa, inclusive perguntas de conhecimento geral, perguntas sobre como fazer algo, "

@@ -11,6 +11,7 @@ class EstadoAssistente:
         self.reproduzindo = threading.Event()  # o áudio está saindo pelas caixas de som (só aí dá para interromper)
         self.interromper = threading.Event()  # a pessoa falou por cima: a fala atual deve parar
         self.encerrando = threading.Event()  # o programa deve fechar
+        self.microfone_desligado = threading.Event()  # botão de mudo da janela: nada do que é falado é ouvido
         self.fila_comandos = queue.Queue()  # frases reconhecidas, à espera de processamento
         self._ultima_atividade = time.time()
         self._nivel_voz = 0.0  # maior volume captado desde a última leitura da janela (0 a 1)

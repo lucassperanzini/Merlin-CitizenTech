@@ -39,6 +39,17 @@
   .ajuda { font-size: 12.5px; color: var(--suave); }
   #status { min-height: 20px; font-size: 13px; color: var(--suave); }
   #status.erro { color: var(--erro); }
+  html, body { height: auto; min-height: 100%; }  /* a seção de clonagem pode passar da altura: a página rola */
+  input[type="text"], textarea {
+    width: 100%; padding: 8px 10px; border-radius: 7px; border: 1px solid var(--borda);
+    background: #0e1522; color: var(--texto); font: inherit; resize: vertical;
+  }
+  input:focus-visible, textarea:focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
+  button:disabled { opacity: .5; cursor: default; }
+  #ler { padding: 10px 12px; border-radius: 7px; background: #0e1522; border-left: 3px solid var(--destaque);
+         font-size: 14px; user-select: text; }
+  #contagem { font-variant-numeric: tabular-nums; color: var(--destaque); }
+  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
@@ -48,6 +59,7 @@
     <label for="assistente">Assistente</label>
     <select id="assistente"></select>
     <span class="ajuda">Muda o nome usado para chamar, o jeito de falar, a voz e a aparência.</span>
+    <div class="linha"><button id="gerenciar-assistentes" type="button">Criar e editar assistentes</button></div>
   </div>
 
   <div class="campo">
@@ -66,8 +78,30 @@
 
   <div class="campo">
     <label for="ver-raciocinio">Raciocínio da IA</label>
-    <div class="linha"><button id="ver-raciocinio" type="button">Ver o que a IA entendeu e fez</button></div>
+    <div class="linha"><button id="ver-raciocinio" type="button">Ver o que a IA entendeu e fez</button>
+      <button id="ver-habilidades" type="button">Ver habilidades</button></div>
     <span class="ajuda">Intenção identificada, regras aplicadas, botões que ela viu e o que escolheu.</span>
+  </div>
+
+  <div class="campo" id="clonagem" hidden>
+    <label>Clonar uma voz</label>
+    <span class="ajuda">Grave de 8 a 15 segundos de fala, em um lugar silencioso, ou escolha um áudio.
+      Use a sua voz, ou a de alguém que autorizou.</span>
+    <div class="linha">
+      <button id="gravar" type="button">Gravar</button>
+      <button id="arquivo" type="button">Escolher arquivo</button>
+    </div>
+    <div id="ler" hidden>Leia em voz alta (<span id="contagem"></span>): <span id="texto-ler"></span></div>
+    <div id="conferir" hidden>
+      <label for="texto-amostra">O que foi entendido na amostra (só para conferir se a gravação ficou clara)</label>
+      <textarea id="texto-amostra" rows="3"></textarea>
+      <label for="nome-voz">Nome da voz</label>
+      <div class="linha">
+        <input id="nome-voz" type="text" placeholder="Ex.: Minha voz" maxlength="30">
+        <button id="salvar-voz" type="button">Salvar e usar</button>
+      </div>
+    </div>
+    <div class="linha"><button id="apagar-voz" type="button" hidden>Apagar a voz clonada escolhida</button></div>
   </div>
 
   <div id="status" role="status" aria-live="polite"></div>
@@ -128,8 +162,75 @@
   });
   document.getElementById("atualizar").addEventListener("click", carregar);
   document.getElementById("ver-raciocinio").addEventListener("click", () => api().abrir_raciocinio());
+  document.getElementById("gerenciar-assistentes").addEventListener("click", () => api().abrir_assistentes());
+  document.getElementById("ver-habilidades").addEventListener("click", () => api().abrir_habilidades());
+  // Ao voltar para esta janela (por exemplo, depois de criar um assistente), as listas são atualizadas
+  window.addEventListener("focus", () => { if (window.pywebview) { carregar(); carregarClonagem(); } });
 
-  window.addEventListener("pywebviewready", carregar);
+  // Clonagem de voz: só aparece com a instalação opcional
+  const clonagem = document.getElementById("clonagem");
+  const botaoGravar = document.getElementById("gravar"), botaoArquivo = document.getElementById("arquivo");
+  const ler = document.getElementById("ler"), contagem = document.getElementById("contagem");
+  const conferir = document.getElementById("conferir"), textoAmostra = document.getElementById("texto-amostra");
+  const nomeVoz = document.getElementById("nome-voz"), apagarVoz = document.getElementById("apagar-voz");
+  let infoClonagem = {};
+
+  async function carregarClonagem() {
+    infoClonagem = await api().clonagem_estado();
+    clonagem.hidden = !infoClonagem.instalada;
+    if (!infoClonagem.instalada) return;
+    document.getElementById("texto-ler").textContent = infoClonagem.texto_para_ler;
+    apagarVoz.hidden = !infoClonagem.voz_atual_clonada;
+  }
+  function ocupado(sim) { botaoGravar.disabled = botaoArquivo.disabled = sim; }
+  function receberAmostra(r) {
+    ocupado(false);
+    ler.hidden = true;
+    if (r.cancelado) return;
+    if (r.erro) { avisar(r.erro, true); return; }
+    textoAmostra.value = r.texto;
+    conferir.hidden = false;
+    nomeVoz.focus();
+    avisar(`Amostra de ${String(r.duracao).replace(".", ",")} s pronta. Confira o texto e dê um nome.`);
+  }
+
+  botaoGravar.addEventListener("click", async () => {
+    ocupado(true);
+    conferir.hidden = true;
+    ler.hidden = false;
+    let resta = infoClonagem.duracao_gravacao;
+    contagem.textContent = `${resta} s`;
+    const relogio = setInterval(() => { resta = Math.max(0, resta - 1); contagem.textContent = `${resta} s`; }, 1000);
+    avisar("Gravando… leia o texto acima.");
+    const r = await api().clonagem_gravar();
+    clearInterval(relogio);
+    receberAmostra(r);
+  });
+  botaoArquivo.addEventListener("click", async () => {
+    ocupado(true);
+    avisar("Preparando a amostra…");
+    receberAmostra(await api().clonagem_escolher_arquivo());
+  });
+  document.getElementById("salvar-voz").addEventListener("click", async () => {
+    const r = await api().clonagem_salvar(nomeVoz.value, textoAmostra.value);
+    if (r.erro) { avisar(r.erro, true); return; }
+    conferir.hidden = true;
+    nomeVoz.value = "";
+    await carregar();
+    await carregarClonagem();
+    avisar(`Voz ${r.voz} salva e em uso. A primeira fala com ela demora um pouco mais.`);
+  });
+  apagarVoz.addEventListener("click", async () => {
+    const r = await api().clonagem_apagar();
+    if (r.erro) { avisar(r.erro, true); return; }
+    await carregar();
+    await carregarClonagem();
+    avisar("Voz clonada apagada. O assistente voltou para a voz padrão dele.");
+  });
+  voz.addEventListener("change", carregarClonagem);
+  assistente.addEventListener("change", carregarClonagem);
+
+  window.addEventListener("pywebviewready", () => { carregar(); carregarClonagem(); });
 </script>
 </body>
 </html>

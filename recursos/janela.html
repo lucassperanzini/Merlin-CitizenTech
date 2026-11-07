@@ -17,6 +17,7 @@
     --aura: #2fd4ff;
     --aura2: #1b6fa8;
     --nivel: 0; /* volume da voz captada, de 0 a 1 */
+    --mudo: #ff6b6b; /* microfone desligado pelo botão */
   }
   /* Jarvis: destaque azul em vez de dourado */
   html[data-visual="esfera"] { --ouro: #35d6ff; }
@@ -85,33 +86,72 @@
   }
   body.ouvindo.voz #status { color: var(--fibra); }
 
+  /* A conversa: o que a pessoa disse e, embaixo, o que o assistente respondeu */
   #legenda {
-    flex: 1; width: 100%; padding: 10px 36px 0; overflow: hidden;
+    flex: 1; width: 100%; padding: 10px 36px 14px; overflow-y: auto; min-height: 0;
     font-size: 18px; line-height: 1.45; text-align: center;
+  }
+  #fala-assistente { margin-top: 12px; font-size: 16px; color: #b9c6e4; }
+  #fala-assistente:empty { display: none; }
+  #fala-assistente .quem {
+    display: block; margin-bottom: 2px; font-size: 11.5px; font-weight: 600; letter-spacing: .14em;
+    color: var(--ouro);
   }
   .icone {
     position: fixed; top: 12px; right: 14px; width: 34px; height: 34px; padding: 6px;
     border: 0; border-radius: 8px; background: transparent; color: #8a97b3; cursor: pointer;
   }
   #raciocinio { right: 54px; }
+  #microfone { right: 94px; }
+  #microfone .risco { display: none; }
+  html.mudo #microfone { color: var(--mudo); }
+  html.mudo #microfone .risco { display: inline; }
+  html.mudo #status { color: var(--mudo); }
   .icone:hover { color: var(--texto); background: #0d111b; }
   .icone:focus-visible { outline: 2px solid var(--ouro); outline-offset: 1px; }
   .icone svg { width: 100%; height: 100%; max-height: none; }
 
   /* Em espera, numa bolinha no canto da tela: só a esfera, que ativa o assistente com um clique */
-  html.compacto body { justify-content: center; cursor: pointer; }
-  html.compacto :is(h1, #ondas, #status, #legenda, .icone) { display: none; }
-  html.compacto #palco { height: 100%; }
+  /* Em espera: a bolinha (120 px) em cima e, embaixo, o nome do assistente numa faixa arredondada.
+     As medidas batem com o recorte da janela (merlin/interface/moldura.py: LADO_COMPACTO, ESPACO_NOME, ALTURA_NOME) */
+  html.compacto body { justify-content: flex-start; cursor: pointer; }
+  html.compacto :is(h1, #ondas, #status, #legenda) { display: none; }
+  html.compacto #palco { flex: none; width: 120px; height: 120px; }
   html.compacto #esfera { height: 100%; }
   html.compacto #palco svg { height: 100%; max-height: none; }
+  #nome-compacto { display: none; }
+  /* Em volta da bolinha, do lado de fora: os botões redondos (a posição vem de merlin/interface/moldura.py) */
+  html.compacto .icone {
+    padding: 6px; border-radius: 50%; color: var(--ouro);
+    background: #0b0f18; border: 1px solid color-mix(in srgb, var(--ouro) 45%, transparent);
+  }
+  html.compacto .icone:hover { background: #141a28; border-color: var(--ouro); }
+  html.compacto.mudo #microfone { color: var(--mudo); border-color: var(--mudo); }
+  html.compacto #nome-compacto {
+    display: block; flex: none; width: 100%; height: 24px; margin-top: 4px; padding: 0 10px;
+    line-height: 24px; text-align: center; font-size: 12px; font-weight: 600; letter-spacing: .12em;
+    color: var(--ouro); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
 </style>
 </head>
 <body>
   <h1 id="titulo"></h1>
-  <div id="palco"><!--OLHO--><canvas id="esfera" aria-label="Esfera do assistente"></canvas></div>
+  <div id="palco"><!--OLHO--><canvas id="esfera" aria-label="Esfera do assistente"></canvas>
+  </div>
+  <div id="nome-compacto" aria-hidden="true"></div>
   <canvas id="ondas" aria-hidden="true"></canvas>
   <div id="status">Aguardando sua voz</div>
-  <div id="legenda" aria-live="polite"></div>
+  <div id="legenda">
+    <div id="fala-pessoa" aria-live="polite"></div>
+    <div id="fala-assistente" aria-live="polite"></div>
+  </div>
+  <button id="microfone" class="icone" type="button" title="Desligar o microfone" aria-label="Desligar o microfone" aria-pressed="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="9" y="3" width="6" height="11" rx="3"/>
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/>
+      <path class="risco" d="M4 4l16 16"/>
+    </svg>
+  </button>
   <button id="raciocinio" class="icone" type="button" title="Raciocínio da IA" aria-label="Abrir o raciocínio da IA">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M4 6h16M4 12h10M4 18h7"/>
@@ -141,10 +181,29 @@
   document.getElementById("engrenagem").addEventListener("click", () => window.pywebview.api.abrir_configuracoes());
   document.getElementById("raciocinio").addEventListener("click", () => window.pywebview.api.abrir_raciocinio());
 
+  // Mudo: o Python decide e devolve o estado novo, para o botão nunca mostrar o contrário do que está valendo
+  const botaoMicrofone = document.getElementById("microfone");
+  let microfoneMudo = false;
+  function definirMudo(mudo) {
+    microfoneMudo = mudo;
+    document.documentElement.classList.toggle("mudo", mudo);
+    const texto = mudo ? "Ligar o microfone" : "Desligar o microfone";
+    botaoMicrofone.title = texto;
+    botaoMicrofone.setAttribute("aria-label", texto);
+    botaoMicrofone.setAttribute("aria-pressed", String(mudo));
+    if (mudo) definirNivel(0);
+    atualizarStatus();
+  }
+  botaoMicrofone.addEventListener("click", async () => definirMudo(await window.pywebview.api.alternar_microfone()));
+
   function definirPersonalidade(p) {
     visual = p.visual;
     document.documentElement.dataset.visual = p.visual;
+    // Cor de destaque escolhida no configurador; sem ela, vale a cor padrão do visual
+    if (p.cor) document.documentElement.style.setProperty("--ouro", p.cor);
+    else document.documentElement.style.removeProperty("--ouro");
     titulo.textContent = p.nome.toUpperCase();
+    document.getElementById("nome-compacto").textContent = p.nome.toUpperCase();
     document.title = p.nome;
     if (visual === "esfera" && !window.Esfera.ok) window.Esfera.iniciar(canvasEsfera);
     atualizarAnimacao();
@@ -165,6 +224,7 @@
   function atualizarStatus() {
     const textos = { pensando: "Processando", falando: "Falando" };
     statusTexto.textContent = textos[estadoAtual]
+      || (microfoneMudo ? "Microfone desligado" : null)
       || (nivelAtual > 0 ? "Ouvindo sua voz" : "Aguardando sua voz");
   }
   function definirEstado(estado) {
@@ -247,16 +307,89 @@
     requestAnimationFrame(desenharOndas);
   }
   iniciarOndas();
+  // O que a pessoa disse; uma pergunta nova apaga a resposta anterior
   function definirLegenda(texto) {
-    legenda.textContent = texto;
+    animacaoTexto = null;
+    document.getElementById("fala-pessoa").textContent = texto;
+    document.getElementById("fala-assistente").replaceChildren();
+  }
+  // A resposta do assistente aparece palavra por palavra, acompanhando a voz (como num chat de IA).
+  // Cada trecho de áudio chega com o texto e a duração; as palavras se distribuem por essa duração,
+  // cada uma com um tempo proporcional ao tamanho.
+  const FRACAO_DA_DURACAO = 0.92;  // termina um pouco antes do fim do áudio, que costuma ter um respiro
+  let animacaoTexto = null;
+
+  function comecarResposta() {
+    animacaoTexto = null;
+    const quem = document.createElement("span");
+    quem.className = "quem";
+    quem.textContent = (document.title || "").toUpperCase();
+    const fala = document.createElement("span");
+    fala.id = "fala-texto";
+    document.getElementById("fala-assistente").replaceChildren(quem, fala);
+  }
+  function escrever(palavra) {
+    const fala = document.getElementById("fala-texto");
+    fala.textContent += (fala.textContent ? " " : "") + palavra;
+    legenda.scrollTop = legenda.scrollHeight;
+  }
+  function completarTrecho() {  // a voz do trecho anterior já acabou: o que faltava aparece de uma vez
+    if (!animacaoTexto) return;
+    animacaoTexto.palavras.slice(animacaoTexto.mostradas).forEach(escrever);
+    animacaoTexto = null;
+  }
+  function mostrarTrecho(texto, duracao) {
+    if (!document.getElementById("fala-texto")) comecarResposta();
+    completarTrecho();
+    const palavras = texto.split(/\s+/).filter(Boolean);
+    if (!duracao || duracao <= 0) { palavras.forEach(escrever); return; }
+    const pesos = palavras.map(p => p.length + 1);
+    const total = pesos.reduce((a, b) => a + b, 0);
+    let acumulado = 0;
+    const momentos = pesos.map(peso => { const m = acumulado / total; acumulado += peso; return m * duracao * 1000 * FRACAO_DA_DURACAO; });
+    animacaoTexto = { palavras, momentos, mostradas: 0, inicio: performance.now() };
+    requestAnimationFrame(avancarTexto);
+  }
+  function avancarTexto(agora) {
+    const a = animacaoTexto;
+    if (!a) return;
+    while (a.mostradas < a.palavras.length && a.momentos[a.mostradas] <= agora - a.inicio) {
+      escrever(a.palavras[a.mostradas++]);
+    }
+    if (a.mostradas < a.palavras.length) requestAnimationFrame(avancarTexto);
+    else animacaoTexto = null;
+  }
+  function pararTexto() {  // a pessoa interrompeu: o texto fica onde a voz parou
+    animacaoTexto = null;
   }
   const raiz = document.documentElement;
-  document.body.addEventListener("click", () => {
-    if (raiz.classList.contains("compacto")) window.pywebview.api.ativar();
+  document.body.addEventListener("click", evento => {
+    // Na bolinha, um clique ativa o assistente; nos botões em volta dela, só faz o que o botão faz
+    if (raiz.classList.contains("compacto") && !evento.target.closest(".icone")) window.pywebview.api.ativar();
   });
 
-  function aoCompactar() {
+  // As peças da bolinha vão para o lugar exato do recorte da janela, calculado no Python
+  const PROPRIEDADES = ["position", "left", "top", "right", "width", "height", "margin"];
+  function colocar(elemento, x, y, largura, altura) {
+    Object.assign(elemento.style, { position: "absolute", left: x + "px", top: y + "px", right: "auto",
+                                    width: largura + "px", height: altura + "px", margin: "0" });
+  }
+  function soltar(elemento) {
+    PROPRIEDADES.forEach(p => elemento.style.removeProperty(p));
+  }
+  const pecasCompactas = () => [palco, document.getElementById("nome-compacto"), ...document.querySelectorAll(".icone")];
+
+  function aoCompactar(desenho) {
     raiz.classList.add("compacto");
+    const b = desenho.bolinha, n = desenho.nome;
+    colocar(palco, b.x, b.y, b.lado, b.lado);
+    colocar(document.getElementById("nome-compacto"), n.x, n.y, n.largura, n.altura);
+    document.querySelectorAll(".icone").forEach(botao => botao.style.display = "none");
+    for (const o of desenho.botoes) {
+      const botao = document.getElementById(o.id);
+      colocar(botao, o.x, o.y, o.lado, o.lado);
+      botao.style.removeProperty("display");
+    }
     janelaVisivel = true;
     window.Esfera.limitarQuadros(30);
     window.Esfera.definirEstado("espera");
@@ -265,8 +398,10 @@
   }
   function aoMostrar() {
     raiz.classList.remove("compacto");
+    pecasCompactas().forEach(soltar);
+    document.querySelectorAll(".icone").forEach(botao => botao.style.removeProperty("display"));
     window.Esfera.limitarQuadros(60);
-    legenda.textContent = "";
+    definirLegenda("");
     definirNivel(0);
     definirEstado("ouvindo");
     janelaVisivel = true;

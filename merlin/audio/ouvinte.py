@@ -31,6 +31,9 @@ class Ouvinte:
         self._recognizer = sr.Recognizer()
         self._microfone = None
         self._frases = queue.Queue()
+        self._gravacao = None  # enquanto grava uma amostra de voz: os trechos vão para cá, e não viram comandos
+        self._gravacao_pronta = threading.Event()
+        self._trava_gravacao = threading.Lock()
 
     def calibrar(self) -> None:
         """Mede o ruído ambiente: o limiar de volume ainda serve para as ondas e para a interrupção da fala."""
@@ -43,12 +46,42 @@ class Ouvinte:
         threading.Thread(target=self._escutar, name="escuta", daemon=True).start()
         threading.Thread(target=self._transcrever_frases, name="transcricao", daemon=True).start()
 
+    def gravar(self, segundos: float) -> bytes:
+        """Grava do mesmo microfone da escuta (16 kHz, 16 bits). Durante a gravação nada é tratado como comando."""
+        if self._microfone is None:
+            raise RuntimeError("o microfone ainda não está pronto")
+        if self._estado.microfone_desligado.is_set():
+            raise RuntimeError("o microfone está no mudo. Ligue-o no botão da janela do assistente")
+        trechos_necessarios = int(segundos * TAXA / AMOSTRAS)
+        with self._trava_gravacao:
+            self._gravacao, self._necessarios = [], trechos_necessarios
+            self._gravacao_pronta.clear()
+        self._gravacao_pronta.wait(segundos + 5)
+        with self._trava_gravacao:
+            trechos, self._gravacao = self._gravacao or [], None
+        return b"".join(trechos)
+
+    def _desviar_para_gravacao(self, dados) -> bool:
+        with self._trava_gravacao:
+            if self._gravacao is None:
+                return False
+            self._gravacao.append(dados)
+            if len(self._gravacao) >= self._necessarios:
+                self._gravacao_pronta.set()
+            return True
+
     def _escutar(self):
         detector = DetectorVoz()
         segmentador = Segmentador(PAUSA_FIM_FRASE, LIMITE_FRASE)
         with self._microfone as fonte:
             while not self._estado.encerrando.is_set():
                 dados = fonte.stream.read(AMOSTRAS)
+                if self._estado.microfone_desligado.is_set():
+                    segmentador.descartar()  # a frase que estava sendo falada ao apertar o mudo não vira comando
+                    continue
+                if self._desviar_para_gravacao(dados):
+                    segmentador.descartar()  # a leitura da amostra não pode virar comando
+                    continue
                 try:
                     frase = segmentador.adicionar(dados, detector.probabilidade(dados))
                 except Exception as erro:  # um trecho com problema não pode derrubar a escuta

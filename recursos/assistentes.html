@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Assistentes</title>
+<style>
+  :root {
+    --fundo: #05070c;
+    --painel: #0b1019;
+    --campo: #0e1522;
+    --borda: #1b2638;
+    --texto: #dbe6ff;
+    --suave: #8a97b3;
+    --destaque: #35d6ff;
+    --erro: #ff8a7a;
+    --aviso: #ffcf6e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: grid; grid-template-columns: 220px 1fr; background: var(--fundo); color: var(--texto);
+    font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+  }
+  aside { border-right: 1px solid var(--borda); padding: 18px 12px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+  aside h1 { font-size: 16px; margin: 0 6px 10px; font-weight: 600; }
+  #lista { display: grid; gap: 4px; margin-bottom: 6px; }
+  .item {
+    text-align: left; padding: 8px 10px; border-radius: 7px; border: 1px solid transparent;
+    background: transparent; color: var(--texto); font: inherit; cursor: pointer;
+  }
+  .item:hover { background: var(--painel); }
+  .item.escolhido { background: var(--painel); border-color: var(--borda); }
+  .item small { display: block; color: var(--suave); font-size: 12px; }
+  main { overflow-y: auto; padding: 18px 22px 90px; }
+  section { background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+  section h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--suave); margin: 0 0 10px; font-weight: 600; }
+  .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+  .inteiro { grid-column: 1 / -1; }
+  label { display: grid; gap: 4px; font-size: 13px; color: var(--suave); }
+  input, select, textarea, button {
+    font: inherit; color: var(--texto); background: var(--campo); border: 1px solid var(--borda); border-radius: 7px;
+  }
+  input, select, textarea { padding: 7px 9px; width: 100%; }
+  textarea { resize: vertical; min-height: 64px; }
+  input[type="color"] { padding: 2px; height: 34px; }
+  button { padding: 8px 13px; cursor: pointer; }
+  button.principal { background: #12304a; border-color: #1f5a85; }
+  button:disabled { opacity: .5; cursor: default; }
+  :is(input, select, textarea, button):focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
+  .ajuda { font-size: 12.5px; color: var(--suave); margin: 6px 0 0; }
+  .linha { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  footer {
+    position: fixed; left: 220px; right: 0; bottom: 0; padding: 12px 22px; background: var(--fundo);
+    border-top: 1px solid var(--borda); display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  #status { flex: 1; min-width: 200px; font-size: 13px; color: var(--suave); }
+  #status.erro { color: var(--erro); }
+  #status.aviso { color: var(--aviso); }
+  [hidden] { display: none !important; }
+  /* Tabela de expressões típicas: uma linha por expressão, com o contexto de uso ao lado */
+  .expressoes { display: grid; gap: 6px; }
+  .expressoes .cabecalho, .expressoes .linha-expr { display: grid; grid-template-columns: 1fr 1.6fr 34px; gap: 6px; align-items: center; }
+  .expressoes .cabecalho span { font-size: 12px; color: var(--suave); }
+  .expressoes .remover { padding: 6px 0; background: transparent; border-color: transparent; color: var(--suave); }
+  .expressoes .remover:hover { color: var(--texto); border-color: var(--borda); }
+  #adicionar-expressao { justify-self: start; background: var(--campo); border-color: var(--borda); }
+</style>
+</head>
+<body>
+  <aside>
+    <h1>Assistentes</h1>
+    <div id="lista"></div>
+    <button id="novo" type="button">+ Novo assistente</button>
+  </aside>
+
+  <main>
+    <section>
+      <h2>Básico</h2>
+      <div class="grade">
+        <label>Nome<input id="nome" maxlength="30" placeholder="Ex.: Sexta-feira"></label>
+        <label>Palavras de chamada (separe por vírgula)<input id="palavras" placeholder="sexta-feira, sexta feira"></label>
+        <label>Voz<select id="voz"></select></label>
+        <label>Som de ativação<select id="som"></select></label>
+        <label>Aparência<select id="visual"><option value="olho">Olho</option><option value="esfera">Esfera</option></select></label>
+        <label>Cor de destaque
+          <span class="linha"><input id="cor" type="color" value="#35d6ff" style="width:60px">
+          <label class="linha" style="color:var(--texto)"><input id="cor-padrao" type="checkbox" style="width:auto"> cor padrão</label></span>
+        </label>
+      </div>
+      <p class="ajuda">Inclua nas palavras de chamada os jeitos como o reconhecimento de voz costuma escrever o nome errado.</p>
+    </section>
+
+    <section>
+      <h2>Personalidade</h2>
+      <label class="inteiro">Descrição: como ele é e como trata você
+        <textarea id="descricao" rows="2" placeholder="Ex.: como ele é, como fala e como chama você, em uma ou duas frases"></textarea>
+      </label>
+      <div class="linha" style="margin-top:8px">
+        <button id="sugerir" type="button" class="principal">Sugerir o resto com IA</button>
+        <span class="ajuda" style="margin:0">Leva uns 10 segundos. Preenche os campos abaixo; você revisa antes de salvar.</span>
+      </div>
+      <div class="grade" style="margin-top:12px">
+        <label class="inteiro">Apresentação (dita ao escolher este assistente)<input id="apresentacao"></label>
+        <label class="inteiro">Como ele conversa (instruções para a IA)<textarea id="conversa" rows="5"
+          placeholder="Deixe em branco para montar a partir do nome e da descrição."></textarea></label>
+        <div class="inteiro" style="display:grid; gap:4px">
+          <span style="font-size:13px; color:var(--suave)">Expressões típicas</span>
+          <div class="expressoes" id="expressoes">
+            <div class="cabecalho"><span>Expressão</span><span>Quando usar (opcional)</span><span></span></div>
+            <div id="linhas-expressoes" style="display:grid; gap:6px"></div>
+            <button id="adicionar-expressao" type="button">+ Adicionar expressão</button>
+          </div>
+          <span class="ajuda" style="margin:0">Gírias e bordões que ele usa só quando combinam, sem comentar que usa.
+            O "quando usar" ajuda a IA a acertar o sentido. Melhor aqui do que no texto acima: lá, ele trata como fato
+            sobre si e às vezes repete ("gosto de ser chamado de…").</span>
+        </div>
+        <label>Frequência das expressões
+          <select id="frequencia">
+            <option value="0.25">Raramente (1 em cada 4 falas)</option>
+            <option value="0.5">Às vezes (metade das falas)</option>
+            <option value="0.75">Frequentemente (3 em cada 4)</option>
+            <option value="1">Sempre que combinar</option>
+          </select>
+          <span class="ajuda" style="margin:0">Em quantas falas ele recebe as expressões; mesmo assim, só usa se combinar.</span>
+        </label>
+        <label class="linha inteiro" style="color:var(--texto)"><input id="diz-nome" type="checkbox" style="width:auto">
+          Sempre dizer o próprio nome nas saudações que ele inventa</label>
+        <label class="linha inteiro" style="color:var(--texto)"><input id="sem-tratamentos" type="checkbox" style="width:auto">
+          Nunca chamar de senhor, senhora ou mestre</label>
+        <label class="linha inteiro" style="color:var(--texto)"><input id="nao-comentar" type="checkbox" style="width:auto">
+          Não comentar as próprias instruções nem descrever o próprio jeito de falar (recomendado)</label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Frases prontas (uma por linha)</h2>
+      <p class="ajuda" style="margin-top:0">A IA cria uma frase nova a cada vez, no estilo destas; elas também são usadas quando a IA falha.
+        Mínimo de 4 em cada caixa, terminando com ponto.</p>
+      <div class="grade" style="margin-top:8px">
+        <label>Saudações<textarea id="saudacoes" rows="5"></textarea></label>
+        <label>Despedidas (volta quando chamado)<textarea id="despedidas" rows="5"></textarea></label>
+        <label>Despedidas ao desligar de vez<textarea id="encerramentos" rows="5"></textarea></label>
+        <label>Temas das saudações<textarea id="temas-saudacao" rows="5"
+          placeholder="Imagens ligadas ao personagem, uma por linha"></textarea></label>
+        <label>Temas das despedidas<textarea id="temas-despedida" rows="5"
+          placeholder="Usados nas duas caixas de despedida"></textarea></label>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <button id="salvar" type="button" class="principal">Salvar</button>
+    <button id="usar" type="button">Usar este assistente</button>
+    <button id="restaurar" type="button" hidden>Restaurar padrão</button>
+    <button id="excluir" type="button" hidden>Excluir</button>
+    <div id="status" role="status" aria-live="polite"></div>
+  </footer>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const api = () => window.pywebview.api;
+  let atual = null;      // os dados completos do assistente aberto (campos que a página não mostra vão junto)
+  let opcoes = { vozes: [], sons: [] };
+
+  function avisar(texto, tipo = "") { $("status").textContent = texto; $("status").className = tipo; }
+  const juntar = lista => (lista || []).join("\n");
+  const separar = texto => texto.split("\n").map(s => s.trim()).filter(Boolean);
+
+  function preencherSelect(select, itens, valor) {
+    select.replaceChildren(...itens.map(([v, r]) => new Option(r, v)));
+    select.value = valor;
+    if (select.value !== valor && itens.length) select.value = itens[0][0];
+  }
+
+  // As expressões são guardadas como "expressão — quando usar"; a tabela mostra as duas partes separadas
+  const SEPARADOR = " — ";
+  function linhaExpressao(termo = "", contexto = "") {
+    const linha = document.createElement("div");
+    linha.className = "linha-expr";
+    const campoTermo = Object.assign(document.createElement("input"), { value: termo, placeholder: "expressão" });
+    const campoContexto = Object.assign(document.createElement("input"),
+                                        { value: contexto, placeholder: "quando usar (opcional)" });
+    campoTermo.className = "termo"; campoContexto.className = "contexto";
+    campoTermo.setAttribute("aria-label", "Expressão");
+    campoContexto.setAttribute("aria-label", "Quando usar");
+    const remover = Object.assign(document.createElement("button"), { type: "button", textContent: "✕", title: "Remover" });
+    remover.className = "remover";
+    remover.setAttribute("aria-label", "Remover expressão");
+    remover.addEventListener("click", () => linha.remove());
+    linha.append(campoTermo, campoContexto, remover);
+    return linha;
+  }
+  function mostrarExpressoes(lista) {
+    $("linhas-expressoes").replaceChildren(...lista.map(texto => {
+      const partes = texto.split(/\s+[—–-]\s+/);  // aceita também o traço comum digitado à mão
+      return linhaExpressao(partes[0], partes.slice(1).join(" — "));
+    }));
+  }
+  function coletarExpressoes() {
+    return [...document.querySelectorAll("#linhas-expressoes .linha-expr")].map(linha => {
+      const termo = linha.querySelector(".termo").value.trim();
+      const contexto = linha.querySelector(".contexto").value.trim();
+      return termo ? (contexto ? termo + SEPARADOR + contexto : termo) : "";
+    }).filter(Boolean);
+  }
+
+  function mostrar(dados) {
+    atual = dados;
+    $("nome").value = dados.nome || "";
+    $("palavras").value = (dados.palavras_ativacao || []).join(", ");
+    preencherSelect($("voz"), opcoes.vozes.map(v => [v.id, v.rotulo]), dados.voz_padrao);
+    preencherSelect($("som"), opcoes.sons.map(s => [s, s]), dados.som);
+    $("visual").value = dados.visual || "esfera";
+    $("cor-padrao").checked = !dados.cor;
+    $("cor").value = dados.cor || "#35d6ff";
+    $("cor").disabled = !dados.cor;
+    $("descricao").value = dados.descricao || "";
+    $("apresentacao").value = dados.apresentacao || "";
+    $("conversa").value = dados.prompt_conversa || "";
+    mostrarExpressoes(dados.expressoes || []);
+    $("frequencia").value = String(dados.frequencia_expressoes ?? 0.5);
+    if (!$("frequencia").value) $("frequencia").value = "0.5";  // valor salvo fora das opções
+    $("nao-comentar").checked = dados.nao_comentar_instrucoes !== false;
+    $("saudacoes").value = juntar(dados.saudacao.reservas);
+    $("despedidas").value = juntar(dados.despedida.reservas);
+    $("encerramentos").value = juntar(dados.encerramento.reservas);
+    $("temas-saudacao").value = juntar(dados.saudacao.temas);
+    $("temas-despedida").value = juntar(dados.despedida.temas);
+    $("diz-nome").checked = !!dados.saudacao.exige_nome;
+    $("sem-tratamentos").checked = ["saudacao", "despedida", "encerramento"].some(p => dados[p].proibir_tratamentos);
+    $("restaurar").hidden = !(dados.embutido && dados.ajustado);
+    $("excluir").hidden = dados.embutido || !dados.id;
+    $("usar").disabled = !dados.id;
+    marcarNaLista(dados.id);
+  }
+
+  function coletar() {
+    const temasSaudacao = separar($("temas-saudacao").value);
+    const temasDespedida = separar($("temas-despedida").value);
+    const semTratamentos = $("sem-tratamentos").checked;
+    const d = structuredClone(atual);
+    Object.assign(d, {
+      nome: $("nome").value.trim(),
+      palavras_ativacao: $("palavras").value.split(",").map(s => s.trim()).filter(Boolean),
+      voz_padrao: $("voz").value, som: $("som").value, visual: $("visual").value,
+      cor: $("cor-padrao").checked ? "" : $("cor").value,
+      descricao: $("descricao").value.trim(), apresentacao: $("apresentacao").value.trim(),
+      prompt_conversa: $("conversa").value.trim(),
+      expressoes: coletarExpressoes(),
+      frequencia_expressoes: Number($("frequencia").value),
+      nao_comentar_instrucoes: $("nao-comentar").checked,
+    });
+    d.saudacao = { ...d.saudacao, reservas: separar($("saudacoes").value), temas: temasSaudacao,
+                   exige_nome: $("diz-nome").checked ? d.nome.toLowerCase() : "", proibir_tratamentos: semTratamentos };
+    d.despedida = { ...d.despedida, reservas: separar($("despedidas").value), temas: temasDespedida,
+                    proibir_tratamentos: semTratamentos };
+    d.encerramento = { ...d.encerramento, reservas: separar($("encerramentos").value), temas: temasDespedida,
+                       proibir_tratamentos: semTratamentos };
+    return d;
+  }
+
+  async function carregarLista(selecionar) {
+    const r = await api().listar();
+    opcoes = r.opcoes;
+    $("lista").replaceChildren(...r.assistentes.map(a => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "item"; b.dataset.id = a.id;
+      b.textContent = a.nome;
+      const detalhe = document.createElement("small");
+      detalhe.textContent = [a.atual ? "em uso" : "", a.embutido ? (a.ajustado ? "original, ajustado" : "original") : "criado por você"]
+        .filter(Boolean).join(" · ");
+      b.append(detalhe);
+      b.addEventListener("click", () => abrir(a.id));
+      return b;
+    }));
+    const alvo = selecionar || (r.assistentes.find(a => a.atual) || r.assistentes[0]).id;
+    await abrir(alvo);
+  }
+  function marcarNaLista(id) {
+    document.querySelectorAll(".item").forEach(b => b.classList.toggle("escolhido", b.dataset.id === id));
+  }
+  async function abrir(id) {
+    const d = await api().abrir(id);
+    if (d.erro) { avisar(d.erro, "erro"); return; }
+    mostrar(d);
+    avisar("");
+  }
+
+  $("novo").addEventListener("click", async () => {
+    mostrar(await api().novo());
+    $("nome").focus();
+    avisar("Dê um nome, descreva o assistente e clique em \"Sugerir o resto com IA\".");
+  });
+  $("cor-padrao").addEventListener("change", () => { $("cor").disabled = $("cor-padrao").checked; });
+  $("adicionar-expressao").addEventListener("click", () => {
+    const linha = linhaExpressao();
+    $("linhas-expressoes").append(linha);
+    linha.querySelector(".termo").focus();
+  });
+  $("nome").addEventListener("change", () => {
+    if (!$("palavras").value.trim()) $("palavras").value = $("nome").value.trim().toLowerCase();
+  });
+
+  $("sugerir").addEventListener("click", async () => {
+    const botao = $("sugerir");
+    botao.disabled = true;
+    avisar("A IA está criando a personalidade…");
+    const r = await api().sugerir($("nome").value, $("descricao").value);
+    botao.disabled = false;
+    if (r.erro) { avisar(r.erro, "erro"); return; }
+    // fica com as escolhas de voz, som, aparência e cor já feitas; a IA só traz textos e palavras de chamada
+    const escolhas = coletar();
+    mostrar({ ...r, id: atual.id, embutido: atual.embutido, ajustado: atual.ajustado,
+              voz_padrao: escolhas.voz_padrao, som: escolhas.som, visual: escolhas.visual, cor: escolhas.cor });
+    avisar("Sugestão pronta. Revise as palavras de chamada e as frases, e clique em Salvar.", "aviso");
+  });
+
+  $("salvar").addEventListener("click", async () => {
+    const r = await api().salvar(coletar());
+    if (r.erro) { avisar(r.erro, "erro"); return; }
+    await carregarLista(r.id);
+    if (r.avisos && r.avisos.length) avisar(`Salvo. ${r.avisos.join(" ")}`, "aviso");
+    else avisar("Salvo. Clique em \"Usar este assistente\" para conversar com ele.");
+  });
+  $("usar").addEventListener("click", async () => {
+    const r = await api().usar(atual.id);
+    if (r.erro) { avisar(r.erro, "erro"); return; }
+    await carregarLista(atual.id);
+    avisar(`${atual.nome} está em uso.`);
+  });
+  $("restaurar").addEventListener("click", async () => {
+    const r = await api().restaurar(atual.id);
+    if (r.erro) { avisar(r.erro, "erro"); return; }
+    await carregarLista(atual.id);
+    avisar("Padrão restaurado.");
+  });
+  $("excluir").addEventListener("click", async () => {
+    if (!confirm(`Excluir o assistente ${atual.nome}?`)) return;
+    const r = await api().excluir(atual.id);
+    if (r.erro) { avisar(r.erro, "erro"); return; }
+    await carregarLista();
+    avisar("Assistente excluído.");
+  });
+
+  window.addEventListener("pywebviewready", () => carregarLista());
+</script>
+</body>
+</html>

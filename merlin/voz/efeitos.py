@@ -35,6 +35,36 @@ def cortar_silencio(amostras: np.ndarray, taxa: int) -> np.ndarray:
     return amostras[inicio:fim]
 
 
+PAUSA_MAXIMA = 0.3  # segundos: pausas maiores que isso no meio da fala são encurtadas para este tamanho
+JANELA_PAUSA = 0.02  # segundos por janela ao medir o silêncio
+
+
+def encurtar_pausas(amostras: np.ndarray, taxa: int, maxima: float = PAUSA_MAXIMA) -> np.ndarray:
+    """Encurta os silêncios longos no meio da fala, mantendo os curtos (que soam naturais).
+    Usado na amostra de uma voz clonada (hesitações como "é… tipo…" eram copiadas pelo modelo) e na fala gerada."""
+    janela = int(JANELA_PAUSA * taxa)
+    if not len(amostras) or janela <= 0 or len(amostras) < 2 * janela:
+        return amostras
+    pico = np.max(np.abs(amostras))
+    if pico <= 0:
+        return amostras
+    blocos = len(amostras) // janela
+    energia = np.sqrt(np.mean(amostras[:blocos * janela].reshape(blocos, janela) ** 2, axis=1))
+    calado = energia < pico * LIMITE_SILENCIO * 1.5
+    manter = int(maxima / JANELA_PAUSA)
+    pedacos, i = [], 0
+    while i < blocos:
+        fim = i
+        while fim < blocos and calado[fim] == calado[i]:
+            fim += 1
+        longo_no_meio = calado[i] and i > 0 and fim < blocos and fim - i > manter
+        ate = i + manter if longo_no_meio else fim
+        pedacos.append(amostras[i * janela:ate * janela])
+        i = fim
+    pedacos.append(amostras[blocos * janela:])
+    return np.concatenate(pedacos)
+
+
 def aplicar_efeito(amostras: np.ndarray, taxa: int, efeito: EfeitoVoz) -> np.ndarray:
     """Recebe áudio em float (-1 a 1) e devolve o áudio com tom, tremor e eco aplicados."""
     audio = _mudar_tom(amostras, efeito.tom)

@@ -9,7 +9,7 @@ import webview
 
 from merlin.config import ARQ_ESFERA, ARQ_JANELA, ARQ_OLHO, ARQ_THREE, JANELA_ALTURA, JANELA_LARGURA
 from merlin.interface.eventos import TipoEvento
-from merlin.interface.moldura import Moldura
+from merlin.interface.moldura import Moldura, desenho_compacto
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +22,14 @@ ESPERA_EVENTO = 0.05
 def dados_da_personalidade(preferencias) -> dict:
     """O que a página precisa para se ajustar à personalidade escolhida."""
     personalidade = preferencias.personalidade
-    return {"id": personalidade.id, "nome": personalidade.nome, "visual": personalidade.visual}
+    return {"id": personalidade.id, "nome": personalidade.nome, "visual": personalidade.visual, "cor": personalidade.cor}
 
 
 class ApiJanela:
     """Funções que a página pode chamar. O pywebview expõe tudo o que é público, por isso os atributos são privados."""
 
-    def __init__(self, configuracoes, raciocinio, sessao):
+    def __init__(self, configuracoes, raciocinio, sessao, estado=None):
+        self._estado = estado
         self._configuracoes = configuracoes
         self._raciocinio = raciocinio
         self._sessao = sessao
@@ -39,19 +40,33 @@ class ApiJanela:
     def abrir_raciocinio(self):
         self._raciocinio.abrir()
 
+    def alternar_microfone(self) -> bool:
+        """Botão de mudo: liga ou desliga a escuta. Devolve True se o microfone ficou desligado."""
+        mudo = self._estado.microfone_desligado
+        if mudo.is_set():
+            mudo.clear()
+            logger.info("[INFO] Microfone ligado.")
+        else:
+            mudo.set()
+            logger.info("[INFO] Microfone no mudo.")
+        return mudo.is_set()
+
     def ativar(self):
         """Clique na bolinha do canto: o mesmo que chamar pelo nome."""
         self._sessao.ativar()
 
 
 class JanelaMerlin:
-    def __init__(self, estado, canal, sessao, preferencias, configuracoes, raciocinio):
+    def __init__(self, estado, canal, sessao, preferencias, configuracoes, raciocinio, assistentes=None,
+                 habilidades=None):
         self._estado = estado
         self._canal = canal
         self._sessao = sessao
         self._preferencias = preferencias
         self._configuracoes = configuracoes
         self._raciocinio = raciocinio
+        self._assistentes = assistentes
+        self._habilidades = habilidades
         self._visivel = False  # janela cheia, ativa: só nela chegam volume, estado e legenda
         self._compacta = False  # bolinha no canto, em espera
         self._moldura = None  # criada quando a janela nativa existe
@@ -61,7 +76,7 @@ class JanelaMerlin:
         x, y, largura, altura = self._calcular_posicao()
         self.janela = webview.create_window(
             preferencias.personalidade.nome, html=self._montar_pagina(),
-            js_api=ApiJanela(configuracoes, raciocinio, sessao),
+            js_api=ApiJanela(configuracoes, raciocinio, sessao, estado),
             width=largura, height=altura, x=x, y=y,
             resizable=False, on_top=True, hidden=True, background_color="#05070C",
             min_size=(100, 100),  # o padrão (200 de largura) não deixaria a bolinha do canto ficar redonda
@@ -120,13 +135,19 @@ class JanelaMerlin:
             self._chamar_pagina("definirPersonalidade", dados_da_personalidade(self._preferencias))
             self.janela.set_title(self._preferencias.personalidade.nome)
             if self._compacta:
-                self._chamar_pagina("aoCompactar")  # o visual novo também entra no modo da bolinha
+                self._compactar_pagina()  # o visual novo também entra no modo da bolinha
         elif tipo is TipoEvento.ABRIR_CONFIGURACOES:
             self._configuracoes.abrir()
         elif tipo is TipoEvento.ESTADO and self._visivel:
             self._chamar_pagina("definirEstado", dado.value)
         elif tipo is TipoEvento.LEGENDA and self._visivel:
             self._chamar_pagina("definirLegenda", dado)
+        elif tipo is TipoEvento.RESPOSTA and self._visivel:
+            self._chamar_pagina("comecarResposta")
+        elif tipo is TipoEvento.TRECHO_FALADO and self._visivel:
+            self._chamar_pagina("mostrarTrecho", dado["texto"], dado["duracao"])
+        elif tipo is TipoEvento.FALA_INTERROMPIDA and self._visivel:
+            self._chamar_pagina("pararTexto")
         elif tipo is TipoEvento.ENVELOPE_FALA and self._visivel:
             self._chamar_pagina("falarComVolume", dado["volumes"], dado["passo"])
 
@@ -147,11 +168,12 @@ class JanelaMerlin:
         if self._compacta:
             return  # já está no canto
         if self._moldura:
-            self._chamar_pagina("aoCompactar")
+            self._compactar_pagina()
             m = self._moldura
             m.sem_moldura()
             m.posicionar(m.conteudo)  # tira a barra de título sem mexer no conteúdo...
             m.animar(m.conteudo, m.canto(), 0.0, 1.0)  # ...e encolhe até o canto
+            m.posicionar_compacta(m.canto())  # a forma final: bolinha e nome embaixo
             self._compacta = True
         else:  # sem controle da moldura, a janela simplesmente some
             self._chamar_pagina("aoEsconder")  # para a animação, liberando a placa de vídeo
@@ -160,11 +182,15 @@ class JanelaMerlin:
     def _ficar_em_espera(self):
         """Bolinha no canto sem animação, ao abrir o programa."""
         if self._moldura and not self._compacta:
-            self._chamar_pagina("aoCompactar")
+            self._compactar_pagina()
             self._moldura.sem_moldura()
-            self._moldura.posicionar(self._moldura.canto(), 1.0)
+            self._moldura.posicionar_compacta(self._moldura.canto())
             self._compacta = True
             self.janela.show()
+
+    def _compactar_pagina(self):
+        """A página monta a bolinha, o nome e os botões em volta no mesmo desenho do recorte da janela."""
+        self._chamar_pagina("aoCompactar", desenho_compacto())
 
     def _criar_moldura(self):
         try:
@@ -186,4 +212,7 @@ class JanelaMerlin:
                 logger.error("[JANELA] %s", erro)
         self._configuracoes.fechar()  # se elas ficassem abertas, o programa não terminaria
         self._raciocinio.fechar()
+        for janela in (self._assistentes, self._habilidades):
+            if janela:
+                janela.fechar()
         self.janela.destroy()

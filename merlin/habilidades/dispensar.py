@@ -19,6 +19,10 @@ def criar_acao(recursos):
 
 HABILIDADE = Habilidade(
     nome="dispensar",
+    titulo='Dispensar o assistente',
+    regras_resumo=(
+        'Só vale se a frase for para o próprio assistente: “encerra o discord” vira conversa.',
+    ),
     grupo=grupos.ASSISTENTE,
     ordem=10,
     descricao="a pessoa se despede do Merlin, agradece encerrando a conversa, diz que já terminou ou que não precisa "

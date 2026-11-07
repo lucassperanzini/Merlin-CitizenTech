@@ -26,6 +26,8 @@ class FluxoComMedidor:
 
     def read(self, tamanho):
         dados = self.fluxo.read(tamanho)
+        if self.estado.microfone_desligado.is_set():
+            return self._desligado(dados)
         if self.estado.microfone_mudo():
             return self._durante_a_fala(dados)
 
@@ -40,6 +42,14 @@ class FluxoComMedidor:
 
     def close(self):
         self.fluxo.close()
+
+    def _desligado(self, dados):
+        # Mudo pela pessoa: só silêncio sai daqui, nem volume, nem interrupção da fala
+        self.recognizer.dynamic_energy_threshold = False
+        self.recentes.clear()
+        self.atrasados.clear()
+        self.detector.reiniciar()
+        return bytes(len(dados))
 
     def _durante_a_fala(self, dados):
         # O limiar automático desabaria se recebesse silêncio artificial

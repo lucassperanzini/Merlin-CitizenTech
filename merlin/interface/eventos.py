@@ -16,7 +16,10 @@ class TipoEvento(Enum):
     MOSTRAR = "mostrar"
     ESCONDER = "esconder"
     ESTADO = "estado"
-    LEGENDA = "legenda"
+    LEGENDA = "legenda"  # o que a pessoa disse
+    RESPOSTA = "resposta"  # o assistente vai começar a falar: a janela prepara o espaço da resposta
+    TRECHO_FALADO = "trecho_falado"  # um pedaço da resposta começou a tocar: o texto aparece junto com a voz
+    FALA_INTERROMPIDA = "fala_interrompida"  # a pessoa falou por cima: o texto para onde a voz parou
     ENVELOPE_FALA = "envelope_fala"
     PERSONALIDADE = "personalidade"
     ABRIR_CONFIGURACOES = "abrir_configuracoes"
@@ -36,7 +39,19 @@ class CanalInterface:
         self._fila.put((TipoEvento.ESTADO, estado))
 
     def legenda(self, texto: str) -> None:
+        """O que a pessoa disse (uma pergunta nova apaga a resposta anterior da tela)."""
         self._fila.put((TipoEvento.LEGENDA, texto))
+
+    def resposta(self) -> None:
+        """O assistente vai começar a falar: a resposta aparece abaixo do que a pessoa disse."""
+        self._fila.put((TipoEvento.RESPOSTA, None))
+
+    def trecho_falado(self, texto: str, duracao: float) -> None:
+        """Um pedaço da resposta começou a tocar. As palavras aparecem ao longo da duração (0 = de uma vez)."""
+        self._fila.put((TipoEvento.TRECHO_FALADO, {"texto": texto, "duracao": duracao}))
+
+    def fala_interrompida(self) -> None:
+        self._fila.put((TipoEvento.FALA_INTERROMPIDA, None))
 
     def envelope_fala(self, volumes: list[float], passo: float) -> None:
         """Volume da fala que vai começar, para a aparência acompanhar a voz."""

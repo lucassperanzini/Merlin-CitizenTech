@@ -1,7 +1,9 @@
 {
   "vozes": {
-    "merlin": "pt_BR-faber-medium"
+    "merlin": "pt_BR-faber-medium",
+    "jarvis": "jarvis_digital",
+    "rick": "clonada:voz_1"
   },
-  "personalidade": "jarvis",
+  "personalidade": "rick",
   "modelo_ia": "qwen3:8b"
 }

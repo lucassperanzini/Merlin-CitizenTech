@@ -17,6 +17,8 @@ class ConjuntoFrases:
     sem_perguntas: bool = False
     proibir_tratamentos: bool = False  # o Merlin não chama ninguém de "senhor"; o Jarvis chama
     tamanho_maximo: int = 170
+    expressoes: tuple[str, ...] = ()  # gírias e bordões do assistente: duas são oferecidas em parte das frases
+    frequencia_expressoes: float = 0.5  # em que fração das frases as expressões são oferecidas (0 a 1)
 
 
 @dataclass(frozen=True)
@@ -43,3 +45,9 @@ class Personalidade:
     despedida: ConjuntoFrases
     encerramento: ConjuntoFrases
     vozes_proprias: tuple[VozPropria, ...] = ()
+    cor: str = ""  # cor de destaque na janela (ex.: "#d9ac5a"); vazio = a cor padrão do visual
+    descricao: str = ""  # como a pessoa descreveu o assistente no configurador
+    jeito: str = ""  # como ele é e trata a pessoa: base das instruções montadas pelo configurador
+    expressoes: tuple[str, ...] = ()  # gírias e bordões que ele usa (sem comentar que usa)
+    frequencia_expressoes: float = 0.5  # em que fração das respostas as expressões são oferecidas (0 a 1)
+    nao_comentar_instrucoes: bool = True  # não recitar as instruções nem descrever o próprio jeito de falar

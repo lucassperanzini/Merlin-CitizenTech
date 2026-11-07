@@ -9,7 +9,7 @@ from merlin.ia.intencoes import ACOES_NO_COMPUTADOR, Intencao, TipoIntencao
 from merlin.interface.eventos import EstadoVisual
 from merlin.nucleo.raciocinio import Raciocinio, TipoPasso
 from merlin.nucleo.resposta import Resultado, montar_resposta
-from merlin.personalidades import PERSONALIDADE_PADRAO
+from merlin.personalidades import personalidade_padrao
 from merlin.texto import remover_palavra_ativacao, tem_palavra_ativacao
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ class ProcessadorComandos:
         self._responder(self._executar_tarefas(comando, tarefas), comando)
 
     def _palavras_ativacao(self):
-        personalidade = self._preferencias.personalidade if self._preferencias else PERSONALIDADE_PADRAO
+        personalidade = self._preferencias.personalidade if self._preferencias else personalidade_padrao()
         return personalidade.palavras_ativacao
 
     def _resolver_pendencia(self, pendencia, comando) -> bool:

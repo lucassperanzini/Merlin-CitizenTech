@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 
 from merlin.config import MODELO_IA
-from merlin.personalidades import PERSONALIDADE_PADRAO, PERSONALIDADES, Personalidade
+from merlin.personalidades import PERSONALIDADES, Personalidade, personalidade_padrao
 from merlin.voz.catalogo import todas_as_vozes
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class Preferencias:
 
     @property
     def personalidade(self) -> Personalidade:
-        return PERSONALIDADES.get(self._dados.get("personalidade"), PERSONALIDADE_PADRAO)
+        return PERSONALIDADES.get(self._dados.get("personalidade")) or personalidade_padrao()
 
     @personalidade.setter
     def personalidade(self, identificador: str) -> None:

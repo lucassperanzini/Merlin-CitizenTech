@@ -1,4 +1,8 @@
 __pycache__/
 *.pyc
+.venv/
+# Baixados por ferramentas/baixar_modelos.py e ferramentas/instalar_clonagem.py (vários GB)
 modelos/
+# Gerados durante o uso: registros do raciocínio e amostras de vozes clonadas (dados pessoais)
 registros/
+vozes/clonadas/

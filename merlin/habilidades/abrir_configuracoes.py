@@ -33,6 +33,11 @@ def criar_acao(recursos):
 
 HABILIDADE = Habilidade(
     nome="abrir_configuracoes",
+    titulo='Abrir as configurações',
+    regras_resumo=(
+        'Perguntas (“como abro…?”) viram conversa.',
+        'Configurações do Windows ou do PC abrem as do Windows; de outro programa, viram conversa.',
+    ),
     grupo=grupos.ASSISTENTE,
     ordem=12,
     descricao="a pessoa pede para abrir as configurações do próprio assistente, como as suas configurações ou os "

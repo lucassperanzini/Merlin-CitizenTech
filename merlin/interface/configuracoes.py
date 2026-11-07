@@ -2,6 +2,8 @@
 import logging
 import threading
 
+import webview
+
 from merlin.config import ARQ_CONFIGURACOES
 from merlin.ia.cliente import listar_modelos
 from merlin.interface.janela_auxiliar import JanelaAuxiliar
@@ -10,7 +12,7 @@ from merlin.voz.catalogo import todas_as_vozes
 
 logger = logging.getLogger(__name__)
 
-LARGURA, ALTURA = 460, 680
+LARGURA, ALTURA = 480, 760
 
 
 class ServicoConfiguracoes:
@@ -80,13 +82,49 @@ class ServicoConfiguracoes:
 class ApiConfiguracoes:
     """Funções que a página de configurações pode chamar (atributos privados: o pywebview expõe os públicos)."""
 
-    def __init__(self, servico, abrir_raciocinio=None):
+    def __init__(self, servico, abrir_raciocinio=None, clonagem=None, abrir_assistentes=None, abrir_habilidades=None):
         self._servico = servico
+        self._abrir_habilidades = abrir_habilidades
         self._abrir_raciocinio = abrir_raciocinio
+        self._abrir_assistentes = abrir_assistentes
+        self._clonagem = clonagem
+        self._janela = None
+
+    def _usar_janela(self, janela):
+        """Chamado pela JanelaAuxiliar: a caixa de escolher arquivo precisa da janela."""
+        self._janela = janela
+
+    # Clonagem de voz (só funciona com a instalação opcional)
+    def clonagem_estado(self):
+        return self._clonagem.estado() if self._clonagem else {"instalada": False}
+
+    def clonagem_gravar(self):
+        return self._clonagem.gravar()
+
+    def clonagem_escolher_arquivo(self):
+        tipos = ("Áudio (*.wav;*.mp3;*.m4a;*.ogg;*.flac)",)
+        escolhidos = self._janela.create_file_dialog(webview.FileDialog.OPEN, file_types=tipos) if self._janela else None
+        if not escolhidos:
+            return {"cancelado": True}
+        return self._clonagem.usar_arquivo(escolhidos[0])
+
+    def clonagem_salvar(self, nome, texto):
+        return self._clonagem.salvar(nome, texto)
+
+    def clonagem_apagar(self):
+        return self._clonagem.apagar_voz_atual()
 
     def abrir_raciocinio(self):
         if self._abrir_raciocinio:
             self._abrir_raciocinio()
+
+    def abrir_assistentes(self):
+        if self._abrir_assistentes:
+            self._abrir_assistentes()
+
+    def abrir_habilidades(self):
+        if self._abrir_habilidades:
+            self._abrir_habilidades()
 
     def carregar(self):
         return self._servico.estado_atual()
@@ -102,5 +140,7 @@ class ApiConfiguracoes:
 
 
 class JanelaConfiguracoes(JanelaAuxiliar):
-    def __init__(self, servico, abrir_raciocinio=None):
-        super().__init__("Configurações", ARQ_CONFIGURACOES, ApiConfiguracoes(servico, abrir_raciocinio), LARGURA, ALTURA)
+    def __init__(self, servico, abrir_raciocinio=None, clonagem=None, abrir_assistentes=None, abrir_habilidades=None):
+        super().__init__("Configurações", ARQ_CONFIGURACOES,
+                         ApiConfiguracoes(servico, abrir_raciocinio, clonagem, abrir_assistentes, abrir_habilidades),
+                         LARGURA, ALTURA)

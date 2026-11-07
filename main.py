@@ -16,7 +16,10 @@ from merlin.ia.confirmacao import ClassificadorConfirmacao
 from merlin.ia.divisao import DivisorTarefas
 from merlin.ia.intencoes import ClassificadorIntencao, TipoIntencao
 from merlin.ia.frases import GeradorFrases
+from merlin.interface.clonagem_voz import ServicoClonagem
+from merlin.interface.assistentes import JanelaAssistentes, ServicoAssistentes
 from merlin.interface.configuracoes import JanelaConfiguracoes, ServicoConfiguracoes
+from merlin.interface.painel_habilidades import JanelaPainelHabilidades, ServicoPainelHabilidades
 from merlin.interface.eventos import CanalInterface
 from merlin.interface.janela import JanelaMerlin
 from merlin.interface.janela_raciocinio import JanelaRaciocinio
@@ -66,12 +69,17 @@ def construir_aplicacao() -> Aplicacao:
     sintetizador = Sintetizador()
     locutor = Locutor(estado, canal, sintetizador, preferencias)
     transcritor = Transcritor()
+    ouvinte = Ouvinte(estado, canal, transcritor, preferencias)
     cliente_ia = ClienteIA(lambda: preferencias.modelo_ia)
     # O que a IA entendeu e fez: na memória para a janela de raciocínio, e no arquivo do dia em registros/
     gravador = GravadorRaciocinio(PASTA_REGISTROS, DIAS_DE_REGISTRO)
     gravador.apagar_antigos()
     raciocinio = Raciocinio(gravador=gravador)
     janela_raciocinio = JanelaRaciocinio(raciocinio, gravador.pasta)
+    servico_configuracoes = ServicoConfiguracoes(preferencias, locutor, canal, memoria, cliente_ia)
+    janela_assistentes = JanelaAssistentes(
+        ServicoAssistentes(preferencias, canal, cliente_ia, servico_configuracoes.trocar_personalidade))
+    janela_habilidades = JanelaPainelHabilidades(ServicoPainelHabilidades(cliente_ia))
 
     processador = ProcessadorComandos(
         estado, sessao, canal, locutor,
@@ -91,14 +99,19 @@ def construir_aplicacao() -> Aplicacao:
         locutor=locutor,
         sintetizador=sintetizador,
         transcritor=transcritor,
-        ouvinte=Ouvinte(estado, canal, transcritor, preferencias),
+        ouvinte=ouvinte,
         processador=processador,
         trabalhador=TrabalhadorComandos(estado, sessao, canal, processador),
         janela=JanelaMerlin(
             estado, canal, sessao, preferencias,
-            JanelaConfiguracoes(ServicoConfiguracoes(preferencias, locutor, canal, memoria, cliente_ia),
-                                abrir_raciocinio=janela_raciocinio.abrir),
+            JanelaConfiguracoes(servico_configuracoes,
+                                abrir_raciocinio=janela_raciocinio.abrir,
+                                abrir_assistentes=janela_assistentes.abrir,
+                                abrir_habilidades=janela_habilidades.abrir,
+                                clonagem=ServicoClonagem(ouvinte, transcritor, preferencias, locutor, sintetizador, canal)),
             janela_raciocinio,
+            janela_assistentes,
+            janela_habilidades,
         ),
     )
 

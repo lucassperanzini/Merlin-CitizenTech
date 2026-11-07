@@ -74,6 +74,23 @@ class TestFluxoComMedidor(unittest.TestCase):
         self.estado.microfone_mudo = lambda: False
         self.assertEqual(self._ler(1234), 1234)
 
+    def test_mudo_entrega_silencio_nao_mede_e_nao_interrompe(self):
+        self.estado.ativo.set()
+        self.estado.microfone_desligado.set()
+        self.assertEqual(self._ler(9000), 0)
+        self.assertEqual(self.estado.consumir_nivel(), 0.0)
+        self.estado.falando.set()
+        self.estado.reproduzindo.set()
+        for _ in range(30):  # falar alto por cima da fala, no mudo, não a interrompe
+            self._ler(30000)
+        self.assertFalse(self.estado.interromper.is_set())
+
+    def test_religar_o_microfone_volta_a_passar_o_audio(self):
+        self.estado.microfone_desligado.set()
+        self._ler(1234)
+        self.estado.microfone_desligado.clear()
+        self.assertEqual(self._ler(1234), 1234)
+
     def test_limiar_automatico_congela_durante_a_fala_e_volta_depois(self):
         self.estado.falando.set()
         self._ler(0)

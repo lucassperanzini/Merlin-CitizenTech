@@ -18,6 +18,10 @@ def criar_acao(recursos):
 
 HABILIDADE = Habilidade(
     nome="abrir_programa",
+    titulo='Abrir programa',
+    regras_resumo=(
+        'Sem programa citado, ou citando o próprio assistente, vira conversa.',
+    ),
     grupo=grupos.PROGRAMAS,
     ordem=21,
     descricao="a pessoa manda abrir ou iniciar um programa instalado no computador. O alvo é o nome do programa.",

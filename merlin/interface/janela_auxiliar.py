@@ -37,6 +37,8 @@ class JanelaAuxiliar:
                 on_top=self._sempre_na_frente, background_color=FUNDO,
             )
             self._janela.events.closed += self._ao_fechar
+            if hasattr(self._api, "_usar_janela"):  # para a página poder abrir caixas de escolher arquivo
+                self._api._usar_janela(self._janela)
 
     def fechar(self) -> None:
         with self._trava:

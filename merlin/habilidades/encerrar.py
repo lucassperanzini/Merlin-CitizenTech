@@ -13,6 +13,10 @@ def criar_acao(recursos):
 
 HABILIDADE = Habilidade(
     nome="encerrar",
+    titulo='Desligar o assistente',
+    regras_resumo=(
+        'Só vale se a frase for para o próprio assistente: “desliga a TV” vira conversa.',
+    ),
     grupo=grupos.ASSISTENTE,
     ordem=11,
     descricao="a pessoa pede claramente para fechar o programa do assistente por completo ou desligá-lo de vez, "
