@@ -103,6 +103,20 @@
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237d8aa6'/%3E%3C/svg%3E");
   }
   select:hover, input[type="text"]:hover, textarea:hover { border-color: var(--brilho); }
+  /* Aba Pastas: apelido, pasta escolhida e botões */
+  .atalhos { display: grid; gap: 8px; }
+  .atalho { display: grid; grid-template-columns: 150px 1fr auto auto; gap: 8px; align-items: center; }
+  .atalho .caminho {
+    min-width: 0; padding: 9px 12px; border: 1px dashed var(--linha); color: var(--suave);
+    font: 12.5px var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .atalho .caminho.faltando { color: var(--erro); border-color: color-mix(in srgb, var(--erro) 50%, transparent); }
+  .atalho .remover { padding: 9px 12px; }
+  .rapidas { display: grid; gap: 4px; font-size: 12.5px; }
+  .rapidas div { display: grid; grid-template-columns: 170px 1fr; gap: 10px; color: var(--suave); }
+  .rapidas b { font-weight: 600; color: var(--texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rapidas span { font-family: var(--mono); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rapidas .fixada b::after { content: " 📌"; }
   textarea { resize: vertical; font-family: "Segoe UI", sans-serif; }
   :is(select, input, textarea, button):focus-visible { outline: 1px solid var(--cor); outline-offset: 2px; }
 
@@ -171,9 +185,10 @@
       <button role="tab" id="aba-assistente" data-aba="assistente" aria-controls="mod-assistente" aria-selected="true"><small>01</small>ASSISTENTE</button>
       <button role="tab" id="aba-inteligencia" data-aba="inteligencia" aria-controls="mod-inteligencia" aria-selected="false" tabindex="-1"><small>02</small>INTELIGÊNCIA</button>
       <button role="tab" id="aba-clonagem" data-aba="clonagem" aria-controls="mod-clonagem" aria-selected="false" tabindex="-1"><small>03</small>CLONAGEM</button>
+      <button role="tab" id="aba-pastas" data-aba="pastas" aria-controls="mod-pastas" aria-selected="false" tabindex="-1"><small>04</small>PASTAS</button>
       <span class="grupo" aria-hidden="true">FERRAMENTAS</span>
-      <button role="tab" id="aba-assistentes" data-aba="assistentes" aria-controls="mod-assistentes" aria-selected="false" tabindex="-1"><small>04</small>EDITOR</button>
-      <button role="tab" id="aba-habilidades" data-aba="habilidades" aria-controls="mod-habilidades" aria-selected="false" tabindex="-1"><small>05</small>HABILIDADES</button>
+      <button role="tab" id="aba-assistentes" data-aba="assistentes" aria-controls="mod-assistentes" aria-selected="false" tabindex="-1"><small>05</small>EDITOR</button>
+      <button role="tab" id="aba-habilidades" data-aba="habilidades" aria-controls="mod-habilidades" aria-selected="false" tabindex="-1"><small>06</small>HABILIDADES</button>
     </nav>
 
     <div id="modulos">
@@ -248,6 +263,26 @@
         </div>
       </section>
 
+      <section class="modulo" id="mod-pastas" role="tabpanel" aria-labelledby="aba-pastas" hidden>
+        <div class="dentro">
+          <div class="cabeca"><h2>ATALHOS DE PASTAS</h2><code>MOD-04</code></div>
+          <span class="ajuda">Dê um apelido a uma pasta e peça por voz: “abre a pasta trabalho”, ou só “abre o trabalho”.
+            Vale também no modo discreto (“Merlin, abre o trabalho”).</span>
+          <div class="atalhos" id="atalhos"></div>
+          <div class="linha">
+            <button class="botao" id="adicionar-atalho" type="button">+ Adicionar atalho</button>
+            <button class="botao" id="salvar-atalhos" type="button">Salvar</button>
+          </div>
+          <hr>
+          <div class="campo">
+            <span class="rotulo">DO ACESSO RÁPIDO DO WINDOWS</span>
+            <span class="ajuda">Estas já funcionam pelo nome, sem configurar. Para incluir outra, fixe a pasta no
+              Acesso Rápido do Explorador de Arquivos (as fixadas têm 📌; as outras são as que você usa com frequência).</span>
+            <div class="rapidas" id="acesso-rapido"></div>
+          </div>
+        </div>
+      </section>
+
       <section class="painel-quadro" id="mod-assistentes" role="tabpanel" aria-labelledby="aba-assistentes" hidden><!--QUADRO:assistentes--></section>
       <section class="painel-quadro" id="mod-habilidades" role="tabpanel" aria-labelledby="aba-habilidades" hidden><!--QUADRO:habilidades--></section>
     </div>
@@ -300,6 +335,7 @@
     }
     const painel = document.getElementById(aba.getAttribute("aria-controls"));
     modulos.classList.toggle("com-quadro", painel.classList.contains("painel-quadro"));
+    if (aba.dataset.aba === "pastas" && window.pywebview && prontos === null) carregarPastas();
     // Ao voltar para os ajustes (por exemplo, depois de criar um assistente no editor), as listas se atualizam
     if (!painel.classList.contains("painel-quadro") && window.pywebview && prontos === null) carregar();
   }
@@ -449,6 +485,69 @@
   });
   voz.addEventListener("change", carregarClonagem);
   assistente.addEventListener("change", carregarClonagem);
+
+  // Aba Pastas: os apelidos da pessoa e as pastas que o Acesso Rápido do Windows já oferece
+  const listaAtalhos = document.getElementById("atalhos");
+  function linhaDeAtalho(apelido = "", caminho = "", existe = true) {
+    const linha = document.createElement("div");
+    linha.className = "atalho";
+    const campo = document.createElement("input");
+    campo.type = "text";
+    campo.placeholder = "ex.: trabalho";
+    campo.value = apelido;
+    campo.setAttribute("aria-label", "Apelido da pasta");
+    const mostra = document.createElement("div");
+    mostra.className = "caminho" + (caminho && !existe ? " faltando" : "");
+    mostra.textContent = caminho || "nenhuma pasta escolhida";
+    mostra.title = caminho && !existe ? "Esta pasta não existe mais" : caminho;
+    mostra.dataset.caminho = caminho;
+    const escolher = document.createElement("button");
+    escolher.className = "botao";
+    escolher.type = "button";
+    escolher.textContent = "Escolher pasta";
+    escolher.addEventListener("click", async () => {
+      const escolhido = await api().pastas_escolher();
+      if (!escolhido) return;
+      mostra.dataset.caminho = escolhido;
+      mostra.textContent = mostra.title = escolhido;
+      mostra.classList.remove("faltando");
+      if (!campo.value.trim()) campo.value = escolhido.split(/[\\/]/).filter(Boolean).pop().toLowerCase();
+    });
+    const remover = document.createElement("button");
+    remover.className = "botao perigo remover";
+    remover.type = "button";
+    remover.textContent = "×";
+    remover.title = "Remover este atalho";
+    remover.setAttribute("aria-label", "Remover este atalho");
+    remover.addEventListener("click", () => linha.remove());
+    linha.append(campo, mostra, escolher, remover);
+    return linha;
+  }
+  function mostrarPastas(dados) {
+    listaAtalhos.replaceChildren(...dados.apelidos.map(a => linhaDeAtalho(a.apelido, a.caminho, a.existe)));
+    if (!dados.apelidos.length) listaAtalhos.append(linhaDeAtalho());
+    const rapidas = document.getElementById("acesso-rapido");
+    rapidas.replaceChildren(...dados.acesso_rapido.map(p => {
+      const item = document.createElement("div");
+      if (p.fixada) item.className = "fixada";
+      const nome = document.createElement("b"), caminho = document.createElement("span");
+      nome.textContent = p.nome;
+      caminho.textContent = caminho.title = p.caminho;
+      item.append(nome, caminho);
+      return item;
+    }));
+    if (!dados.acesso_rapido.length) rapidas.textContent = "Nada no Acesso Rápido agora.";
+  }
+  async function carregarPastas() { mostrarPastas(await api().pastas_estado()); }
+  document.getElementById("adicionar-atalho").addEventListener("click", () => listaAtalhos.append(linhaDeAtalho()));
+  document.getElementById("salvar-atalhos").addEventListener("click", async () => {
+    const itens = [...listaAtalhos.querySelectorAll(".atalho")].map(l => ({
+      apelido: l.querySelector("input").value, caminho: l.querySelector(".caminho").dataset.caminho || "" }));
+    const r = await api().pastas_salvar(itens);
+    if (r.erro) { avisar(r.erro, true); return; }
+    mostrarPastas(r);
+    avisar(`Atalhos salvos: ${r.apelidos.length}. Já valem por voz.`);
+  });
 
   window.addEventListener("pywebviewready", async () => {
     const pendentes = prontos || [];

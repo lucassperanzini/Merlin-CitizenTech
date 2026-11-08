@@ -45,6 +45,12 @@ FRASES = [
     ("coloca o merlin no lugar", "trocar_assistente", "merlin"),
     ("troca de assistente para o jarvis", "trocar_assistente", "jarvis"),
     ("quais assistentes você tem", "conversar", None),
+    # abrir_pasta
+    ("abre a pasta de downloads", "abrir_pasta", "downloads"),
+    ("mostra minhas imagens", "abrir_pasta", None),
+    ("abre a pasta notas fiscais", "abrir_pasta", "notas fiscais"),
+    ("abre o explorador de arquivos", "abrir_programa", None),
+    ("onde ficam os meus downloads", "conversar", None),
     # abrir_configuracoes
     ("abre suas configurações", "abrir_configuracoes", None),
     ("quero mudar seus ajustes", "abrir_configuracoes", None),

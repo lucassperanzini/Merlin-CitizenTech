@@ -18,6 +18,7 @@ Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho a
   - **Bolinha (em espera):** fica no canto da tela com o nome do assistente. O anel mostra o estado: cor do assistente normalmente, vermelho com o microfone no mudo, laranja piscando se a IA (Ollama) não responde. Com o mouse por perto, aparecem os botões de configurações, microfone e modo debug (que mostra no cartão uma aba com o raciocínio da IA: o que ela entendeu e decidiu em cada pedido).
   - **Cartão (ativo):** a bolinha cresce para cima e vira um cartão no canto direito, sem cobrir o programa em uso. A resposta aparece junto com a voz, palavra por palavra.
   - **Central:** uma janela só, com abas.
+    - *Pastas:* apelidos para as suas pastas ("abre o trabalho"), além das do Acesso Rápido do Windows.
     - *Ajustes:* assistente e voz, modelo de IA, clonagem de voz.
     - *Ferramentas:* editor de assistentes (cria e edita personalidades sem mexer em código) e habilidades (tudo o que ele sabe fazer, com um teste de frases).
     - Embaixo, o status do sistema ao vivo.

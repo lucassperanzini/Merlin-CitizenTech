@@ -74,7 +74,7 @@ print(intencao.tipo.value, intencao.campos["artista"], acoes[intencao.tipo](inte
 class TestRegistro(unittest.TestCase):
     def test_encontra_todas_as_habilidades_com_conversar_por_ultimo(self):
         nomes = [h.nome for h in HABILIDADES]
-        self.assertEqual(set(nomes), {"dispensar", "abrir_configuracoes", "trocar_assistente", "fechar_programa",
+        self.assertEqual(set(nomes), {"dispensar", "abrir_configuracoes", "abrir_pasta", "trocar_assistente", "fechar_programa",
                                       "abrir_programa", "pesquisar_web", "clicar_botao", "conversar"})
         self.assertEqual(nomes[-1], NOME_CONVERSAR)
 
@@ -211,7 +211,7 @@ class TestDuasEtapas(unittest.TestCase):
         self.assertIs(ClassificadorIntencao(cliente, duas_etapas=True).classificar("x").tipo, TipoIntencao.CONVERSAR)
 
     def test_decide_sozinho_pelo_numero_de_habilidades(self):
-        self.assertFalse(ClassificadorIntencao(None).duas_etapas)  # 8 habilidades hoje
+        self.assertFalse(ClassificadorIntencao(None).duas_etapas)  # 9 habilidades hoje
         muitas = (*[habilidade_nova(nome=f"extra_{i}") for i in range(10)], *HABILIDADES)
         self.assertTrue(ClassificadorIntencao(None, muitas).duas_etapas)
 

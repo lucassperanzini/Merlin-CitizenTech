@@ -50,6 +50,19 @@ class Preferencias:
         self._salvar()
 
     @property
+    def apelidos_pastas(self) -> list[dict]:
+        """Atalhos de pasta da pessoa: [{"apelido": "trabalho", "caminho": "D:\\Clientes"}], da aba Pastas."""
+        itens = self._dados.get("apelidos_pastas", [])
+        return [i for i in itens if isinstance(i, dict) and i.get("apelido") and i.get("caminho")] \
+            if isinstance(itens, list) else []
+
+    @apelidos_pastas.setter
+    def apelidos_pastas(self, itens: list[dict]) -> None:
+        self._dados["apelidos_pastas"] = [{"apelido": str(i["apelido"]).strip(), "caminho": str(i["caminho"]).strip()}
+                                          for i in itens]
+        self._salvar()
+
+    @property
     def modo_debug(self) -> bool:
         """Botão da órbita: mostra a aba do raciocínio da IA no cartão."""
         return bool(self._dados.get("modo_debug", False))

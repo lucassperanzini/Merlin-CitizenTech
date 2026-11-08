@@ -1,10 +1,16 @@
 {
   "vozes": {
-    "merlin": "pt_BR-faber-medium",
-    "jarvis": "jarvis_digital",
+    "merlin": "clonada:mauro",
+    "jarvis": "clonada:mauro",
     "rick": "clonada:voz_1"
   },
-  "personalidade": "merlin",
-  "modelo_ia": "llama3.2:latest",
-  "modo_debug": true
+  "personalidade": "jarvis",
+  "modelo_ia": "qwen3:8b",
+  "modo_debug": true,
+  "apelidos_pastas": [
+    {
+      "apelido": "X",
+      "caminho": "D:\\Documents\\Nova pasta\\PASTAS"
+    }
+  ]
 }
