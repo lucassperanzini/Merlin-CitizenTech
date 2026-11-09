@@ -5,7 +5,7 @@ import time
 from typing import Callable, Mapping
 
 from merlin.ia.confirmacao import RespostaConfirmacao
-from merlin.ia.intencoes import ACOES_NO_COMPUTADOR, Intencao, TipoIntencao
+from merlin.ia.intencoes import ACOES_NO_COMPUTADOR, PEDIDOS_DE_FRASE_INTEIRA, Intencao, TipoIntencao
 from merlin.interface.eventos import EstadoVisual
 from merlin.nucleo.raciocinio import Raciocinio, TipoPasso
 from merlin.nucleo.resposta import Resultado, montar_resposta
@@ -178,6 +178,10 @@ class ProcessadorComandos:
         if len(intencoes) == 1:
             return intencoes
         logger.info("[TAREFAS]: %s", tarefas)
+        if any(i.tipo in PEDIDOS_DE_FRASE_INTEIRA for i in intencoes):
+            self._raciocinio.registrar(TipoPasso.REGRA, "O resto da frase faz parte do pedido: ela volta a ser uma só",
+                                       motivo="o que vem depois de \"dizendo que\" é conteúdo, não outra tarefa")
+            return [self._classificar(comando)]
         if any(i.tipo in ACOES_NO_COMPUTADOR for i in intencoes):
             return intencoes
         logger.info("[TAREFAS]: nenhuma parte é uma ação; a frase segue inteira")

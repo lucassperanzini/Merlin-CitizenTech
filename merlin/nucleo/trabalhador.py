@@ -37,7 +37,8 @@ class TrabalhadorComandos:
                 self._canal.estado(EstadoVisual.OUVINDO)
 
     def _verificar_inatividade(self):
-        ocioso = self._estado.ativo.is_set() and not self._estado.falando.is_set()
+        ocioso = (self._estado.ativo.is_set() and not self._estado.falando.is_set()
+                  and not self._sessao.aguardando_decisao())
         if ocioso and self._estado.segundos_sem_atividade() > TEMPO_INATIVIDADE:
             logger.info("[INFO] Inatividade, voltando ao modo de espera.")
             self._sessao.desativar()

@@ -102,6 +102,25 @@ class ApiJanela:
         if self._painel:
             self._painel(bool(aberto))
 
+    def decidir_rascunho(self, acao):
+        """Botões do texto escrito pela IA. Devolve a frase a mostrar no lugar deles."""
+        pendencia = self._sessao.pegar_pendencia()
+        if self._estado:
+            self._estado.registrar_atividade()
+        if pendencia is None:
+            return "O prazo acabou. Peça o texto de novo."
+        if acao == "descartar":
+            return ""
+        try:
+            if acao == "copiar" and pendencia.copiar:
+                pendencia.copiar()
+                return "Copiado para a área de transferência."
+            fala = pendencia.ao_confirmar().fala
+        except Exception as erro:
+            logger.error("[JANELA] Não consegui concluir o texto: %s", erro)
+            return "Não consegui concluir."
+        return fala[:1].upper() + fala[1:] + "."
+
     def recolher(self):
         """Botão de recolher do cartão: o mesmo que dispensar o assistente por voz."""
         self._sessao.desativar()
@@ -203,6 +222,8 @@ class JanelaMerlin:
             self._chamar_pagina("definirEstado", dado.value)
         elif tipo is TipoEvento.ESTADO and self._compacta:  # modo discreto: a bolinha pensa e fala sem abrir
             self._chamar_pagina("definirEstadoBolinha", dado.value)
+        elif tipo is TipoEvento.RASCUNHO and self._visivel:
+            self._chamar_pagina("mostrarRascunho", dado)
         elif tipo is TipoEvento.AVISO and self._compacta:
             self._chamar_pagina("mostrarBalao", dado)
         elif tipo is TipoEvento.LEGENDA and self._visivel:

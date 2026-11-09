@@ -29,6 +29,8 @@ def criar_acao(recursos):
 HABILIDADE = Habilidade(
     nome="fechar_programa",
     titulo='Fechar programa',
+    resumo="Fecha um programa aberto.",
+    icone="❌",
     regras_resumo=(
         'Se a frase começa com abrir, iniciar, ligar ou executar, vira “Abrir programa”.',
         '“Fecha essa janela”, sem citar programa, é dispensar o assistente.',

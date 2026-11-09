@@ -389,3 +389,14 @@ class TestModoDiscreto(Base):
         self.processador.processar("abre o chrome")
         self.assertFalse(any(e.startswith("aviso: ") for e in self.canal.eventos))
         self.assertTrue(self.estado.ativo.is_set())
+
+
+class TestFraseInteira(Base):
+    def test_o_que_vem_depois_de_dizendo_que_nao_vira_outra_tarefa(self):
+        self.sessao.ativar()
+        self.divisor.tarefas = ["responde a mensagem selecionada dizendo que vou", "pede uma pizza"]
+        self.classificador.intencao = Intencao(TipoIntencao("texto_selecionado"), "texto", "x")
+        self.processador.processar("responde a mensagem selecionada dizendo que vou e pede uma pizza")
+        self.assertEqual(self.executadas, [TipoIntencao("texto_selecionado")])  # uma ação só
+        self.assertEqual(self.classificador.comandos[-1],
+                         "responde a mensagem selecionada dizendo que vou e pede uma pizza")

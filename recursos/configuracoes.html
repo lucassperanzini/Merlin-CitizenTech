@@ -6,7 +6,7 @@
 <style>
   /* A Central, no estilo HUD: módulos com cantos chanfrados, linhas finas de brilho e status do sistema ao vivo.
      A cor de destaque (--cor) é a do assistente escolhido e chega do Python junto com os dados.
-     As abas de ferramentas (editor e habilidades) são outras páginas, em quadros: veja
+     As abas de ferramentas (editor e skills) são outras páginas, em quadros: veja
      merlin/interface/central.py, que troca os marcadores QUADRO por elas. */
   :root {
     --cor: #35d6ff;
@@ -188,7 +188,7 @@
       <button role="tab" id="aba-pastas" data-aba="pastas" aria-controls="mod-pastas" aria-selected="false" tabindex="-1"><small>04</small>PASTAS</button>
       <span class="grupo" aria-hidden="true">FERRAMENTAS</span>
       <button role="tab" id="aba-assistentes" data-aba="assistentes" aria-controls="mod-assistentes" aria-selected="false" tabindex="-1"><small>05</small>EDITOR</button>
-      <button role="tab" id="aba-habilidades" data-aba="habilidades" aria-controls="mod-habilidades" aria-selected="false" tabindex="-1"><small>06</small>HABILIDADES</button>
+      <button role="tab" id="aba-habilidades" data-aba="habilidades" aria-controls="mod-habilidades" aria-selected="false" tabindex="-1"><small>06</small>SKILLS</button>
     </nav>
 
     <div id="modulos">
@@ -226,7 +226,7 @@
           <div class="campo">
             <span class="rotulo">ANÁLISE</span>
             <div class="linha">
-              <button class="botao" id="ver-habilidades" type="button">Habilidades</button>
+              <button class="botao" id="ver-habilidades" type="button">Skills</button>
             </div>
             <span class="ajuda">Tudo o que a IA sabe fazer, com um teste de frases.</span>
           </div>

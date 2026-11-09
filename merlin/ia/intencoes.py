@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from merlin.config import LIMITE_UMA_ETAPA
-from merlin.habilidades import HABILIDADES, NOME_CONVERSAR
+from merlin.habilidades import HABILIDADES, NOME_CONVERSAR, ativas, versao
 from merlin.habilidades.base import Leitura
 from merlin.ia import prompt_intencao
 
@@ -21,6 +21,7 @@ TipoIntencao = Enum("TipoIntencao", [(h.nome.upper(), h.nome) for h in HABILIDAD
 
 # Pedidos que fazem algo no computador. Conversa e despedida não entram aqui.
 ACOES_NO_COMPUTADOR = frozenset(TipoIntencao(h.nome) for h in HABILIDADES if h.mexe_no_computador)
+PEDIDOS_DE_FRASE_INTEIRA = frozenset(TipoIntencao(h.nome) for h in HABILIDADES if h.frase_inteira)
 
 MAX_CORRECOES = 4  # uma regra pode levar a outra habilidade, que tem as próprias regras; isto evita ciclos
 
@@ -38,9 +39,17 @@ class Intencao:
 
 
 class ClassificadorIntencao:
-    def __init__(self, cliente, habilidades=HABILIDADES, duas_etapas: bool | None = None):
-        """duas_etapas=None decide sozinho pelo número de habilidades."""
+    def __init__(self, cliente, habilidades=None, duas_etapas: bool | None = None):
+        """duas_etapas=None decide sozinho pelo número de habilidades. Sem habilidades passadas, usa as atuais e
+        acompanha os ajustes feitos na aba Skills."""
         self._cliente = cliente
+        self._acompanha = habilidades is None
+        self._pedido_duas_etapas = duas_etapas
+        self._montar(ativas() if habilidades is None else habilidades)
+
+    def _montar(self, habilidades) -> None:
+        duas_etapas = self._pedido_duas_etapas
+        self._versao = versao()
         self._habilidades = tuple(habilidades)
         self._por_nome = {h.nome: h for h in self._habilidades}
         self.duas_etapas = len(self._habilidades) > LIMITE_UMA_ETAPA if duas_etapas is None else duas_etapas
@@ -53,6 +62,8 @@ class ClassificadorIntencao:
 
     def classificar(self, comando: str) -> Intencao:
         """Resposta inválida do modelo vira CONVERSAR, para nunca executar uma ação por engano."""
+        if self._acompanha and self._versao != versao():
+            self._montar(ativas())
         prompt, esquema, extra = self._uma_etapa[0], self._uma_etapa[1], {}
         if self.duas_etapas:
             grupo = self._escolher_grupo(comando)
@@ -99,8 +110,10 @@ class ClassificadorIntencao:
                 break
             if correcao.motivo:
                 motivos.append(correcao.motivo)
-            mudou = correcao.intencao != leitura.intencao
-            leitura = Leitura(correcao.intencao, leitura.alvo if correcao.alvo is None else correcao.alvo,
+            # Uma regra pode apontar para uma skill desligada: aí o pedido vira conversa
+            destino = correcao.intencao if correcao.intencao in self._por_nome else NOME_CONVERSAR
+            mudou = destino != leitura.intencao
+            leitura = Leitura(destino, leitura.alvo if correcao.alvo is None else correcao.alvo,
                               {**leitura.campos, **correcao.campos}, leitura.comando)
             if not mudou:
                 break

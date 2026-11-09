@@ -89,8 +89,11 @@ class Habilidade:
     campos: tuple[Campo, ...] = ()
     regra: Callable[[Leitura], Correcao | None] | None = None
     mexe_no_computador: bool = False  # True: numa frase com várias tarefas, justifica separar as partes
+    frase_inteira: bool = False  # True: o resto da frase é conteúdo do pedido ("dizendo que..."), nunca outra tarefa
     ordem: int = 50  # posição no prompt; a conversa (o caso geral) fica por último
     titulo: str = ""  # nome legível, mostrado no painel de habilidades (vazio = gerado a partir do nome)
+    resumo: str = ""  # uma frase simples para a pessoa, na aba Skills (a descricao é escrita para a IA)
+    icone: str = "✨"  # o ícone do cartão da skill
     regras_resumo: tuple[str, ...] = ()  # o que a regra faz, em português simples, para o painel
 
     @property

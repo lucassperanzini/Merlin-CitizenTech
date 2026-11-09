@@ -19,6 +19,8 @@ def criar_acao(recursos):
 HABILIDADE = Habilidade(
     nome="pesquisar_web",
     titulo='Pesquisar na internet',
+    resumo="Pesquisa na internet ou abre um site.",
+    icone="🌐",
     regras_resumo=(
         'Se a IA não disser o que pesquisar, pesquisa a frase inteira.',
     ),

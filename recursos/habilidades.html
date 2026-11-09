@@ -2,8 +2,9 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<title>Habilidades</title>
+<title>Skills</title>
 <style>
+  /* Lista das skills à esquerda e uma skill por vez à direita. O que é técnico fica recolhido. */
   :root {
     --fundo: #05070c;
     --painel: #0b1019;
@@ -11,70 +12,112 @@
     --borda: #1b2638;
     --texto: #dbe6ff;
     --suave: #8a97b3;
+    --apagado: #5b6780;
     --destaque: #35d6ff;
-    --acao: #52f2a8;
-    --regra: #ffb648;
+    --aviso: #ffb648;
     --nao: #ff8a7a;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; }
-  body { background: var(--fundo); color: var(--texto); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; padding: 18px 22px 30px; }
-  h1 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
-  .sub { color: var(--suave); font-size: 13px; margin: 0 0 16px; }
-  .teste { background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; }
-  .teste h2, .grupo h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--suave); margin: 0 0 10px; font-weight: 600; }
-  .linha { display: flex; gap: 8px; }
-  input, button { font: inherit; color: var(--texto); background: var(--campo); border: 1px solid var(--borda); border-radius: 7px; }
-  input { flex: 1; padding: 8px 10px; }
-  button { padding: 8px 14px; cursor: pointer; background: #12304a; border-color: #1f5a85; }
-  button:disabled { opacity: .5; cursor: default; }
-  :is(input, button):focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
-  #resultado { margin-top: 12px; font-size: 13.5px; }
-  #resultado dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; margin: 0; }
-  #resultado dt { color: var(--suave); }
-  #resultado dd { margin: 0; }
-  .nota { color: var(--suave); font-size: 12.5px; margin-top: 6px; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; flex-direction: column; overflow: hidden;
+    background: var(--fundo); color: var(--texto); font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+  }
+  input, select, textarea, button { font: inherit; color: var(--texto); }
+  input, select, textarea {
+    width: 100%; min-width: 0; padding: 7px 10px; background: var(--campo);
+    border: 1px solid var(--borda); border-radius: 7px;
+  }
+  textarea { resize: vertical; }
+  button { padding: 7px 14px; border-radius: 7px; border: 1px solid var(--borda); background: var(--campo); cursor: pointer; }
+  button:hover { border-color: var(--destaque); }
+  button.principal { background: var(--destaque); border-color: var(--destaque); color: #05070c; font-weight: 600; }
+  button.icone { padding: 7px 10px; color: var(--suave); }
+  :is(input, select, textarea, button, summary):focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
+  [hidden] { display: none !important; }
+
+  /* Teste de frases */
+  #teste { flex: none; padding: 14px 18px; border-bottom: 1px solid var(--borda); }
+  .teste-linha { display: flex; gap: 8px; }
+  #resultado { font-size: 13px; color: var(--suave); }
+  #resultado:not(:empty) { margin-top: 8px; }
+  #resultado button { padding: 1px 10px; margin: 0 6px; color: var(--destaque); }
   .erro { color: var(--nao); }
-  .grupo { margin-bottom: 22px; }
-  .grupo .desc { color: var(--suave); font-size: 13px; margin: -6px 0 10px; }
-  .cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 12px; }
-  .cartao { background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; padding: 14px 16px; }
-  .cartao h3 { margin: 0; font-size: 15.5px; font-weight: 600; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .codigo { color: var(--suave); font: 12px Consolas, monospace; }
-  .selo { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; border: 1px solid; }
-  .selo.acao { color: var(--acao); border-color: #1b6b4c; }
-  .selo.fala { color: var(--suave); border-color: var(--borda); }
-  .selo.assistente { color: var(--destaque); border-color: #1f5a85; }
-  .cartao p { margin: 8px 0; color: #c3cde6; }
-  .cartao h4 { margin: 12px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--suave); }
-  .cartao ul { margin: 0; padding-left: 18px; }
-  .cartao li { margin: 2px 0; }
-  .alvo { color: var(--suave); font-size: 12.5px; }
-  .regras li::marker { color: var(--regra); }
-  .nao li::marker { color: var(--nao); }
-  .vira { color: var(--nao); font-size: 12.5px; }
+
+  main { flex: 1; min-height: 0; display: flex; }
+
+  /* Galeria: um cartão por skill */
+  .galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+  .cartao-skill {
+    display: grid; grid-template-columns: 40px 1fr; gap: 2px 10px; align-content: start; padding: 14px; text-align: left;
+    background: var(--painel); border-radius: 10px;
+  }
+  .cartao-skill .figura { grid-row: span 3; font-size: 26px; line-height: 40px; text-align: center; }
+  .cartao-skill strong { font-size: 15px; font-weight: 600; }
+  .cartao-skill span.faz { font-size: 13px; color: #c3cde6; }
+  .cartao-skill em { margin-top: 5px; font-size: 12.5px; font-style: normal; color: var(--destaque); }
+  .caixa-skill { position: relative; display: grid; }
+  .caixa-skill .cartao-skill { padding-right: 58px; }
+  .caixa-skill.desligada .cartao-skill { opacity: .45; }
+  .interruptor { position: absolute; top: 14px; right: 12px; width: 36px; height: 20px; }
+  .interruptor input { position: absolute; inset: 0; margin: 0; padding: 0; opacity: 0; cursor: pointer; }
+  .interruptor span { position: absolute; inset: 0; border-radius: 99px; background: var(--borda); pointer-events: none; transition: background .15s; }
+  .interruptor span::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--suave); transition: transform .15s, background .15s;
+  }
+  .interruptor input:checked + span { background: color-mix(in srgb, var(--destaque) 45%, transparent); }
+  .interruptor input:checked + span::after { transform: translateX(16px); background: var(--destaque); }
+  .interruptor input:focus-visible + span { outline: 2px solid var(--destaque); outline-offset: 1px; }
+  .ajuste { color: var(--aviso); font-size: 11px; margin-left: 6px; font-weight: 400; }
+  .voltar { margin-bottom: 12px; padding: 3px 12px; font-size: 13px; color: var(--suave); }
+  .figura-grande { font-size: 30px; line-height: 1; }
+
+  /* Detalhe */
+  #detalhe { flex: 1; min-width: 0; overflow-y: auto; padding: 18px 22px 24px; scrollbar-width: thin; scrollbar-color: var(--borda) transparent; }
+  .topo { display: flex; align-items: center; gap: 10px; }
+  .topo h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  .topo button { margin-left: auto; }
+  .selo { font-size: 11px; color: var(--aviso); border: 1px solid #7a5a22; border-radius: 99px; padding: 0 7px; }
+  .quando { margin: 8px 0 18px; color: #c3cde6; }
+  h2 { margin: 18px 0 6px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--suave); }
+  .frases { margin: 0; padding: 0; list-style: none; }
+  .frases li { padding: 5px 0; border-bottom: 1px solid #121a28; }
+  .frases li:last-child { border-bottom: 0; }
+  .frases small { display: block; font-size: 12px; color: var(--apagado); }
+  details { margin-top: 14px; }
+  summary { cursor: pointer; color: var(--suave); font-size: 13px; }
+  summary:hover { color: var(--texto); }
+  details .frases, details ul { margin-top: 6px; }
+  details ul { padding-left: 18px; color: #c3cde6; font-size: 13.5px; }
+
+  /* Edição */
+  label { display: grid; gap: 3px; margin-bottom: 10px; font-size: 12.5px; color: var(--suave); }
+  .colunas, .linha-ex { display: grid; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .colunas { font-size: 11.5px; color: var(--apagado); margin-bottom: 3px; }
+  .acrescentar { padding: 4px 12px; font-size: 13px; color: var(--suave); }
+  .rodape {
+    position: sticky; bottom: -24px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 20px -22px -24px;
+    padding: 12px 22px; background: var(--fundo); border-top: 1px solid var(--borda);
+  }
+  .mensagem { flex-basis: 100%; font-size: 13px; }
+  .restaurar { margin-left: auto; }
 </style>
 </head>
 <body>
-  <h1>Habilidades</h1>
-  <p class="sub" id="resumo"></p>
-
-  <div class="teste">
-    <h2>Testar uma frase</h2>
-    <div class="linha">
-      <input id="frase" placeholder="Ex.: abre o chrome e pesquisa receita de bolo" aria-label="Frase para testar">
+  <section id="teste" aria-label="Testar uma frase">
+    <div class="teste-linha">
+      <input id="frase" placeholder="Teste uma frase, ex.: abre o chrome" aria-label="Frase para testar">
       <button id="testar" type="button">Testar</button>
     </div>
-    <p class="nota">Mostra qual habilidade seria escolhida e por quê. Não executa nada.
-      Uma frase com várias tarefas é testada inteira (no uso real, ela é dividida antes).</p>
     <div id="resultado" aria-live="polite"></div>
-  </div>
-
-  <div id="grupos"></div>
+  </section>
+  <main><section id="detalhe"></section></main>
 
 <script>
   const $ = id => document.getElementById(id);
   const api = () => window.pywebview.api;
+  let dados = null, atual = null;
 
   function el(tag, classe, texto) {
     const e = document.createElement(tag);
@@ -82,80 +125,193 @@
     if (texto !== undefined) e.textContent = texto;  // sempre texto: nada vira HTML
     return e;
   }
-  function lista(itens, classe, montar) {
-    const ul = el("ul", classe);
-    for (const item of itens) { const li = el("li"); montar(li, item); ul.append(li); }
-    return ul;
+  function botao(texto, classe, aoClicar) {
+    const b = el("button", classe, texto);
+    b.type = "button";
+    b.addEventListener("click", aoClicar);
+    return b;
   }
-  const camposEmTexto = campos => Object.entries(campos || {}).map(([k, v]) => `${k}: ${v}`).join(", ");
+  const todas = () => dados.grupos.flatMap(g => g.habilidades);
 
-  function cartao(h) {
-    const c = el("article", "cartao");
-    const titulo = el("h3", "", h.titulo);
-    const selos = { computador: ["acao", "mexe no computador"], assistente: ["assistente", "no próprio assistente"],
-                    fala: ["fala", "só fala"] };
-    const [classe, rotulo] = selos[h.age];
-    titulo.append(el("span", "codigo", h.nome), el("span", `selo ${classe}`, rotulo));
-    c.append(titulo, el("p", "", "Quando: " + h.descricao));
-    if (h.exemplos.length) {
-      c.append(el("h4", "", "Exemplos que ativam"), lista(h.exemplos, "", (li, e) => {
-        li.append(`“${e.frase}”`);
-        const extra = [e.alvo && `alvo: ${e.alvo}`, camposEmTexto(e.campos)].filter(Boolean).join(" · ");
-        if (extra) li.append(" ", el("span", "alvo", `→ ${extra}`));
-      }));
+  async function carregar(nome = atual) {
+    dados = await api().listar();
+    atual = todas().some(h => h.nome === nome) ? nome : null;
+    if (atual) mostrarSkill(); else mostrarGaleria();
+  }
+  function abrir(nome) {
+    atual = nome;
+    mostrarSkill();
+  }
+  function interruptor(h) {
+    const rotulo = el("label", "interruptor");
+    rotulo.title = h.ligada ? "Desligar esta skill" : "Ligar esta skill";
+    const caixa = document.createElement("input");
+    caixa.type = "checkbox";
+    caixa.checked = h.ligada;
+    caixa.setAttribute("role", "switch");
+    caixa.setAttribute("aria-label", `${h.titulo}: ligada`);
+    caixa.addEventListener("change", async () => { await api().ligar(h.nome, caixa.checked); carregar(); });
+    rotulo.append(caixa, el("span"));
+    return rotulo;
+  }
+  function mostrarGaleria() {
+    atual = null;
+    const galeria = el("div", "galeria");
+    for (const h of todas()) {
+      const c = botao("", "cartao-skill", () => abrir(h.nome));
+      c.dataset.nome = h.nome;
+      const titulo = el("strong", "", h.titulo);
+      if (h.ajustada) titulo.append(el("span", "ajuste", "ajustada"));
+      if (!h.ligada) titulo.append(el("span", "ajuste", "desligada"));
+      c.append(el("span", "figura", h.icone), titulo, el("span", "faz", h.resumo));
+      if (h.exemplos.length) c.append(el("em", "", `“${h.exemplos[0].frase}”`));
+      const caixa = el("div", h.ligada ? "caixa-skill" : "caixa-skill desligada");
+      caixa.append(c);
+      if (h.pode_desligar) caixa.append(interruptor(h));
+      galeria.append(caixa);
     }
+    $("detalhe").replaceChildren(galeria);
+    $("detalhe").scrollTop = 0;
+  }
+  const skill = () => todas().find(h => h.nome === atual);
+
+  // Leitura: o que a skill faz e as frases que a ativam. O resto fica recolhido.
+  function recolhido(titulo, conteudo) {
+    const d = el("details");
+    d.append(el("summary", "", titulo), conteudo);
+    return d;
+  }
+  function mostrarSkill() {
+    const h = skill();
+    const topo = el("div", "topo");
+    topo.append(el("span", "figura-grande", h.icone), el("h1", "", h.titulo));
+    if (h.ajustada) topo.append(el("span", "selo", "ajustada"));
+    if (!h.ligada) topo.append(el("span", "selo", "desligada"));
+    const editar = botao("Editar", "", () => editarSkill(h));
+    editar.id = "editar";
+    topo.append(editar);
+    if (h.pode_desligar) {
+      const alternar = botao(h.ligada ? "Desligar" : "Ligar", "", async () => { await api().ligar(h.nome, !h.ligada); carregar(); });
+      alternar.style.marginLeft = "0";
+      topo.append(alternar);
+    }
+    const partes = [botao("← Todas as skills", "voltar", mostrarGaleria), topo, el("p", "quando", h.resumo),
+                    el("h2", "", "Diga, por exemplo")];
+    const frases = el("ul", "frases");
+    for (const e of h.exemplos) frases.append(el("li", "", `“${e.frase}”`));
+    partes.push(frases);
+    partes.push(recolhido("Como a IA reconhece esta skill", el("p", "quando", h.descricao)));
     if (h.contraexemplos.length) {
-      c.append(el("h4", "", "Parecem, mas não ativam"), lista(h.contraexemplos, "nao", (li, e) => {
-        li.append(`“${e.frase}” `, el("span", "vira", `→ ${e.vira}`));
-      }));
+      const nao = el("ul", "frases");
+      for (const e of h.contraexemplos) {
+        const li = el("li", "", `“${e.frase}”`);
+        li.append(el("small", "", `vai para: ${e.vira}`));
+        nao.append(li);
+      }
+      partes.push(recolhido(`Frases parecidas que não ativam (${h.contraexemplos.length})`, nao));
     }
     if (h.regras.length) {
-      c.append(el("h4", "", "Regras que corrigem a IA"), lista(h.regras, "regras", (li, r) => li.append(r)));
+      const ul = el("ul");
+      for (const r of h.regras) ul.append(el("li", "", r));
+      partes.push(recolhido(`Regras do código (${h.regras.length})`, ul));
     }
-    if (h.campos.length) {
-      c.append(el("h4", "", "Dados extras"), lista(h.campos, "", (li, f) => li.append(`${f.nome}: ${f.descricao}`)));
-    }
-    return c;
+    $("detalhe").replaceChildren(...partes);
+    $("detalhe").scrollTop = 0;
   }
 
-  async function carregar() {
-    const r = await api().listar();
-    $("resumo").textContent = `${r.total} habilidades. A IA escolhe em ${r.modo}; acima de ${r.limite_uma_etapa} ` +
-      "habilidades, ela passa sozinha a escolher em duas etapas.";
-    $("grupos").replaceChildren(...r.grupos.map(g => {
-      const s = el("section", "grupo");
-      s.append(el("h2", "", `Grupo: ${g.nome}`), el("p", "desc", g.descricao));
-      const cartoes = el("div", "cartoes");
-      cartoes.append(...g.habilidades.map(cartao));
-      s.append(cartoes);
-      return s;
-    }));
+  // Edição: as frases que ativam e, recolhidas, as parecidas. Regras e ação ficam no código.
+  function campo(valor, placeholder, rotulo) {
+    const i = document.createElement("input");
+    i.value = valor || "";
+    i.placeholder = placeholder || "";
+    i.setAttribute("aria-label", rotulo || placeholder || "");
+    return i;
+  }
+  function linhaAtiva(h, colunas, e = {}) {
+    const linha = el("div", "linha-ex");
+    linha.style.gridTemplateColumns = colunas;
+    const frase = campo(e.frase, "frase", "Frase"), alvo = campo(e.alvo, "alvo", "Alvo");
+    const extras = h.campos.map(c => [c.nome, campo((e.campos || {})[c.nome], c.nome, c.descricao)]);
+    linha.append(frase, alvo, ...extras.map(([, i]) => i), botao("×", "icone", () => linha.remove()));
+    linha.ler = () => ({ frase: frase.value, alvo: alvo.value, intencao: null,
+                         campos: Object.fromEntries(extras.map(([n, i]) => [n, i.value])) });
+    return linha;
+  }
+  function linhaParecida(h, e = {}) {
+    const linha = el("div", "linha-ex");
+    linha.style.gridTemplateColumns = "1fr 130px 190px auto";
+    const frase = campo(e.frase, "frase", "Frase"), alvo = campo(e.alvo, "alvo", "Alvo");
+    const destino = document.createElement("select");
+    destino.setAttribute("aria-label", "Skill correta");
+    for (const o of dados.opcoes) if (o.nome !== h.nome) destino.append(new Option(o.titulo, o.nome));
+    destino.value = e.intencao || "conversar";
+    linha.append(frase, alvo, destino, botao("×", "icone", () => linha.remove()));
+    linha.ler = () => ({ frase: frase.value, alvo: alvo.value, intencao: destino.value, campos: {} });
+    return linha;
+  }
+  function editarSkill(h) {
+    const titulo = campo(h.titulo, "", "Título");
+    const lTitulo = el("label", "", "Nome");
+    lTitulo.append(titulo);
+    const lQuando = el("label", "", "Quando usar (é o que a IA lê para reconhecer o pedido)");
+    const quando = document.createElement("textarea");
+    quando.rows = 3;
+    quando.value = h.descricao;
+    lQuando.append(quando);
+
+    const colunas = `1fr 130px ${h.campos.map(() => "130px ").join("")}34px`;
+    const cabecalho = el("div", "colunas");
+    cabecalho.style.gridTemplateColumns = colunas;
+    cabecalho.append(el("span", "", "Frase"), el("span", "", "Alvo (o que a frase cita)"),
+                     ...h.campos.map(c => el("span", "", c.nome)), el("span"));
+    const ativas = el("div"), parecidas = el("div");
+    ativas.append(...h.todos_exemplos.filter(e => !e.intencao).map(e => linhaAtiva(h, colunas, e)));
+    parecidas.append(...h.todos_exemplos.filter(e => e.intencao).map(e => linhaParecida(h, e)));
+    const secaoParecidas = el("div");
+    secaoParecidas.append(parecidas, botao("+ Adicionar frase parecida", "acrescentar", () => parecidas.append(linhaParecida(h))));
+    const blocoParecidas = recolhido(`Frases parecidas que não ativam (${parecidas.children.length})`, secaoParecidas);
+
+    const mensagem = el("div", "mensagem");
+    const rodape = el("div", "rodape");
+    rodape.append(mensagem, botao("Salvar", "principal", async () => {
+      const r = await api().salvar(h.nome, { titulo: titulo.value, descricao: quando.value,
+        exemplos: [...ativas.children, ...parecidas.children].map(l => l.ler()) });
+      if (r.erro) { mensagem.className = "mensagem erro"; mensagem.textContent = r.erro; return; }
+      carregar();
+    }), botao("Cancelar", "", mostrarSkill));
+    if (h.ajustada) {
+      rodape.append(botao("Restaurar original", "restaurar", async () => { await api().restaurar(h.nome); carregar(); }));
+    }
+    $("detalhe").replaceChildren(el("h2", "", `Editar: ${h.titulo}`), lTitulo, lQuando, el("h2", "", "Frases que ativam"), cabecalho, ativas,
+                                 botao("+ Adicionar frase", "acrescentar", () => ativas.append(linhaAtiva(h, colunas))),
+                                 blocoParecidas, rodape);
+    $("detalhe").scrollTop = 0;
   }
 
   async function testar() {
-    const botao = $("testar");
-    botao.disabled = true;
-    $("resultado").replaceChildren(el("span", "nota", "Perguntando à IA…"));
-    const r = await api().testar($("frase").value);
-    botao.disabled = false;
+    const frase = $("frase").value;
+    $("testar").disabled = true;
+    $("resultado").replaceChildren("Perguntando à IA…");
+    const r = await api().testar(frase);
+    $("testar").disabled = false;
     if (r.erro) { $("resultado").replaceChildren(el("span", "erro", r.erro)); return; }
-    const dl = el("dl");
-    const linha = (rotulo, valor) => { if (valor) dl.append(el("dt", "", rotulo), el("dd", "", valor)); };
-    linha("Habilidade", r.titulo);
-    linha("Alvo", r.alvo);
-    linha("Dados", camposEmTexto(r.campos));
-    linha("Grupo escolhido", r.grupo);
-    if (r.motivo_regra) {
-      linha("A IA tinha escolhido", r.ia_escolheu);
-      linha("Uma regra mudou porque", r.motivo_regra);
-    }
-    linha("Tempo", `${String(r.tempo).replace(".", ",")} s`);
-    $("resultado").replaceChildren(dl);
+    const ver = botao(r.titulo, "", () => abrir(r.habilidade));
+    const detalhes = [r.alvo && `alvo: ${r.alvo}`, ...Object.values(r.campos || {}),
+                      `${String(r.tempo).replace(".", ",")} s`].filter(Boolean).join(" · ");
+    const partes = ["Usaria", ver, detalhes];
+    if (r.motivo_regra) partes.push(el("div", "", `A IA escolheu “${r.ia_escolheu}”, e uma regra corrigiu: ${r.motivo_regra}`));
+    $("resultado").replaceChildren(...partes);
   }
-
   $("testar").addEventListener("click", testar);
   $("frase").addEventListener("keydown", e => { if (e.key === "Enter") testar(); });
-  window.addEventListener("pywebviewready", carregar);
+  window.addEventListener("pywebviewready", () => {
+    // A cor do assistente, quando a página está dentro da Central
+    try {
+      const cor = parent.getComputedStyle(parent.document.documentElement).getPropertyValue("--cor").trim();
+      if (cor) document.documentElement.style.setProperty("--destaque", cor);
+    } catch { /* fora da Central, fica a cor padrão */ }
+    carregar();
+  });
 </script>
 </body>
 </html>

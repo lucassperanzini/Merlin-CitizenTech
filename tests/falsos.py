@@ -26,6 +26,9 @@ class CanalFalso:
     def legenda(self, texto):
         self.eventos.append(texto)
 
+    def rascunho(self, texto):
+        self.eventos.append(f"rascunho: {texto}")
+
     def aviso(self, texto):
         self.eventos.append(f"aviso: {texto}")
 

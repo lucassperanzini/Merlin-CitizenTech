@@ -20,7 +20,7 @@ Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho a
   - **Central:** uma janela só, com abas.
     - *Pastas:* apelidos para as suas pastas ("abre o trabalho"), além das do Acesso Rápido do Windows.
     - *Ajustes:* assistente e voz, modelo de IA, clonagem de voz.
-    - *Ferramentas:* editor de assistentes (cria e edita personalidades sem mexer em código) e habilidades (tudo o que ele sabe fazer, com um teste de frases).
+    - *Ferramentas:* editor de assistentes (cria e edita personalidades sem mexer em código) e skills (tudo o que ele sabe fazer, com um teste de frases; título, descrição e exemplos podem ser editados).
     - Embaixo, o status do sistema ao vivo.
 - **Clonagem de voz (opcional):** fala com a voz de uma amostra de 8 a 15 segundos.
 
@@ -168,7 +168,7 @@ microfone
 ### Personalizar
 
 - **Assistentes:** pela aba **Editor** da Central. Lá você define nome, palavras de chamada, voz, aparência, quem ele é, como ele fala, frases prontas e expressões típicas. A IA local pode sugerir o resto a partir de "Quem ele é". Todos os assistentes são arquivos .json no mesmo formato: os originais (Merlin e Jarvis) em `recursos/assistentes_padrao/`, e os seus e os ajustes dos originais em `assistentes/`.
-- **Habilidades:** crie um arquivo em `merlin/habilidades/` (veja um vizinho como modelo) e a ação em `merlin/acoes/`. Ela entra sozinha no que a IA lê e nas ações, e aparece na aba Habilidades da Central.
+- **Habilidades:** crie um arquivo em `merlin/habilidades/` (veja um vizinho como modelo) e a ação em `merlin/acoes/`. Ela entra sozinha no que a IA lê e nas ações, e aparece na aba Skills da Central, onde você pode ajustar o título, a descrição e os exemplos (ficam em `skills/*.json`).
 - **Ajustes técnicos:** em `merlin/config.py`, por exemplo a pausa que encerra uma frase (`PAUSA_FIM_FRASE`) e o tempo de inatividade (`TEMPO_INATIVIDADE`).
 
 ---

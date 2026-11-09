@@ -35,6 +35,8 @@ def criar_acao(recursos):
 HABILIDADE = Habilidade(
     nome="abrir_pasta",
     titulo="Abrir pasta",
+    resumo="Abre uma pasta ou um disco no Explorador de Arquivos.",
+    icone="📁",
     regras_resumo=(
         'Perguntas (“onde fica a pasta downloads?”) viram conversa.',
         'Criar, apagar, renomear, mover ou copiar uma pasta vira conversa: ele só abre.',

@@ -27,6 +27,8 @@ def criar_acao(recursos):
 HABILIDADE = Habilidade(
     nome="abrir_programa",
     titulo='Abrir programa',
+    resumo="Abre um programa instalado no computador.",
+    icone="🚀",
     regras_resumo=(
         'Sem programa citado, ou citando o próprio assistente, vira conversa.',
         'Se a frase fala em “pasta”, ou o nome é um atalho de pasta (aba Pastas ou Acesso Rápido), vira abrir pasta.',

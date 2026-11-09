@@ -34,6 +34,8 @@ def criar_acao(recursos):
 HABILIDADE = Habilidade(
     nome="clicar_botao",
     titulo='Clicar em botão',
+    resumo="Clica em um botão da janela que você está usando.",
+    icone="🖱️",
     regras_resumo=(
         'A frase precisa começar com uma ordem (clica, aperta, dá play, salva, pula…); perguntas viram conversa.',
         'Sem dizer qual botão, o assistente pergunta “Em qual botão?”.',

@@ -20,6 +20,8 @@ def criar_acao(recursos):
 HABILIDADE = Habilidade(
     nome="dispensar",
     titulo='Dispensar o assistente',
+    resumo="Manda o assistente de volta para a bolinha.",
+    icone="👋",
     regras_resumo=(
         'Só vale se a frase for para o próprio assistente: “encerra o discord” vira conversa.',
     ),

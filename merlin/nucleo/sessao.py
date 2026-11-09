@@ -15,6 +15,7 @@ class Pendencia:
     ao_confirmar: Callable[[], object]  # executa a ação e devolve o Resultado a ser falado
     resposta_recusa: str
     expira_em: float
+    copiar: Callable[[], object] | None = None  # botão Copiar do cartão, quando a ação oferece essa saída
 
 
 class Sessao:
@@ -53,6 +54,10 @@ class Sessao:
 
     def aguardar_confirmacao(self, pendencia: Pendencia) -> None:
         self._pendencia = pendencia
+
+    def aguardando_decisao(self) -> bool:
+        """Há uma pergunta ainda no prazo: o cartão não fecha sozinho enquanto a pessoa decide."""
+        return self._pendencia is not None and time.time() <= self._pendencia.expira_em
 
     def tem_pendencia(self) -> bool:
         return self._pendencia is not None

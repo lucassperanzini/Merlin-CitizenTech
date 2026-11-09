@@ -23,6 +23,7 @@ class TipoEvento(Enum):
     ENVELOPE_FALA = "envelope_fala"
     PERSONALIDADE = "personalidade"
     ABRIR_CONFIGURACOES = "abrir_configuracoes"
+    RASCUNHO = "rascunho"  # um texto escrito pela IA, no cartão, com os botões Colar, Copiar e Descartar
     AVISO = "aviso"  # modo discreto: uma resposta curta num balão ao lado da bolinha, sem abrir o cartão
 
 
@@ -60,6 +61,9 @@ class CanalInterface:
 
     def personalidade(self) -> None:
         self._fila.put((TipoEvento.PERSONALIDADE, None))
+
+    def rascunho(self, texto: str) -> None:
+        self._fila.put((TipoEvento.RASCUNHO, texto))
 
     def aviso(self, texto: str) -> None:
         self._fila.put((TipoEvento.AVISO, texto))

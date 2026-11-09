@@ -51,6 +51,17 @@ FRASES = [
     ("abre a pasta notas fiscais", "abrir_pasta", "notas fiscais"),
     ("abre o explorador de arquivos", "abrir_programa", None),
     ("onde ficam os meus downloads", "conversar", None),
+    # texto_selecionado
+    ("corrige esse texto", "texto_selecionado", None),
+    ("traduz isso para espanhol", "texto_selecionado", None),
+    ("faz um resumo disso", "texto_selecionado", None),
+    ("melhora esse parágrafo", "texto_selecionado", None),
+    ("responde essa mensagem dizendo que chego às oito", "texto_selecionado", None),
+    ("responde a mensagem que acabei de copiar dizendo que chego tarde", "texto_selecionado", None),
+    ("responde essa mensagem a seguir dizendo que vou na festa", "texto_selecionado", None),
+    ("lê esse trecho em voz alta", "texto_selecionado", None),
+    ("resume o livro dom casmurro", "conversar", None),
+    ("como se diz obrigado em francês", "conversar", None),
     # abrir_configuracoes
     ("abre suas configurações", "abrir_configuracoes", None),
     ("quero mudar seus ajustes", "abrir_configuracoes", None),

@@ -1,7 +1,7 @@
 {
   "vozes": {
-    "merlin": "clonada:mauro",
-    "jarvis": "clonada:mauro",
+    "merlin": "pt_BR-faber-medium",
+    "jarvis": "jarvis_digital",
     "rick": "clonada:voz_1"
   },
   "personalidade": "jarvis",

@@ -112,6 +112,24 @@
   /* Cada palavra da resposta surge com um fade, acompanhando a voz */
   .palavra { animation: aparecer .4s ease-out both; }
   @keyframes aparecer { from { opacity: 0; filter: blur(3px); } }
+  /* Texto escrito pela IA, à espera da decisão da pessoa */
+  .troca:has(.rascunho) .resposta { flex: none; }
+  .rascunho { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+  .rascunho .escrito {
+    flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 9px 12px; border-radius: 10px;
+    background: color-mix(in srgb, var(--ouro) 8%, #0b0f18); border: 1px solid color-mix(in srgb, var(--ouro) 28%, transparent);
+    font-size: 14px; line-height: 1.45; color: #e6eeff; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere;
+    user-select: text;
+  }
+  .rascunho .botoes { flex: none; display: flex; gap: 8px; justify-content: center; }
+  .rascunho button {
+    padding: 6px 14px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--ouro) 40%, transparent);
+    background: #0b0f18; color: var(--texto); font: 600 12px "Segoe UI", sans-serif; cursor: pointer;
+  }
+  .rascunho button.principal { background: var(--ouro); border-color: var(--ouro); color: #0b0f18; }
+  .rascunho button:hover { filter: brightness(1.2); }
+  .rascunho button:focus-visible { outline: 2px solid var(--ouro); outline-offset: 1px; }
+  .rascunho .aviso-botoes { flex: none; font-size: 12.5px; color: #8a97b3; }
   /* "Pensando": três pontos no lugar da resposta */
   .digitando { display: inline-flex; gap: 5px; padding-top: 6px; }
   .digitando i { width: 6px; height: 6px; border-radius: 50%; background: var(--ouro); animation: ponto 1.1s infinite ease-in-out; }
@@ -567,6 +585,39 @@
   }
   function tirarDigitando() {
     trocaAtual?.querySelector(".digitando")?.remove();
+  }
+  // Texto escrito pela IA: fica na troca atual, então some sozinho quando a pessoa fala outra coisa
+  function mostrarRascunho(texto) {
+    if (!trocaAtual) novaTroca();
+    trocaAtual.querySelector(".rascunho")?.remove();
+    const caixa = document.createElement("div");
+    caixa.className = "rascunho";
+    const escrito = document.createElement("div");
+    escrito.className = "escrito";
+    escrito.textContent = texto;
+    const botoes = document.createElement("div");
+    botoes.className = "botoes";
+    for (const [acao, rotulo] of [["colar", "Colar"], ["copiar", "Copiar"], ["descartar", "Descartar"]]) {
+      const botao = document.createElement("button");
+      botao.type = "button";
+      botao.textContent = rotulo;
+      if (acao === "colar") {
+        botao.className = "principal";
+        botao.title = "Clique antes no campo onde o texto deve entrar";
+      }
+      botao.addEventListener("click", async () => {
+        botoes.querySelectorAll("button").forEach(b => b.disabled = true);
+        const aviso = await window.pywebview.api.decidir_rascunho(acao);
+        if (acao === "descartar") { caixa.remove(); return; }
+        const fim = document.createElement("div");
+        fim.className = "aviso-botoes";
+        fim.textContent = aviso;
+        botoes.replaceWith(fim);
+      });
+      botoes.append(botao);
+    }
+    caixa.append(escrito, botoes);
+    trocaAtual.append(caixa);
   }
   // A resposta do assistente aparece palavra por palavra, acompanhando a voz (como num chat de IA).
   // Cada trecho de áudio chega com o texto e a duração; as palavras se distribuem por essa duração,
