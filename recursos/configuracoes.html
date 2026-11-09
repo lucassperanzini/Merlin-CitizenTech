@@ -185,7 +185,6 @@
       <span class="grupo" aria-hidden="true">FERRAMENTAS</span>
       <button role="tab" id="aba-assistentes" data-aba="assistentes" aria-controls="mod-assistentes" aria-selected="false" tabindex="-1"><small>04</small>EDITOR</button>
       <button role="tab" id="aba-habilidades" data-aba="habilidades" aria-controls="mod-habilidades" aria-selected="false" tabindex="-1"><small>05</small>SKILLS</button>
-      <button role="tab" id="aba-automacoes" data-aba="automacoes" aria-controls="mod-automacoes" aria-selected="false" tabindex="-1"><small>06</small>AUTOMAÇÕES</button>
     </nav>
 
     <div id="modulos">
@@ -252,7 +251,6 @@
 
       <section class="painel-quadro" id="mod-assistentes" role="tabpanel" aria-labelledby="aba-assistentes" hidden><!--QUADRO:assistentes--></section>
       <section class="painel-quadro" id="mod-habilidades" role="tabpanel" aria-labelledby="aba-habilidades" hidden><!--QUADRO:habilidades--></section>
-      <section class="painel-quadro" id="mod-automacoes" role="tabpanel" aria-labelledby="aba-automacoes" hidden><!--QUADRO:automacoes--></section>
     </div>
   </main>
 
@@ -303,7 +301,6 @@
     const painel = document.getElementById(aba.getAttribute("aria-controls"));
     modulos.classList.toggle("com-quadro", painel.classList.contains("painel-quadro"));
     if (aba.dataset.aba === "pastas" && window.pywebview && prontos === null) carregarPastas();
-    if (aba.dataset.aba === "automacoes" && window.pywebview) document.getElementById("quadro-automacoes").contentWindow.aoAbrir?.();
     // Ao voltar para os ajustes (por exemplo, depois de criar um assistente no editor), as listas se atualizam
     if (!painel.classList.contains("painel-quadro") && window.pywebview && prontos === null) carregar();
   }

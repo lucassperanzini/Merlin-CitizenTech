@@ -1,6 +1,6 @@
 # Merlin
 
-Assistente pessoal por voz para Windows, **100% local**: ouve, entende e responde em voz alta, executa tarefas no computador (abrir e fechar programas, pesquisar na internet, clicar em botões) e escreve scripts Python que você testa, aprova e agenda. Nada do que você fala sai do seu PC.
+Assistente pessoal por voz para Windows, **100% local**: ouve, entende e responde em voz alta e executa tarefas no computador (abrir e fechar programas, pesquisar na internet, clicar em botões). Nada do que você fala sai do seu PC.
 
 Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho animado) e **Jarvis** (um mordomo digital, com uma esfera 3D), e você pode criar outros pela própria interface.
 
@@ -21,9 +21,7 @@ Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho a
     - *Pastas:* apelidos para as suas pastas ("abre o trabalho"), além das do Acesso Rápido do Windows.
     - *Ajustes:* assistente e voz, modelo de IA.
     - *Ferramentas:* editor de assistentes (cria e edita personalidades sem mexer em código) e skills (tudo o que ele sabe fazer, com um teste de frases; título, descrição e exemplos podem ser editados).
-    - *Automações:* os scripts criados pela IA, com pasta, teste, aprovação e agendamento.
     - Embaixo, o status do sistema ao vivo.
-- **Scripts:** peça "cria um script que..." e a IA local escreve o código. Você escolhe a pasta, testa, aprova e pode rodar por voz ou agendar. Veja [Scripts e automações](#scripts-e-automações).
 
 ---
 
@@ -66,7 +64,6 @@ Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho a
 | Bibliotecas Python | ~2,5 GB | `pip install -r requirements.txt` |
 | Ollama + um modelo de IA | ~5 GB | instalador do Ollama + `ollama pull` |
 | Modelos de reconhecimento de voz (Whisper) | ~2,1 GB | `ferramentas\baixar_modelos.py` → pasta `modelos/` |
-| Python separado para os scripts | ~0,2 GB | Botão **Preparar**, na aba **Automações** |
 
 ### Criado no seu PC durante o uso (fora do git)
 
@@ -76,7 +73,6 @@ Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho a
 | `modelos/` | modelos do Whisper |
 | `registros/` | o raciocínio da IA, um arquivo por dia, apagado após 30 dias |
 | `merlin_config.json` | suas preferências (assistente, voz, modelo e apelidos de pastas) |
-| `automacoes/` | seus scripts e o Python separado que os executa |
 
 ---
 
@@ -105,11 +101,11 @@ Baixe outro modelo com `ollama pull` e selecione-o em **Central → Inteligênci
 | Sua máquina | Modelo | Observação |
 |---|---|---|
 | Placa com 8 GB ou mais | `qwen3:8b` | O padrão e o mais testado |
-| Placa com cerca de 6 GB | `qwen2.5:7b` | Bom para entender pedidos; não foi testado para escrever scripts |
+| Placa com cerca de 6 GB | `qwen2.5:7b` | Bom para entender pedidos |
 | Placa fraca ou só processador | `qwen3:4b` | Menor e mais rápido; não foi testado |
 | Muito limitada | `llama3.2` | O mais leve; deve errar mais |
 
-Quanto menor o modelo, maior a chance de errar ao entender pedidos e, principalmente, ao escrever scripts. As memórias indicadas são aproximadas.
+Quanto menor o modelo, maior a chance de errar ao entender pedidos. As memórias indicadas são aproximadas.
 
 ---
 
@@ -129,39 +125,12 @@ Ao abrir, ele calibra o microfone (2 s), carrega os modelos e fica em espera: um
 | "dá play" / "clica em salvar no word" | clica no botão |
 | "qual a capital da França?" | responde |
 | "abre as suas configurações" | abre a Central |
-| "cria um script que lista os 20 maiores arquivos de uma pasta" | escreve o script e guarda na aba Automações |
-| "roda o arquivo pesado" | roda um script aprovado com esse nome, depois de você confirmar |
 | "valeu, pode ir" / "pode desligar" | volta para a espera (a bolinha) |
 
 **Outros comportamentos:**
 - **Inatividade:** depois de 30 s parado, ele volta sozinho para a espera.
 - **Clique:** clicar na bolinha também o ativa.
 - **Botões:** na bolinha, passe o mouse para ver os botões. No cartão, ficam no alto: recolher, microfone e Central.
-
----
-
-## Scripts e automações
-
-Na primeira vez, abra **Central → Automações** e clique em **Preparar** para criar o Python dos scripts. É preciso internet nesse momento.
-
-**Como criar e usar um script:**
-
-1. Peça por voz, usando "script", "código", "python" ou "programa que...": *"cria um script que gera um gráfico com o tamanho dos arquivos de uma pasta"*.
-2. No cartão, clique em **Ver script**. A tela segue estes passos:
-   1. **Escolha a pasta**, se o script usar uma. Comece com uma pasta de teste, com **cópias** dos arquivos.
-   2. **Teste o script** com **Executar** e confira o resultado.
-   3. **Aprove**, dando um nome. Depois você pode dizer *"roda o nome do script"*.
-   4. **Agende**, se quiser: todo dia em um horário, ou uma vez daqui a alguns segundos ou minutos.
-
-Para corrigir, copie o código, ajuste em outra IA, cole de volta na tela e clique em **Salvar alterações**. Se o código mudar, a aprovação cai e ele precisa ser testado de novo.
-
-**Bibliotecas:** os scripts usam um Python só deles, separado do assistente, em `automacoes\python`. Se faltar uma biblioteca, a tela mostra o botão para instalar, sempre com confirmação. Pacotes desconhecidos exigem dupla confirmação; confira a página do pacote antes.
-
-**Agendamento:** só roda com o Merlin aberto e o computador ligado. Se perder o horário, não compensa depois. Ele roda sem pedir confirmação e, ao terminar, avisa por voz e no cartão. O resultado também fica em **Últimas execuções agendadas**, na tela do script.
-
-> **Atenção:** a IA pode errar, e os scripts **não rodam isolados**: eles têm as mesmas permissões que você. A checagem automática recusa scripts que movem, renomeiam ou apagam arquivos, abrem outros programas ou usam a internet, mas não garante que o script esteja certo ou seja seguro. Leia o código, teste com cópias e só aprove o que você conferiu.
-
-**Limites:** cada execução pode durar até 5 minutos, e a tela não aceita digitar respostas para o script (`input()`).
 
 ---
 
@@ -187,7 +156,6 @@ microfone
 | `merlin/ia/` | conversa com o Ollama: intenções, divisão de tarefas, confirmações, conversa, sugestão de assistentes |
 | `merlin/habilidades/` | **uma habilidade por arquivo**: descrição e exemplos para a IA, regras, e qual ação executar |
 | `merlin/acoes/` | o que é feito no Windows: janelas, botões, programas, navegador |
-| `merlin/automacao/` | scripts: checagem do código, armazenamento, Python separado e agendamento |
 | `merlin/personalidades/` | carrega os assistentes (todos em .json): os originais de `recursos/assistentes_padrao/` e os da pasta `assistentes/` |
 | `merlin/voz/` | síntese (Piper), efeitos, reprodução e interrupção |
 | `merlin/nucleo/` | o fluxo de cada pedido, sessão, memória da conversa, raciocínio |
@@ -205,12 +173,11 @@ microfone
 
 ## Privacidade
 
-- **Tudo roda no seu PC:** reconhecimento de voz, IA e síntese de voz. O assistente só usa a internet para **baixar** modelos e bibliotecas, inclusive as que você instalar para os scripts, e para o que você pedir, como pesquisar ou abrir um site.
+- **Tudo roda no seu PC:** reconhecimento de voz, IA e síntese de voz. O assistente só usa a internet para **baixar** modelos e bibliotecas e para o que você pedir, como pesquisar ou abrir um site.
 - **Em espera, o microfone fica aberto:** ele transcreve o que é falado perto apenas para procurar o nome do assistente, e o que não tem o nome é descartado.
 - **O que fica salvo no disco:**
   - `registros/`: o raciocínio de cada pedido, apagado após 30 dias;
-  - `merlin_config.json` e `assistentes/`: as suas preferências;
-  - `automacoes/`: seus scripts, as pastas escolhidas e o resultado das execuções agendadas.
+  - `merlin_config.json` e `assistentes/`: as suas preferências.
 
 ---
 
@@ -236,7 +203,4 @@ Ao criar uma habilidade, acrescente frases dela em `ferramentas/frases_avaliacao
 | A janela não abre | WebView2 Runtime instalado? |
 | Reconhecimento lento | Sem placa NVIDIA, ele usa o modelo `small` no processador. Confira se `modelos\large-v3-turbo` existe. |
 | Não reage ao nome | O anel da bolinha está vermelho? É o mudo: passe o mouse e clique no microfone. Senão, fale o nome do assistente escolhido na Central e veja as palavras de chamada no Editor. |
-| Um script dá erro de biblioteca | Abra o script na aba **Automações** e use o botão de instalar. Se não aparecer, clique em **Preparar** na lista de scripts. |
-| "Algo deu errado" na aba Automações depois de atualizar | Feche e abra o assistente. |
-| Script agendado não rodou | O assistente estava aberto na hora marcada? Veja **Últimas execuções agendadas** na tela do script. |
 | Aviso de `flash-attn` ou `torchaudio` no terminal | Inofensivo. |

@@ -75,8 +75,7 @@ class TestRegistro(unittest.TestCase):
     def test_encontra_todas_as_habilidades_com_conversar_por_ultimo(self):
         nomes = [h.nome for h in HABILIDADES]
         self.assertEqual(set(nomes), {"dispensar", "abrir_configuracoes", "abrir_pasta", "texto_selecionado", "trocar_assistente", "fechar_programa",
-                                      "abrir_programa", "pesquisar_web", "clicar_botao", "conversar",
-                                      "gerar_script", "rodar_script"})
+                                      "abrir_programa", "pesquisar_web", "clicar_botao", "conversar"})
         self.assertEqual(nomes[-1], NOME_CONVERSAR)
 
     def test_tipo_intencao_e_gerado_das_habilidades(self):

@@ -13,19 +13,6 @@ class LocutorFalso:
 class CanalFalso:
     def __init__(self):
         self.eventos = []
-        self.scripts = []
-
-    def script(self, texto):
-        self.scripts.append(texto)
-
-    def confirmar_script(self, texto):
-        self.eventos.append(f"confirmar_script: {texto}")
-
-    def resultado_script(self, texto):
-        self.eventos.append(f"resultado_script: {texto}")
-
-    def abrir_script(self, id_script):
-        self.eventos.append(f"abrir_script: {id_script}")
 
     def mostrar(self):
         self.eventos.append("mostrar")

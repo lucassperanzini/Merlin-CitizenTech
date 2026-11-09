@@ -24,10 +24,6 @@ class TipoEvento(Enum):
     PERSONALIDADE = "personalidade"
     ABRIR_CONFIGURACOES = "abrir_configuracoes"
     RASCUNHO = "rascunho"  # um texto escrito pela IA, no cartão, com os botões Colar, Copiar e Descartar
-    SCRIPT = "script"  # o script foi criado: o cartão mostra a explicação e os botões Ver script e Descartar
-    ABRIR_SCRIPT = "abrir_script"  # abre a aba Automações já no script indicado
-    CONFIRMAR_SCRIPT = "confirmar_script"  # nome e pasta de um script aprovado, com os botões Confirmar e Cancelar
-    RESULTADO_SCRIPT = "resultado_script"  # o que o script mostrou, no cartão
     AVISO = "aviso"  # modo discreto: uma resposta curta num balão ao lado da bolinha, sem abrir o cartão
 
 
@@ -68,18 +64,6 @@ class CanalInterface:
 
     def rascunho(self, texto: str) -> None:
         self._fila.put((TipoEvento.RASCUNHO, texto))
-
-    def script(self, texto: str) -> None:
-        self._fila.put((TipoEvento.SCRIPT, texto))
-
-    def confirmar_script(self, texto: str) -> None:
-        self._fila.put((TipoEvento.CONFIRMAR_SCRIPT, texto))
-
-    def resultado_script(self, texto: str) -> None:
-        self._fila.put((TipoEvento.RESULTADO_SCRIPT, texto))
-
-    def abrir_script(self, id_script: str) -> None:
-        self._fila.put((TipoEvento.ABRIR_SCRIPT, id_script))
 
     def aviso(self, texto: str) -> None:
         self._fila.put((TipoEvento.AVISO, texto))

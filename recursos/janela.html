@@ -587,15 +587,6 @@
     trocaAtual?.querySelector(".digitando")?.remove();
   }
   // Texto escrito pela IA: fica na troca atual, então some sozinho quando a pessoa fala outra coisa
-  function mostrarConfirmacaoScript(texto) {
-    mostrarRascunho(texto, [["confirmar", "Confirmar"], ["descartar", "Cancelar"]]);
-  }
-  function mostrarResultadoScript(texto) {
-    mostrarRascunho(texto, []);
-  }
-  function mostrarScript(texto) {
-    mostrarRascunho(texto, [["confirmar", "Ver script"], ["descartar", "Descartar"]]);
-  }
   function mostrarRascunho(texto, opcoes =[["colar", "Colar"], ["copiar", "Copiar"], ["descartar", "Descartar"]]) {
     if (!trocaAtual) novaTroca();
     trocaAtual.querySelector(".rascunho")?.remove();

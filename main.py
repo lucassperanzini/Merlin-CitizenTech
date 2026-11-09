@@ -19,9 +19,6 @@ from merlin.ia.frases import GeradorFrases
 from merlin.interface.assistentes import ApiAssistentes, ServicoAssistentes
 from merlin.interface.central import ApiCentral, JanelaCentral
 from merlin.interface.configuracoes import ApiConfiguracoes, ServicoConfiguracoes
-from merlin.automacao.agendador import Agendador
-from merlin.automacao.scripts import ArmazemDeScripts
-from merlin.interface.painel_automacoes import ApiAutomacoes, ServicoAutomacoes
 from merlin.interface.painel_habilidades import ApiPainelHabilidades, ServicoPainelHabilidades
 from merlin.interface.eventos import CanalInterface
 from merlin.interface.janela import JanelaMerlin
@@ -85,7 +82,6 @@ def construir_aplicacao() -> Aplicacao:
         assistentes=ApiAssistentes(
             ServicoAssistentes(preferencias, canal, cliente_ia, servico_configuracoes.trocar_personalidade)),
         habilidades=ApiPainelHabilidades(ServicoPainelHabilidades(cliente_ia)),
-        automacoes=ApiAutomacoes(ServicoAutomacoes()),
     ))
 
     processador = ProcessadorComandos(
@@ -108,7 +104,7 @@ def construir_aplicacao() -> Aplicacao:
         transcritor=transcritor,
         ouvinte=ouvinte,
         processador=processador,
-        trabalhador=TrabalhadorComandos(estado, sessao, canal, processador, locutor),
+        trabalhador=TrabalhadorComandos(estado, sessao, canal, processador),
         janela=JanelaMerlin(estado, canal, sessao, preferencias, central,
                             trocar_assistente=servico_configuracoes.trocar_personalidade,
                             raciocinio=ApiRaciocinio(raciocinio, gravador.pasta)),
@@ -131,7 +127,6 @@ def main() -> None:
     logging.getLogger("merlin").setLevel(logging.INFO)  # as bibliotecas só aparecem se algo der errado
     app = construir_aplicacao()
     threading.Thread(target=iniciar_escuta, args=(app,), daemon=True).start()
-    Agendador(ArmazemDeScripts(), avisar=app.trabalhador.avisar).iniciar()
     app.janela.executar()
     os._exit(0)  # as threads de áudio não têm como ser interrompidas de forma limpa
 

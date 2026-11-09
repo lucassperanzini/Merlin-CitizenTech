@@ -29,9 +29,6 @@ ARQ_CONFIGURACOES = PASTA_RAIZ / "recursos" / "configuracoes.html"
 ARQ_RACIOCINIO = PASTA_RAIZ / "recursos" / "raciocinio.html"
 ARQ_ASSISTENTES = PASTA_RAIZ / "recursos" / "assistentes.html"
 ARQ_HABILIDADES = PASTA_RAIZ / "recursos" / "habilidades.html"
-ARQ_AUTOMACOES = PASTA_RAIZ / "recursos" / "automacoes.html"
-PASTA_SCRIPTS = PASTA_RAIZ / "automacoes" / "scripts"  # scripts escritos pela IA que a pessoa decidiu salvar
-PASTA_PYTHON_SCRIPTS = PASTA_RAIZ / "automacoes" / "python"  # Python só dos scripts, separado do Python do Merlin
 PASTA_SKILLS = PASTA_RAIZ / "skills"  # ajustes das skills feitos na Central (um .json por skill ajustada)
 PASTA_ASSISTENTES = PASTA_RAIZ / "assistentes"  # assistentes criados ou ajustados no configurador (um .json cada)
 # Os originais (Merlin e Jarvis): o padrão para "Restaurar original". Não podem ser excluídos pela interface.

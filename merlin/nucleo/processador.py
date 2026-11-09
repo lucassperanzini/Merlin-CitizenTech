@@ -141,8 +141,6 @@ class ProcessadorComandos:
             self._responder([self._registrar_acao(pendencia.ao_confirmar())], comando)
             return True
         if resposta is RespostaConfirmacao.NAO:
-            if pendencia.ao_recusar:
-                pendencia.ao_recusar()
             self._raciocinio.registrar(TipoPasso.FALA, pendencia.resposta_recusa)
             self._locutor.falar(pendencia.resposta_recusa)
             return True
