@@ -12,7 +12,7 @@ PAUSA_FIM_FRASE = 1.0  # segundos sem voz humana que encerram a frase: mais curt
                        # mais longo deixa pausar para pensar no meio do pedido
 MAX_TROCAS_LEMBRADAS = 6  # quantas perguntas e respostas da conversa atual o Merlin lembra
 
-MODELO_IA = "qwen2.5:8b"  # padrão; a escolha feita nas configurações fica salva nas preferências
+MODELO_IA = "qwen3:8b"  # padrão; a escolha feita nas configurações fica salva nas preferências
 # Até este número de habilidades, a IA escolhe a intenção de uma vez; acima, em duas etapas (grupo e depois
 # intenção), para cada pergunta continuar curta. Veja ferramentas/avaliar_classificador.py.
 LIMITE_UMA_ETAPA = 12
@@ -33,6 +33,9 @@ ARQ_CONFIGURACOES = PASTA_RAIZ / "recursos" / "configuracoes.html"
 ARQ_RACIOCINIO = PASTA_RAIZ / "recursos" / "raciocinio.html"
 ARQ_ASSISTENTES = PASTA_RAIZ / "recursos" / "assistentes.html"
 ARQ_HABILIDADES = PASTA_RAIZ / "recursos" / "habilidades.html"
+ARQ_AUTOMACOES = PASTA_RAIZ / "recursos" / "automacoes.html"
+PASTA_SCRIPTS = PASTA_RAIZ / "automacoes" / "scripts"  # scripts escritos pela IA que a pessoa decidiu salvar
+PASTA_PYTHON_SCRIPTS = PASTA_RAIZ / "automacoes" / "python"  # Python só dos scripts, separado do Python do Merlin
 PASTA_SKILLS = PASTA_RAIZ / "skills"  # ajustes das skills feitos na Central (um .json por skill ajustada)
 PASTA_ASSISTENTES = PASTA_RAIZ / "assistentes"  # assistentes criados ou ajustados no configurador (um .json cada)
 # Os originais (Merlin e Jarvis): o padrão para "Restaurar original". Não podem ser excluídos pela interface.

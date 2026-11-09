@@ -6,3 +6,9 @@ modelos/
 # Gerados durante o uso: registros do raciocínio e amostras de vozes clonadas (dados pessoais)
 registros/
 vozes/clonadas/
+# As automações da pessoa e o que cada uma mudou: têm caminhos de arquivos pessoais
+automacoes/
+# Assistente pessoal: fica só neste computador (usa uma voz clonada)
+assistentes/rick.json
+# Preferências de cada pessoa: têm caminhos de pastas pessoais
+merlin_config.json

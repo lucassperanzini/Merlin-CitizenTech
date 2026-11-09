@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Automações</title>
+<style>
+  /* Duas telas, uma por vez: a lista de scripts e os detalhes de um script. */
+  :root {
+    --fundo: #05070c; --painel: #0b1019; --campo: #0e1522; --borda: #1b2638; --texto: #dbe6ff;
+    --suave: #8a97b3; --destaque: #35d6ff; --aviso: #ffb648; --nao: #ff8a7a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { overflow-y: auto; padding: 18px 22px 24px; background: var(--fundo); color: var(--texto);
+         font: 14px/1.45 "Segoe UI", system-ui, sans-serif; scrollbar-width: thin; scrollbar-color: var(--borda) transparent; }
+  body.ocupado button { pointer-events: none; opacity: .6; }
+  [hidden] { display: none !important; }
+  h1 { margin: 0 0 4px; font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+  h2 { margin: 22px 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--suave); }
+  p { margin: 0 0 10px; color: var(--suave); font-size: 13px; }
+  button { font: inherit; color: var(--texto); padding: 7px 14px; border-radius: 7px; border: 1px solid var(--borda); background: var(--campo); cursor: pointer; white-space: nowrap; }
+  button:hover { border-color: var(--destaque); }
+  button.principal { background: var(--destaque); border-color: var(--destaque); color: #05070c; font-weight: 600; }
+  button.perigo { color: var(--nao); }
+  button:focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
+  .linha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .caminho { flex: 1; min-width: 0; font: 12.5px "Cascadia Mono", Consolas, monospace; color: var(--suave);
+             overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin-bottom: 6px; background: var(--painel); border-radius: 8px; }
+  .script { padding: 12px 14px; margin-bottom: 8px; background: var(--painel); border-radius: 10px; }
+  .script strong { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+  .script small { display: block; margin: 2px 0 10px; color: var(--suave); font-size: 12.5px; }
+  .vazio { padding: 12px; border: 1px dashed var(--borda); border-radius: 8px; color: var(--suave); font-size: 13px; }
+  .rodape { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  #mensagem { min-height: 20px; margin-top: 12px; font-size: 13px; color: var(--suave); overflow-wrap: anywhere; }
+  #mensagem.erro { color: var(--nao); }
+  input { flex: 1; min-width: 0; font: inherit; color: var(--texto); padding: 7px 10px; background: var(--campo); border: 1px solid var(--borda); border-radius: 7px; }
+  input:focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
+  #texto-preparar, .falta-texto { flex: 1; min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+  .falta-texto.desconhecida { color: var(--aviso); }
+  .item.falta { flex-wrap: wrap; }
+  /* Os passos se numeram sozinhos: sem pasta para escolher, "Teste o script" vira o passo 1 */
+  #tela-script { counter-reset: passo; }
+  h2.passo::before { counter-increment: passo; content: counter(passo) ". "; color: var(--destaque); }
+  #resultado { margin-top: 10px; }
+  #resultado h2 { margin-top: 0; }
+  select { font: inherit; color: var(--texto); padding: 7px 10px; background: var(--campo); border: 1px solid var(--borda); border-radius: 7px; }
+  select:focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
+  #uma-vez-texto { flex: 1; min-width: 0; font-size: 13px; color: var(--destaque); }
+  #bloco-uma-vez { flex-wrap: wrap; }
+  #uma-vez-quantidade { flex: 0 1 80px; }
+  .rotulo { font-size: 13px; color: var(--suave); white-space: nowrap; }
+  #script-agenda { flex: 1; min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+  #script-agenda.parado { color: var(--aviso); }
+  .execucao { padding: 8px 12px; margin-bottom: 6px; background: var(--painel); border-radius: 8px; font-size: 12.5px; }
+  .execucao b { font-weight: 600; }
+  .execucao.falhou b { color: var(--nao); }
+  .execucao pre { margin: 4px 0 0; font: 12px/1.45 "Cascadia Mono", Consolas, monospace; color: var(--suave); white-space: pre-wrap; overflow-wrap: anywhere; }
+  #script-aprovado { flex: 1; min-width: 0; font-size: 13px; color: var(--destaque); overflow-wrap: anywhere; }
+  #script-explicacao { color: var(--texto); font-size: 14px; }
+  #script-avisos { margin: 0; padding-left: 20px; font-size: 13px; color: var(--aviso); }
+  #script-codigo, #resultado-texto { display: block; width: 100%; margin: 0; padding: 12px; overflow: auto; background: var(--painel); color: var(--texto);
+                   border: 1px solid var(--borda); border-radius: 10px; font: 12.5px/1.5 "Cascadia Mono", Consolas, monospace; white-space: pre; tab-size: 4; }
+  #script-codigo { height: 340px; resize: vertical; }
+  #script-codigo:focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
+  #resultado-texto { max-height: 240px; user-select: text; }
+  #resultado-titulo.ok { color: var(--destaque); }
+  #resultado-titulo.falhou { color: var(--nao); }
+</style>
+</head>
+<body>
+  <section id="tela-lista">
+    <h1>Scripts criados pela IA</h1>
+    <p>Peça por voz, por exemplo: “cria um script que lista os maiores arquivos”. Eles ficam aqui e só rodam quando você clicar em Executar.</p>
+    <div class="item" id="bloco-preparar" hidden>
+      <span id="texto-preparar">O Python dos scripts ainda não está pronto.</span>
+      <button id="preparar" class="principal" type="button">Preparar</button>
+    </div>
+    <div id="scripts"></div>
+  </section>
+
+  <section id="tela-script" hidden>
+    <h1 id="script-titulo"></h1>
+    <h2>O que ele faz</h2>
+    <p id="script-explicacao"></p>
+    <h2 id="script-avisos-titulo">Avisos</h2>
+    <ul id="script-avisos"></ul>
+    <div id="bloco-faltando">
+      <h2>Bibliotecas que faltam</h2>
+      <div id="script-faltando"></div>
+    </div>
+    <div id="script-bloco-pasta">
+      <h2 class="passo">Escolha a pasta</h2>
+      <div class="item">
+        <span class="caminho" id="script-pasta"></span>
+        <button id="script-escolher" class="principal" type="button">Escolher pasta</button>
+      </div>
+    </div>
+    <h2 class="passo">Teste o script</h2>
+    <p id="testar-bloqueado">Escolha a pasta no passo acima para poder testar.</p>
+    <div class="linha" id="script-testar"></div>
+    <div id="resultado" hidden>
+      <h2 id="resultado-titulo"></h2>
+      <pre id="resultado-texto" tabindex="0"></pre>
+    </div>
+    <h2 class="passo">Aprove</h2>
+    <p id="aprovar-bloqueado">Teste o script primeiro. Só dá para aprovar depois que ele rodar sem erro.</p>
+    <div id="bloco-aprovar">
+      <p>Deu certo? Dê um nome e aprove. Depois você pode rodar por voz e agendar.</p>
+      <div class="item">
+        <input id="script-nome" maxlength="40" placeholder="Nome do script, ex.: arquivo pesado" aria-label="Nome do script">
+        <button id="script-aprovar" class="principal" type="button">Aprovar</button>
+      </div>
+    </div>
+    <div class="item" id="bloco-aprovado">
+      <span id="script-aprovado"></span>
+      <button id="script-desaprovar" type="button">Remover aprovação</button>
+    </div>
+    <h2 class="passo">Agende (opcional)</h2>
+    <p id="agendar-bloqueado">Aprove o script no passo acima para poder agendar.</p>
+    <p id="agendar-explica">Roda sozinho, sem pedir confirmação, se o Merlin estiver aberto na hora marcada.</p>
+    <div class="item" id="bloco-uma-vez">
+      <span class="rotulo">Uma vez, daqui a</span>
+      <input id="uma-vez-quantidade" type="number" min="1" value="30" aria-label="Quantidade de tempo">
+      <select id="uma-vez-unidade" aria-label="Unidade de tempo">
+        <option value="segundos">segundos</option>
+        <option value="minutos">minutos</option>
+      </select>
+      <button id="uma-vez-agendar" class="principal" type="button">Rodar uma vez</button>
+    </div>
+    <div class="item" id="bloco-uma-vez-ativo">
+      <span id="uma-vez-texto"></span>
+      <button id="uma-vez-cancelar" type="button">Cancelar</button>
+    </div>
+    <div class="item" id="bloco-agendar">
+      <span class="rotulo">Todo dia às</span>
+      <input id="script-hora" type="time" aria-label="Horário">
+      <button id="script-agendar" class="principal" type="button">Agendar</button>
+    </div>
+    <div class="item" id="bloco-agendado">
+      <span id="script-agenda"></span>
+      <button id="script-pausar" type="button"></button>
+      <button id="script-remover-agenda" type="button">Remover</button>
+    </div>
+    <div id="bloco-historico">
+      <h2>Últimas execuções agendadas</h2>
+      <div id="script-historico"></div>
+    </div>
+    <h2>Código</h2>
+    <p>Para corrigir, cole aqui o código novo e clique em Salvar alterações.</p>
+    <textarea id="script-codigo" spellcheck="false" wrap="off" aria-label="Código do script"></textarea>
+    <div class="rodape" id="script-rodape"></div>
+  </section>
+
+  <div id="mensagem" role="status" aria-live="polite"></div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const api = () => window.pywebview.api;
+  let estado = { scripts: [] };
+  let scriptAberto = null, ocupado = false;
+
+  function elemento(tag, propriedades = {}, ...filhos) {
+    const novo = Object.assign(document.createElement(tag), propriedades);
+    novo.append(...filhos);
+    return novo;
+  }
+  const botao = (texto, aoClicar, classe = "") => elemento("button", { type: "button", textContent: texto, className: classe, onclick: aoClicar });
+
+  function avisar(texto = "", erro = false) {
+    $("mensagem").textContent = texto;
+    $("mensagem").classList.toggle("erro", erro);
+  }
+  function tela(nome) {
+    for (const t of ["lista", "script"]) $(`tela-${t}`).hidden = t !== nome;
+    window.scrollTo(0, 0);
+  }
+  async function agir(fn) {
+    if (ocupado) return;
+    ocupado = true;
+    document.body.classList.add("ocupado");
+    try { await fn(); }
+    catch (e) { avisar("Algo deu errado nessa ação.", true); }
+    finally { ocupado = false; document.body.classList.remove("ocupado"); }
+  }
+  function receber(r) {
+    estado = r;
+    desenharScripts();
+  }
+  function confirmando(texto, aoConfirmar, classe, pedido = "Clique de novo para confirmar") {
+    const b = botao(texto, () => {
+      if (b.dataset.armado) { delete b.dataset.armado; b.textContent = texto; return aoConfirmar(); }
+      b.dataset.armado = "1";
+      b.textContent = pedido;
+    }, classe);
+    return b;
+  }
+  const scriptAtual = () => estado.scripts.find(x => x.id === scriptAberto);
+  const modificado = () => scriptAtual()?.codigo !== $("script-codigo").value;
+  function barrarSeModificado() {
+    if (modificado()) avisar("Salve as alterações do código primeiro.", true);
+    return modificado();
+  }
+  function mostrarResultado(r) {
+    const titulo = r.tempo_esgotado ? "Parou: passou do tempo limite" : r.ok ? `Terminou sem erro em ${r.segundos} s` : "O script deu erro";
+    $("resultado-titulo").textContent = titulo;
+    $("resultado-titulo").className = r.ok ? "ok" : "falhou";
+    $("resultado-texto").textContent = [r.saida, r.erros].filter(Boolean).join("\n") || "O script não mostrou nenhuma mensagem.";
+    $("resultado").hidden = false;
+    $("resultado").scrollIntoView();
+  }
+
+  function instalar(f) {
+    agir(async () => {
+      if (barrarSeModificado()) return;
+      avisar(`Instalando ${f.pacote}… pode levar alguns minutos.`);
+      const r = await api().instalar_biblioteca(scriptAberto, f.modulo);
+      if (r.erro) return avisar(r.erro, true);
+      receber(r);
+      abrirScript(scriptAberto);
+      avisar(`${f.pacote} instalado. Agora você pode clicar em Executar.`);
+    });
+  }
+  function desenharFaltando(s) {
+    $("bloco-faltando").hidden = !s.faltando.length;
+    $("script-faltando").replaceChildren(...s.faltando.map(f => {
+      const linha = elemento("div", { className: "item falta" });
+      if (f.conhecida) {
+        linha.append(elemento("span", { className: "falta-texto", textContent: `Este script precisa de ${f.pacote}.` }),
+                     confirmando(`Instalar ${f.pacote}`, () => instalar(f), "principal", `Confirmar: instalar ${f.pacote}`));
+      } else {
+        linha.append(elemento("span", { className: "falta-texto desconhecida", textContent: `Não conheço “${f.pacote}”. Confira a página antes de instalar: um nome parecido pode ser de outro pacote.` }),
+                     botao("Ver página do pacote", () => agir(async () => {
+                       const r = await api().abrir_pagina_pacote(scriptAberto, f.modulo);
+                       if (r.erro) avisar(r.erro, true);
+                     })),
+                     confirmando("Instalar mesmo assim", () => instalar(f), "perigo", `Tenho certeza: instalar ${f.pacote}`));
+      }
+      return linha;
+    }));
+  }
+  function desenharScripts() {
+    $("bloco-preparar").hidden = estado.python_pronto !== false;
+    const cartoes = estado.scripts.map(s => elemento("div", { className: "script" },
+      elemento("strong", { textContent: s.pedido }),
+      elemento("small", { textContent: (s.aprovado ? `${s.quando} · aprovado como “${s.aprovado}”`
+        : s.aceita_pasta ? `${s.quando} · ${s.pasta ? "pasta escolhida" : "sem pasta escolhida"}` : s.quando)
+        + (s.agenda ? ` · ${s.agenda.ativa ? "todo dia às" : "pausado,"} ${s.agenda.hora}` : "") }),
+      elemento("div", { className: "linha" }, botao("Ver script", () => abrirScript(s.id), "principal"))));
+    $("scripts").replaceChildren(...(cartoes.length ? cartoes : [elemento("div", { className: "vazio", textContent: "Nenhum script ainda." })]));
+  }
+  function abrirScript(id) {
+    const s = estado.scripts.find(x => x.id === id);
+    if (!s) { tela("lista"); return avisar("Esse script não existe mais.", true); }
+    scriptAberto = id;
+    $("script-titulo").textContent = s.pedido;
+    $("script-explicacao").textContent = s.explicacao || "Este script foi salvo antes de eu guardar as explicações.";
+    $("script-avisos").replaceChildren(...s.avisos.map(a => elemento("li", { textContent: a })));
+    $("script-avisos").hidden = $("script-avisos-titulo").hidden = !s.avisos.length;
+    $("script-bloco-pasta").hidden = !s.aceita_pasta;
+    $("script-pasta").textContent = s.pasta || "Nenhuma pasta escolhida";
+    $("script-pasta").title = s.pasta;
+    $("script-codigo").value = s.codigo;
+    $("resultado").hidden = true;
+    $("script-nome").value = "";
+    $("script-hora").value = s.hora_sugerida;
+    desenharFaltando(s);
+    desenharPassos(s);
+    const semPasta = s.aceita_pasta && !s.pasta;
+    $("testar-bloqueado").hidden = !semPasta;
+    $("script-testar").hidden = semPasta;
+    $("script-testar").replaceChildren(
+      confirmando("Executar", () => {
+        if (barrarSeModificado()) return;
+        agir(async () => {
+          avisar("Executando… pode levar até 5 minutos.");
+          const r = await api().executar_script(id);
+          if (r.erro) return avisar(r.erro, true);
+          avisar();
+          receber(await api().estado());
+          desenharPassos(scriptAtual());  // sem reabrir a tela, para o resultado continuar visível
+          mostrarResultado(r);
+        });
+      }, "principal", s.pasta ? `Confirmar: rodar em ${s.pasta}` : "Clique de novo para rodar"));
+    $("script-rodape").replaceChildren(
+      botao("Salvar alterações", () => agir(async () => {
+        const r = await api().salvar_codigo_script(id, $("script-codigo").value);
+        if (r.erro) return avisar(r.erro, true);
+        receber(r);
+        abrirScript(id);
+        avisar("Código salvo.");
+      })),
+      botao("Copiar código", () => agir(async () => {
+        if (barrarSeModificado()) return;
+        const r = await api().copiar_script(id);
+        avisar(r.erro || "Código copiado.", !!r.erro);
+      })),
+      confirmando("Apagar", () => agir(async () => {
+        const r = await api().apagar_script(id);
+        if (r.erro) return avisar(r.erro, true);
+        receber(r);
+        tela("lista");
+        avisar("Script apagado.");
+      }), "perigo"),
+      botao("Voltar", () => { scriptAberto = null; avisar(); tela("lista"); }));
+    tela("script");
+  }
+  // Cada passo só aparece quando o anterior está feito; no lugar dele, uma frase diz o que falta
+  function desenharPassos(s) {
+    $("aprovar-bloqueado").hidden = s.aprovado || s.testado;
+    $("bloco-aprovar").hidden = !!s.aprovado || !s.testado;
+    $("bloco-aprovado").hidden = !s.aprovado;
+    $("script-aprovado").textContent = s.aprovado ? `Aprovado como “${s.aprovado}”. Para rodar por voz, diga: “roda ${s.aprovado}”.` : "";
+    const parada = s.agenda && !s.aprovado;
+    $("agendar-bloqueado").hidden = !!s.agenda || !!s.aprovado;
+    $("agendar-explica").hidden = !s.aprovado && !s.agenda;
+    $("bloco-agendar").hidden = !!s.agenda || !s.aprovado;
+    $("bloco-agendado").hidden = !s.agenda;
+    $("bloco-uma-vez").hidden = !s.aprovado || !!s.unica;
+    $("bloco-uma-vez-ativo").hidden = !s.unica;
+    $("uma-vez-texto").textContent = s.unica ? `Vai rodar uma vez às ${new Date(s.unica.em * 1000).toLocaleTimeString("pt-BR")}.` : "";
+    $("script-agenda").textContent = !s.agenda ? "" : parada ? `Às ${s.agenda.hora}: não vai rodar, porque o código mudou. Aprove de novo.`
+      : s.agenda.ativa ? `Todo dia às ${s.agenda.hora}${s.agenda.pasta ? ` em ${s.agenda.pasta}` : ""}` : `Pausado (${s.agenda.hora})`;
+    $("script-agenda").className = parada || (s.agenda && !s.agenda.ativa) ? "parado" : "";
+    $("script-pausar").textContent = s.agenda?.ativa ? "Pausar" : "Retomar";
+    $("bloco-historico").hidden = !s.historico.length;
+    $("script-historico").replaceChildren(...s.historico.map(h => elemento("div", { className: "execucao" + (h.ok ? "" : " falhou") },
+      elemento("b", { textContent: `${h.quando} · ${h.ok ? "sem erro" : "com erro"}` }), elemento("pre", { textContent: h.resumo }))));
+  }
+  $("script-escolher").onclick = () => agir(async () => {
+    if (barrarSeModificado()) return;
+    const c = await api().escolher_pasta();
+    if (!c) return;
+    const r = await api().definir_pasta_script(scriptAberto, c);
+    if (r.erro) return avisar(r.erro, true);
+    receber(r);
+    abrirScript(scriptAberto);
+    avisar("Pasta colocada no script. Nada foi executado.");
+  });
+  function mudarAprovacao(chamada, mensagem) {
+    agir(async () => {
+      if (barrarSeModificado()) return;
+      const r = await chamada();
+      if (r.erro) return avisar(r.erro, true);
+      receber(r);
+      abrirScript(scriptAberto);
+      avisar(mensagem);
+    });
+  }
+  $("script-aprovar").onclick = () => mudarAprovacao(() => api().aprovar_script(scriptAberto, $("script-nome").value), "Script aprovado.");
+  $("script-desaprovar").onclick = () => mudarAprovacao(() => api().desaprovar_script(scriptAberto), "Aprovação removida.");
+  $("preparar").onclick = () => agir(async () => {
+    avisar("Preparando o Python dos scripts… pode levar alguns minutos.");
+    const r = await api().preparar_python();
+    if (r.erro) return avisar(r.erro, true);
+    receber(r);
+    avisar("Python dos scripts pronto.");
+  });
+  $("uma-vez-agendar").onclick = () => mudarAprovacao(() => api().agendar_unico_script(scriptAberto, $("uma-vez-quantidade").value, $("uma-vez-unidade").value), "Marcado. Ele roda sozinho uma vez.");
+  $("uma-vez-cancelar").onclick = () => mudarAprovacao(() => api().cancelar_unico_script(scriptAberto), "Cancelado.");
+  $("script-agendar").onclick = () => mudarAprovacao(() => api().agendar_script(scriptAberto, $("script-hora").value), "Agendado. Ele roda sozinho nesse horário.");
+  $("script-pausar").onclick = () => {
+    const ativa = scriptAtual().agenda.ativa;
+    mudarAprovacao(() => api().pausar_agenda_script(scriptAberto, ativa), ativa ? "Agendamento pausado." : "Agendamento retomado.");
+  };
+  $("script-remover-agenda").onclick = () => mudarAprovacao(() => api().remover_agenda_script(scriptAberto), "Agendamento removido.");
+  // A Central chama isto sempre que a aba fica visível: mostra os scripts novos e atende o botão "Ver script" do cartão
+  window.aoAbrir = () => agir(async () => {
+    receber(await api().estado());
+    const pedido = await api().script_pedido();
+    if (pedido) { avisar(); abrirScript(pedido); }
+  });
+
+  window.addEventListener("pywebviewready", () => window.aoAbrir());
+</script>
+</body>
+</html>

@@ -64,7 +64,7 @@ class Cliente:
         assert "tocar_musica" in mensagens[0]["content"]
         return json.dumps({"alvo": "legião", "intencao": "tocar_musica", "busca": "", "local": "", "artista": "legião"})
 
-intencao = ClassificadorIntencao(Cliente()).classificar("toca legião")
+intencao = ClassificadorIntencao(Cliente(), duas_etapas=False).classificar("toca legião")
 acoes = main.construir_acoes(Recursos(*(None,) * 7))
 print(intencao.tipo.value, intencao.campos["artista"], acoes[intencao.tipo](intencao),
       TipoIntencao.TOCAR_MUSICA in ACOES_NO_COMPUTADOR)
@@ -75,7 +75,8 @@ class TestRegistro(unittest.TestCase):
     def test_encontra_todas_as_habilidades_com_conversar_por_ultimo(self):
         nomes = [h.nome for h in HABILIDADES]
         self.assertEqual(set(nomes), {"dispensar", "abrir_configuracoes", "abrir_pasta", "texto_selecionado", "trocar_assistente", "fechar_programa",
-                                      "abrir_programa", "pesquisar_web", "clicar_botao", "conversar"})
+                                      "abrir_programa", "pesquisar_web", "clicar_botao", "conversar",
+                                      "gerar_script", "rodar_script"})
         self.assertEqual(nomes[-1], NOME_CONVERSAR)
 
     def test_tipo_intencao_e_gerado_das_habilidades(self):

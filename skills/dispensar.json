@@ -1,0 +1,54 @@
+{
+  "titulo": "Dispensar o assistente",
+  "descricao": "a pessoa se despede do Merlin, agradece encerrando a conversa, diz que já terminou ou que não precisa mais dele, ou manda ele sair, descansar ou desligar, mesmo com gíria",
+  "exemplos": [
+    {
+      "frase": "obrigado, pode ir",
+      "alvo": "merlin",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "terminamos aqui",
+      "alvo": "merlin",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "vai lá, depois te chamo",
+      "alvo": "merlin",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "boa noite",
+      "alvo": "merlin",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "cai fora",
+      "alvo": "merlin",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "fecha a janela",
+      "alvo": "merlin",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "pode fechar esta janela",
+      "alvo": "merlin",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "diga adeus para a maria",
+      "alvo": "maria",
+      "intencao": "conversar",
+      "campos": {}
+    }
+  ]
+}

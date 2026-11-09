@@ -108,10 +108,12 @@ class ApiJanela:
         if self._estado:
             self._estado.registrar_atividade()
         if pendencia is None:
-            return "O prazo acabou. Peça o texto de novo."
-        if acao == "descartar":
-            return ""
+            return "O prazo acabou. Peça de novo."
         try:
+            if acao == "descartar":
+                if pendencia.ao_recusar:
+                    pendencia.ao_recusar()
+                return ""
             if acao == "copiar" and pendencia.copiar:
                 pendencia.copiar()
                 return "Copiado para a área de transferência."
@@ -218,12 +220,20 @@ class JanelaMerlin:
                 self._compactar_pagina()  # o visual novo também entra no modo da bolinha
         elif tipo is TipoEvento.ABRIR_CONFIGURACOES:
             self._central.abrir_aba("assistente")
+        elif tipo is TipoEvento.CONFIRMAR_SCRIPT and self._visivel:
+            self._chamar_pagina("mostrarConfirmacaoScript", dado)
+        elif tipo is TipoEvento.RESULTADO_SCRIPT and self._visivel:
+            self._chamar_pagina("mostrarResultadoScript", dado)
+        elif tipo is TipoEvento.ABRIR_SCRIPT:
+            self._central.abrir_script(dado)
         elif tipo is TipoEvento.ESTADO and self._visivel:
             self._chamar_pagina("definirEstado", dado.value)
         elif tipo is TipoEvento.ESTADO and self._compacta:  # modo discreto: a bolinha pensa e fala sem abrir
             self._chamar_pagina("definirEstadoBolinha", dado.value)
         elif tipo is TipoEvento.RASCUNHO and self._visivel:
             self._chamar_pagina("mostrarRascunho", dado)
+        elif tipo is TipoEvento.SCRIPT and self._visivel:
+            self._chamar_pagina("mostrarScript", dado)
         elif tipo is TipoEvento.AVISO and self._compacta:
             self._chamar_pagina("mostrarBalao", dado)
         elif tipo is TipoEvento.LEGENDA and self._visivel:

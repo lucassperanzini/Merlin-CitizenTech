@@ -1,0 +1,72 @@
+{
+  "titulo": "Usar o texto selecionado",
+  "descricao": "a pessoa manda fazer algo com um texto que está selecionado na tela: corrigir, traduzir, reescrever, resumir, explicar, responder ou ler em voz alta, usando palavras como isso, esse texto, esse e-mail ou esse trecho. O alvo é sempre texto.",
+  "exemplos": [
+    {
+      "frase": "corrige isso",
+      "alvo": "texto",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "traduz esse texto para inglês",
+      "alvo": "texto",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "resume isso pra mim",
+      "alvo": "texto",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "explica esse trecho",
+      "alvo": "texto",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "lê isso para mim",
+      "alvo": "texto",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "me dá um resumo desse texto",
+      "alvo": "texto",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "deixa isso mais formal",
+      "alvo": "texto",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "responde esse email dizendo que aceito",
+      "alvo": "texto",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "explique de forma simples o que está no texto",
+      "alvo": "texto",
+      "intencao": null,
+      "campos": {}
+    },
+    {
+      "frase": "resume a história do brasil",
+      "alvo": "história do brasil",
+      "intencao": "conversar",
+      "campos": {}
+    },
+    {
+      "frase": "traduz bom dia para inglês",
+      "alvo": "bom dia",
+      "intencao": "conversar",
+      "campos": {}
+    }
+  ]
+}

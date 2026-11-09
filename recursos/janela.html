@@ -587,7 +587,16 @@
     trocaAtual?.querySelector(".digitando")?.remove();
   }
   // Texto escrito pela IA: fica na troca atual, então some sozinho quando a pessoa fala outra coisa
-  function mostrarRascunho(texto) {
+  function mostrarConfirmacaoScript(texto) {
+    mostrarRascunho(texto, [["confirmar", "Confirmar"], ["descartar", "Cancelar"]]);
+  }
+  function mostrarResultadoScript(texto) {
+    mostrarRascunho(texto, []);
+  }
+  function mostrarScript(texto) {
+    mostrarRascunho(texto, [["confirmar", "Ver script"], ["descartar", "Descartar"]]);
+  }
+  function mostrarRascunho(texto, opcoes =[["colar", "Colar"], ["copiar", "Copiar"], ["descartar", "Descartar"]]) {
     if (!trocaAtual) novaTroca();
     trocaAtual.querySelector(".rascunho")?.remove();
     const caixa = document.createElement("div");
@@ -597,10 +606,11 @@
     escrito.textContent = texto;
     const botoes = document.createElement("div");
     botoes.className = "botoes";
-    for (const [acao, rotulo] of [["colar", "Colar"], ["copiar", "Copiar"], ["descartar", "Descartar"]]) {
+    for (const [acao, rotulo] of opcoes) {
       const botao = document.createElement("button");
       botao.type = "button";
       botao.textContent = rotulo;
+      if (acao === "confirmar") botao.className = "principal";
       if (acao === "colar") {
         botao.className = "principal";
         botao.title = "Clique antes no campo onde o texto deve entrar";

@@ -16,6 +16,7 @@ class Pendencia:
     resposta_recusa: str
     expira_em: float
     copiar: Callable[[], object] | None = None  # botão Copiar do cartão, quando a ação oferece essa saída
+    ao_recusar: Callable[[], object] | None = None  # o que limpar quando a pessoa diz não ou descarta
 
 
 class Sessao:
