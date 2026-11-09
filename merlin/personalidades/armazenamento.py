@@ -1,4 +1,4 @@
-"""Assistentes criados ou ajustados no configurador: cada um é um arquivo .json em assistentes/.
+"""Assistentes criados ou ajustados no configurador: cada um é um arquivo .json em assistentes_citizentech/.
 
 Um arquivo com o id de um assistente original (merlin, jarvis, em recursos/assistentes_padrao/) é um ajuste dele:
 vale no lugar do original, e apagar o arquivo restaura o padrão. Um id novo é um assistente novo.

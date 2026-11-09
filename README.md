@@ -52,7 +52,7 @@ Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho a
 | **Vozes do Piper** em português (Faber, Cadu, Jeff; ~63 MB cada) | `vozes/*.onnx` |
 | Ferramentas (baixar modelos, avaliar a IA, gerar sons) | `ferramentas/` |
 | Testes automáticos | `tests/` |
-| Ajustes dos assistentes originais | `assistentes/*.json` |
+| Ajustes dos assistentes originais | `assistentes_citizentech/*.json` |
 | Ajustes das habilidades | `skills/*.json` |
 | Amostras de áudio usadas para comparar as vozes do mago (não são necessárias para rodar) | `amostras_mago/` |
 
@@ -156,7 +156,7 @@ microfone
 | `merlin/ia/` | conversa com o Ollama: intenções, divisão de tarefas, confirmações, conversa, sugestão de assistentes |
 | `merlin/habilidades/` | **uma habilidade por arquivo**: descrição e exemplos para a IA, regras, e qual ação executar |
 | `merlin/acoes/` | o que é feito no Windows: janelas, botões, programas, navegador |
-| `merlin/personalidades/` | carrega os assistentes (todos em .json): os originais de `recursos/assistentes_padrao/` e os da pasta `assistentes/` |
+| `merlin/personalidades/` | carrega os assistentes (todos em .json): os originais de `recursos/assistentes_padrao/` e os da pasta `assistentes_citizentech/` |
 | `merlin/voz/` | síntese (Piper), efeitos, reprodução e interrupção |
 | `merlin/nucleo/` | o fluxo de cada pedido, sessão, memória da conversa, raciocínio |
 | `merlin/interface/` | janelas: a principal (bolinha e cartão) e a Central (ajustes, editor, habilidades) |
@@ -165,7 +165,7 @@ microfone
 
 ### Personalizar
 
-- **Assistentes:** pela aba **Editor** da Central. Lá você define nome, palavras de chamada, voz, aparência, quem ele é, como ele fala, frases prontas e expressões típicas. A IA local pode sugerir o resto a partir de "Quem ele é". Todos os assistentes são arquivos .json no mesmo formato: os originais (Merlin e Jarvis) em `recursos/assistentes_padrao/`, e os seus e os ajustes dos originais em `assistentes/`.
+- **Assistentes:** pela aba **Editor** da Central. Lá você define nome, palavras de chamada, voz, aparência, quem ele é, como ele fala, frases prontas e expressões típicas. A IA local pode sugerir o resto a partir de "Quem ele é". Todos os assistentes são arquivos .json no mesmo formato: os originais (Merlin e Jarvis) em `recursos/assistentes_padrao/`, e os seus e os ajustes dos originais em `assistentes_citizentech/`.
 - **Habilidades:** crie um arquivo em `merlin/habilidades/` (veja um vizinho como modelo) e a ação em `merlin/acoes/`. Ela entra sozinha no que a IA lê e nas ações, e aparece na aba Skills da Central, onde você pode ajustar o título, a descrição e os exemplos (ficam em `skills/*.json`).
 - **Ajustes técnicos:** em `merlin/config.py`, por exemplo a pausa que encerra uma frase (`PAUSA_FIM_FRASE`) e o tempo de inatividade (`TEMPO_INATIVIDADE`).
 
@@ -177,7 +177,7 @@ microfone
 - **Em espera, o microfone fica aberto:** ele transcreve o que é falado perto apenas para procurar o nome do assistente, e o que não tem o nome é descartado.
 - **O que fica salvo no disco:**
   - `registros/`: o raciocínio de cada pedido, apagado após 30 dias;
-  - `merlin_config.json` e `assistentes/`: as suas preferências.
+  - `merlin_config.json` e `assistentes_citizentech/`: as suas preferências.
 
 ---
 

@@ -2,7 +2,7 @@
 
 - originais: recursos/assistentes_padrao/ (Merlin e Jarvis). Não podem ser excluídos pela interface, e
   "Restaurar original" volta para eles;
-- configurador: assistentes/, criados ou ajustados na aba Editor. Um .json com o id de um original é um ajuste
+- configurador: assistentes_citizentech/, criados ou ajustados na aba Editor. Um .json com o id de um original é um ajuste
   dele (vale no lugar do original; apagar o arquivo restaura o padrão). Um id novo é um assistente novo.
 
 PERSONALIDADES e NOMES_DO_ASSISTENTE são atualizados no lugar por recarregar(): quem importou os dois vê as mudanças.

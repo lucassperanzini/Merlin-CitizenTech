@@ -26,7 +26,7 @@ class PastaTemporaria(unittest.TestCase):
         temporaria = tempfile.TemporaryDirectory()
         self.addCleanup(temporaria.cleanup)
         self.pasta = Path(temporaria.name)
-        self.addCleanup(recarregar)  # volta ao registro real (pasta assistentes/) depois de cada teste
+        self.addCleanup(recarregar)  # volta ao registro real (pasta assistentes_citizentech/) depois de cada teste
 
 
 class TestArmazenamento(PastaTemporaria):

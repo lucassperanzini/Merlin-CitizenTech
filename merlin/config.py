@@ -30,7 +30,7 @@ ARQ_RACIOCINIO = PASTA_RAIZ / "recursos" / "raciocinio.html"
 ARQ_ASSISTENTES = PASTA_RAIZ / "recursos" / "assistentes.html"
 ARQ_HABILIDADES = PASTA_RAIZ / "recursos" / "habilidades.html"
 PASTA_SKILLS = PASTA_RAIZ / "skills"  # ajustes das skills feitos na Central (um .json por skill ajustada)
-PASTA_ASSISTENTES = PASTA_RAIZ / "assistentes"  # assistentes criados ou ajustados no configurador (um .json cada)
+PASTA_ASSISTENTES = PASTA_RAIZ / "assistentes_citizentech"  # assistentes criados ou ajustados no configurador (um .json cada)
 # Os originais (Merlin e Jarvis): o padrão para "Restaurar original". Não podem ser excluídos pela interface.
 PASTA_ASSISTENTES_PADRAO = PASTA_RAIZ / "recursos" / "assistentes_padrao"
 PASTA_REGISTROS = PASTA_RAIZ / "registros"  # raciocínio da IA, um arquivo de texto por dia

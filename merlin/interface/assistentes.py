@@ -25,7 +25,7 @@ class ServicoAssistentes:
         self._canal = canal
         self._criador = CriadorAssistente(cliente_ia)
         self._trocar_personalidade = trocar_personalidade  # a mesma troca das configurações (limpa a memória etc.)
-        self._pasta = pasta  # None = assistentes/ (o padrão do armazenamento)
+        self._pasta = pasta  # None = assistentes_citizentech/ (o padrão do armazenamento)
 
     # --- leitura
     def listar(self) -> list[dict]:
