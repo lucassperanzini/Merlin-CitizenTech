@@ -26,7 +26,7 @@ class TestCentral(unittest.TestCase):
 
     def test_cada_quadro_tem_uma_aba_no_menu(self):
         pagina = montar_pagina()
-        for aba in (*QUADROS, ABA_INICIAL, "inteligencia", "clonagem"):
+        for aba in (*QUADROS, ABA_INICIAL, "inteligencia"):
             self.assertIn(f'data-aba="{aba}"', pagina)
             self.assertIn(f'id="mod-{aba}"', pagina)
 

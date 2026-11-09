@@ -9,7 +9,6 @@ import time
 import pygame
 
 from merlin.interface.eventos import EstadoVisual
-from merlin.voz.clonagem import LIMITE_PRIMEIRO_TRECHO, dividir_texto, e_clonada
 from merlin.voz.envelope import PASSO, envelope_do_audio
 
 logger = logging.getLogger(__name__)
@@ -26,16 +25,13 @@ class Locutor:
         pygame.mixer.init()
 
     def falar(self, texto: str) -> None:
-        """Fala em voz alta (e registra no terminal para debug).
-
-        Com voz clonada (mais lenta para gerar), a resposta é dividida em frases: a primeira toca assim que
-        fica pronta, enquanto as seguintes são geradas. Com as vozes do Piper, que são rápidas, vai inteira."""
+        """Fala em voz alta (e registra no terminal para debug)."""
         logger.info("%s: %s", self._preferencias.personalidade.nome, texto)  # a fala aparece só no terminal
         self._canal.estado(EstadoVisual.FALANDO)
         self._canal.resposta()  # a janela prepara a resposta; o texto aparece junto com a voz, trecho a trecho
         self._estado.interromper.clear()
         voz = self._preferencias.voz
-        trechos = dividir_texto(texto, limite_primeiro=LIMITE_PRIMEIRO_TRECHO) if e_clonada(voz) else [texto]
+        trechos = [texto]
         prontos, parar = queue.Queue(), threading.Event()
         threading.Thread(target=self._gerar_trechos, args=(trechos, voz, prontos, parar),
                          name="gerar-fala", daemon=True).start()

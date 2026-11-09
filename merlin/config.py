@@ -22,10 +22,6 @@ PASTA_MODELOS = PASTA_RAIZ / "modelos"  # modelos de reconhecimento de voz, cada
 MODELO_WHISPER_GPU = "large-v3-turbo"  # usado na placa de vídeo
 MODELO_WHISPER_CPU = "small"  # plano B, mais leve, caso a placa de vídeo falhe
 PASTA_VOZES = PASTA_RAIZ / "vozes"
-PASTA_VOZES_CLONADAS = PASTA_VOZES / "clonadas"  # uma subpasta por voz clonada (amostra + texto)
-# Clonagem de voz (opcional, instalada por ferramentas/instalar_clonagem.py)
-PASTA_MODELO_CLONAGEM = PASTA_MODELOS / "xtts_v2"
-DURACAO_GRAVACAO_AMOSTRA = 12  # segundos gravados ao clonar uma voz pelo microfone
 ARQ_PREFERENCIAS = PASTA_RAIZ / "merlin_config.json"
 ARQ_OLHO = PASTA_RAIZ / "recursos" / "olho.svg"
 ARQ_JANELA = PASTA_RAIZ / "recursos" / "janela.html"
@@ -51,7 +47,7 @@ JANELA_LARGURA, JANELA_ALTURA = 400, 620  # em pontos (viram pixels conforme a e
 
 # Vozes neurais OFFLINE (Piper). Os arquivos .onnx ficam na pasta "vozes".
 # As vozes com efeito (mago, Jarvis) ficam no arquivo de cada personalidade; o seletor junta as duas listas.
-VOZ_RESERVA = "pt_BR-faber-medium"  # usada se uma voz clonada falhar
+VOZ_RESERVA = "pt_BR-faber-medium"  # usada se a voz escolhida não existir
 VOZES_PIPER = {
     "Faber (masculina)": "pt_BR-faber-medium",
     "Cadu (masculina)": "pt_BR-cadu-medium",

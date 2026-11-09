@@ -131,10 +131,7 @@
   .botao.perigo { border-color: color-mix(in srgb, var(--erro) 60%, transparent); color: var(--erro);
                   background: color-mix(in srgb, var(--erro) 8%, transparent); }
 
-  #ler { padding: 12px 14px; border-left: 2px solid var(--cor); background: var(--fraco); font-size: 14px; user-select: text; }
   #contagem { font-family: var(--mono); color: var(--cor); }
-  .aviso-instalar { padding: 12px 14px; border: 1px dashed var(--linha); color: var(--suave); font-size: 13px; }
-  .aviso-instalar code { font-family: var(--mono); color: var(--texto); }
 
   /* Linha de mensagens, como um console */
   #status {
@@ -184,12 +181,11 @@
       <span class="grupo" aria-hidden="true">AJUSTES</span>
       <button role="tab" id="aba-assistente" data-aba="assistente" aria-controls="mod-assistente" aria-selected="true"><small>01</small>ASSISTENTE</button>
       <button role="tab" id="aba-inteligencia" data-aba="inteligencia" aria-controls="mod-inteligencia" aria-selected="false" tabindex="-1"><small>02</small>INTELIGÊNCIA</button>
-      <button role="tab" id="aba-clonagem" data-aba="clonagem" aria-controls="mod-clonagem" aria-selected="false" tabindex="-1"><small>03</small>CLONAGEM</button>
-      <button role="tab" id="aba-pastas" data-aba="pastas" aria-controls="mod-pastas" aria-selected="false" tabindex="-1"><small>04</small>PASTAS</button>
+      <button role="tab" id="aba-pastas" data-aba="pastas" aria-controls="mod-pastas" aria-selected="false" tabindex="-1"><small>03</small>PASTAS</button>
       <span class="grupo" aria-hidden="true">FERRAMENTAS</span>
-      <button role="tab" id="aba-assistentes" data-aba="assistentes" aria-controls="mod-assistentes" aria-selected="false" tabindex="-1"><small>05</small>EDITOR</button>
-      <button role="tab" id="aba-habilidades" data-aba="habilidades" aria-controls="mod-habilidades" aria-selected="false" tabindex="-1"><small>06</small>SKILLS</button>
-      <button role="tab" id="aba-automacoes" data-aba="automacoes" aria-controls="mod-automacoes" aria-selected="false" tabindex="-1"><small>07</small>AUTOMAÇÕES</button>
+      <button role="tab" id="aba-assistentes" data-aba="assistentes" aria-controls="mod-assistentes" aria-selected="false" tabindex="-1"><small>04</small>EDITOR</button>
+      <button role="tab" id="aba-habilidades" data-aba="habilidades" aria-controls="mod-habilidades" aria-selected="false" tabindex="-1"><small>05</small>SKILLS</button>
+      <button role="tab" id="aba-automacoes" data-aba="automacoes" aria-controls="mod-automacoes" aria-selected="false" tabindex="-1"><small>06</small>AUTOMAÇÕES</button>
     </nav>
 
     <div id="modulos">
@@ -234,39 +230,9 @@
         </div>
       </section>
 
-      <section class="modulo" id="mod-clonagem" role="tabpanel" aria-labelledby="aba-clonagem" hidden>
-        <div class="dentro">
-          <div class="cabeca"><h2>CLONAGEM DE VOZ</h2><code>MOD-03</code></div>
-          <div class="aviso-instalar" id="clonagem-ausente">
-            A clonagem é opcional e precisa de uma instalação à parte (cerca de 5 GB). Para instalar, rode
-            <code>.venv\Scripts\python.exe ferramentas\instalar_clonagem.py</code> e reabra o assistente.
-          </div>
-          <div id="clonagem" class="campo" hidden>
-            <span class="ajuda">Grave de 8 a 15 segundos de fala, em um lugar silencioso, ou escolha um áudio.
-              Use a sua voz, ou a de alguém que autorizou.</span>
-            <div class="linha">
-              <button class="botao" id="gravar" type="button">● Gravar</button>
-              <button class="botao" id="arquivo" type="button">Escolher arquivo</button>
-            </div>
-            <div id="ler" hidden>Leia em voz alta (<span id="contagem"></span>): <span id="texto-ler"></span></div>
-            <div id="conferir" class="campo" hidden>
-              <label for="texto-amostra">O QUE FOI ENTENDIDO NA AMOSTRA</label>
-              <textarea id="texto-amostra" rows="3"></textarea>
-              <span class="ajuda">Só para conferir se a gravação ficou clara.</span>
-              <label for="nome-voz">NOME DA VOZ</label>
-              <div class="linha">
-                <input id="nome-voz" type="text" placeholder="Ex.: Minha voz" maxlength="30">
-                <button class="botao" id="salvar-voz" type="button">Salvar e usar</button>
-              </div>
-            </div>
-            <div class="linha"><button class="botao perigo" id="apagar-voz" type="button" hidden>Apagar a voz clonada escolhida</button></div>
-          </div>
-        </div>
-      </section>
-
       <section class="modulo" id="mod-pastas" role="tabpanel" aria-labelledby="aba-pastas" hidden>
         <div class="dentro">
-          <div class="cabeca"><h2>ATALHOS DE PASTAS</h2><code>MOD-04</code></div>
+          <div class="cabeca"><h2>ATALHOS DE PASTAS</h2><code>MOD-03</code></div>
           <span class="ajuda">Dê um apelido a uma pasta e peça por voz: “abre a pasta trabalho”, ou só “abre o trabalho”.
             Vale também no modo discreto (“Merlin, abre o trabalho”).</span>
           <div class="atalhos" id="atalhos"></div>
@@ -297,7 +263,6 @@
     <div class="indicador" id="ind-modelo"><i></i><b>MODELO</b><span>…</span></div>
     <div class="indicador" id="ind-reconhecimento"><i></i><b>WHISPER</b><span>…</span></div>
     <div class="indicador" id="ind-microfone"><i></i><b>MICROFONE</b><span>…</span></div>
-    <div class="indicador" id="ind-clonagem"><i></i><b>CLONAGEM</b><span>…</span></div>
   </footer>
 
 <script>
@@ -423,71 +388,7 @@
   document.getElementById("gerenciar-assistentes").addEventListener("click", () => abrirAba("assistentes"));
   document.getElementById("ver-habilidades").addEventListener("click", () => abrirAba("habilidades"));
   // Ao voltar para esta janela (por exemplo, depois de criar um assistente), as listas são atualizadas
-  window.addEventListener("focus", () => { if (window.pywebview) { carregar(); carregarClonagem(); } });
-
-  // Clonagem de voz: sem a instalação opcional, o módulo explica como instalar
-  const clonagem = document.getElementById("clonagem");
-  const botaoGravar = document.getElementById("gravar"), botaoArquivo = document.getElementById("arquivo");
-  const ler = document.getElementById("ler"), contagem = document.getElementById("contagem");
-  const conferir = document.getElementById("conferir"), textoAmostra = document.getElementById("texto-amostra");
-  const nomeVoz = document.getElementById("nome-voz"), apagarVoz = document.getElementById("apagar-voz");
-  let infoClonagem = {};
-
-  async function carregarClonagem() {
-    infoClonagem = await api().clonagem_estado();
-    clonagem.hidden = !infoClonagem.instalada;
-    document.getElementById("clonagem-ausente").hidden = !!infoClonagem.instalada;
-    if (!infoClonagem.instalada) return;
-    document.getElementById("texto-ler").textContent = infoClonagem.texto_para_ler;
-    apagarVoz.hidden = !infoClonagem.voz_atual_clonada;
-  }
-  function ocupado(sim) { botaoGravar.disabled = botaoArquivo.disabled = sim; }
-  function receberAmostra(r) {
-    ocupado(false);
-    ler.hidden = true;
-    if (r.cancelado) return;
-    if (r.erro) { avisar(r.erro, true); return; }
-    textoAmostra.value = r.texto;
-    conferir.hidden = false;
-    nomeVoz.focus();
-    avisar(`Amostra de ${String(r.duracao).replace(".", ",")} s pronta. Confira o texto e dê um nome.`);
-  }
-
-  botaoGravar.addEventListener("click", async () => {
-    ocupado(true);
-    conferir.hidden = true;
-    ler.hidden = false;
-    let resta = infoClonagem.duracao_gravacao;
-    contagem.textContent = `${resta} s`;
-    const relogioGravacao = setInterval(() => { resta = Math.max(0, resta - 1); contagem.textContent = `${resta} s`; }, 1000);
-    avisar("Gravando… leia o texto acima.");
-    const r = await api().clonagem_gravar();
-    clearInterval(relogioGravacao);
-    receberAmostra(r);
-  });
-  botaoArquivo.addEventListener("click", async () => {
-    ocupado(true);
-    avisar("Preparando a amostra…");
-    receberAmostra(await api().clonagem_escolher_arquivo());
-  });
-  document.getElementById("salvar-voz").addEventListener("click", async () => {
-    const r = await api().clonagem_salvar(nomeVoz.value, textoAmostra.value);
-    if (r.erro) { avisar(r.erro, true); return; }
-    conferir.hidden = true;
-    nomeVoz.value = "";
-    await carregar();
-    await carregarClonagem();
-    avisar(`Voz ${r.voz} salva e em uso. A primeira fala com ela demora um pouco mais.`);
-  });
-  apagarVoz.addEventListener("click", async () => {
-    const r = await api().clonagem_apagar();
-    if (r.erro) { avisar(r.erro, true); return; }
-    await carregar();
-    await carregarClonagem();
-    avisar("Voz clonada apagada. O assistente voltou para a voz padrão dele.");
-  });
-  voz.addEventListener("change", carregarClonagem);
-  assistente.addEventListener("change", carregarClonagem);
+  window.addEventListener("focus", () => { if (window.pywebview) carregar(); });
 
   // Aba Pastas: os apelidos da pessoa e as pastas que o Acesso Rápido do Windows já oferece
   const listaAtalhos = document.getElementById("atalhos");
@@ -557,7 +458,6 @@
     prontos = null;
     pendentes.forEach(fn => fn());
     carregar();
-    carregarClonagem();
     abrirAba(await window.pywebview.api.aba_inicial());
   });
 </script>

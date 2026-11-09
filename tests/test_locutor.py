@@ -65,7 +65,7 @@ class TestLocutor(unittest.TestCase):
         self.estado.ativo.set()
         self.canal = mock.Mock()
         self.preferencias = mock.Mock()
-        self.preferencias.voz = "clonada:teste"
+        self.preferencias.voz = "pt_BR-faber-medium"
         self.tocador = TocadorFalso(self.diario)
         p = mock.patch("merlin.voz.locutor.pygame")
         pygame = p.start()
@@ -75,12 +75,6 @@ class TestLocutor(unittest.TestCase):
     def _falar(self, texto, sintetizador=None):
         self.sintetizador = sintetizador or SintetizadorLento(self.diario)
         Locutor(self.estado, self.canal, self.sintetizador, self.preferencias).falar(texto)
-
-    def test_voz_clonada_comeca_a_tocar_antes_de_gerar_tudo(self):
-        self._falar("Primeira frase. Segunda frase. Terceira frase.")
-        self.assertEqual(self.sintetizador.textos, ["Primeira frase.", "Segunda frase.", "Terceira frase."])
-        self.assertEqual(len(self.tocador.tocados), 3)
-        self.assertLess(self.diario.index("tocou:1"), self.diario.index("gerou:Terceira frase."))
 
     def test_voz_do_piper_vai_inteira(self):
         self.preferencias.voz = "pt_BR-faber-medium"
@@ -93,13 +87,13 @@ class TestLocutor(unittest.TestCase):
         self.assertEqual(len(self.tocador.tocados), 1)
         self.assertLess(len(self.sintetizador.textos), 6)
 
-    def test_interromper_enquanto_a_proxima_frase_e_gerada(self):
+    def test_interromper_enquanto_a_fala_e_gerada(self):
         sintetizador = SintetizadorLento(self.diario, demora=0.4)
-        threading.Timer(0.6, self.estado.interromper.set).start()  # depois da 1ª frase, durante a 2ª
+        threading.Timer(0.1, self.estado.interromper.set).start()
         inicio = time.time()
         self._falar("Um. Dois. Três.", sintetizador)
-        self.assertLess(time.time() - inicio, 0.9)  # não esperou a 2ª frase ficar pronta
-        self.assertEqual(len(self.tocador.tocados), 1)
+        self.assertLess(time.time() - inicio, 0.3)  # não esperou o áudio ficar pronto
+        self.assertEqual(self.tocador.tocados, [])
 
     def test_arquivos_temporarios_sao_apagados(self):
         self._falar("Um. Dois. Três.")
@@ -132,11 +126,11 @@ class TestRespostaNaJanela(unittest.TestCase):
             Locutor(estado, canal, SintetizadorLento([]), preferencias).falar(texto)
         return canal
 
-    def test_cada_trecho_vai_para_a_janela_com_a_duracao_do_audio(self):
-        canal = self._falar("Primeira frase. Segunda frase.", "clonada:teste")
+    def test_a_fala_vai_para_a_janela_com_a_duracao_do_audio(self):
+        canal = self._falar("Primeira frase. Segunda frase.", "pt_BR-faber-medium")
         canal.resposta.assert_called_once_with()
         trechos = [c.args for c in canal.trecho_falado.call_args_list]
-        self.assertEqual([t for t, _ in trechos], ["Primeira frase.", "Segunda frase."])
+        self.assertEqual([t for t, _ in trechos], ["Primeira frase. Segunda frase."])
         self.assertTrue(all(abs(d - 0.1) < 0.06 for _, d in trechos))  # o WAV de teste tem 0,1 s
 
     def test_voz_do_piper_vai_inteira(self):
@@ -145,7 +139,7 @@ class TestRespostaNaJanela(unittest.TestCase):
 
     def test_interromper_avisa_a_janela(self):
         estado, canal, preferencias = EstadoAssistente(), mock.Mock(), mock.Mock()
-        preferencias.voz = "clonada:teste"
+        preferencias.voz = "pt_BR-faber-medium"
         tocador = TocadorFalso([], ao_tocar=lambda n: estado.interromper.set())
         with mock.patch("merlin.voz.locutor.pygame") as pygame:
             pygame.mixer.music = tocador

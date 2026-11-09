@@ -1,6 +1,6 @@
 """Central: uma janela só para tudo o que é de configurar ou investigar, com um menu lateral de abas.
 
-As abas de ajustes (assistente, inteligência, clonagem) são da própria página de configurações. As outras
+As abas de ajustes (assistente, inteligência, pastas) são da própria página de configurações. As outras
 (assistentes e habilidades) são as páginas de sempre, cada uma num quadro (iframe) dentro dela.
 O raciocínio da IA fica no cartão do assistente (modo debug), não aqui.
 Cada página continua falando só com a sua API: a do quadro de habilidades vê pywebview.api.habilidades

@@ -1,4 +1,4 @@
-"""Ajustes da Central: assistente (personalidade), voz, modelo de IA e clonagem. As mudanças valem na hora."""
+"""Ajustes da Central: assistente (personalidade), voz e modelo de IA. As mudanças valem na hora."""
 import logging
 import threading
 from pathlib import Path
@@ -9,7 +9,6 @@ from merlin.acoes.assistentes import trocar_personalidade
 from merlin.ia.cliente import listar_modelos
 from merlin.personalidades import PERSONALIDADES
 from merlin.voz.catalogo import todas_as_vozes
-from merlin.voz.clonagem import clonagem_instalada
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +70,6 @@ class ServicoConfiguracoes:
             "reconhecimento": {"gpu": ("ok", "placa de vídeo"), "cpu": ("desligado", "processador")}.get(
                 dispositivo, ("desligado", "carregando")),
             "microfone": ("desligado", "mudo") if mudo else ("ok", "ativo"),
-            "clonagem": ("ok", "instalada") if clonagem_instalada() else ("desligado", "não instalada"),
         }
 
     # --- Pastas: apelidos da pessoa e o que o Acesso Rápido do Windows já oferece
@@ -134,34 +132,13 @@ class ServicoConfiguracoes:
 class ApiConfiguracoes:
     """Funções que a página de configurações pode chamar (atributos privados: o pywebview expõe os públicos)."""
 
-    def __init__(self, servico, clonagem=None):
+    def __init__(self, servico):
         self._servico = servico
-        self._clonagem = clonagem
         self._janela = None
 
     def _usar_janela(self, janela):
         """Chamado pela JanelaAuxiliar: a caixa de escolher arquivo precisa da janela."""
         self._janela = janela
-
-    # Clonagem de voz (só funciona com a instalação opcional)
-    def clonagem_estado(self):
-        return self._clonagem.estado() if self._clonagem else {"instalada": False}
-
-    def clonagem_gravar(self):
-        return self._clonagem.gravar()
-
-    def clonagem_escolher_arquivo(self):
-        tipos = ("Áudio (*.wav;*.mp3;*.m4a;*.ogg;*.flac)",)
-        escolhidos = self._janela.create_file_dialog(webview.FileDialog.OPEN, file_types=tipos) if self._janela else None
-        if not escolhidos:
-            return {"cancelado": True}
-        return self._clonagem.usar_arquivo(escolhidos[0])
-
-    def clonagem_salvar(self, nome, texto):
-        return self._clonagem.salvar(nome, texto)
-
-    def clonagem_apagar(self):
-        return self._clonagem.apagar_voz_atual()
 
     def carregar(self):
         return self._servico.estado_atual()

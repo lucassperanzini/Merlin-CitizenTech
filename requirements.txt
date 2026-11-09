@@ -1,6 +1,5 @@
 # Bibliotecas do Merlin (Windows 10/11, Python 3.13). Versões testadas nesta configuração.
 # Instalação:  .venv\Scripts\python.exe -m pip install -r requirements.txt
-# A clonagem de voz é opcional e tem instalador próprio: ferramentas\instalar_clonagem.py
 
 # Reconhecimento de voz (Whisper) e detecção de voz
 faster-whisper==1.2.1
@@ -16,7 +15,6 @@ PyAudio==0.2.14
 piper-tts==1.8.0
 pygame==2.6.1
 pyttsx3==2.99
-soundfile==0.14.0
 numpy==2.5.4
 
 # IA local (cliente do Ollama)

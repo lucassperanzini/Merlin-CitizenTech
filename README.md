@@ -19,12 +19,11 @@ Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho a
   - **Cartão (ativo):** a bolinha cresce para cima e vira um cartão no canto direito, sem cobrir o programa em uso. A resposta aparece junto com a voz, palavra por palavra.
   - **Central:** uma janela só, com abas.
     - *Pastas:* apelidos para as suas pastas ("abre o trabalho"), além das do Acesso Rápido do Windows.
-    - *Ajustes:* assistente e voz, modelo de IA, clonagem de voz.
+    - *Ajustes:* assistente e voz, modelo de IA.
     - *Ferramentas:* editor de assistentes (cria e edita personalidades sem mexer em código) e skills (tudo o que ele sabe fazer, com um teste de frases; título, descrição e exemplos podem ser editados).
     - *Automações:* os scripts criados pela IA, com pasta, teste, aprovação e agendamento.
     - Embaixo, o status do sistema ao vivo.
 - **Scripts:** peça "cria um script que..." e a IA local escreve o código. Você escolhe a pasta, testa, aprova e pode rodar por voz ou agendar. Veja [Scripts e automações](#scripts-e-automações).
-- **Clonagem de voz (opcional):** fala com a voz de uma amostra de 8 a 15 segundos.
 
 ---
 
@@ -36,10 +35,10 @@ Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho a
 | **Python 3.13** | De [python.org](https://www.python.org/downloads/). |
 | **Ollama** | O programa que roda a IA localmente: [ollama.com](https://ollama.com/download). |
 | **Microfone** | Qualquer um. |
-| **Placa de vídeo NVIDIA** (recomendada, com o driver atualizado) | O reconhecimento de voz e a IA ficam mais rápidos nela. Sem placa NVIDIA, tudo roda no processador, com um modelo de voz menor e respostas mais lentas. A clonagem de voz precisa da placa. |
+| **Placa de vídeo NVIDIA** (recomendada, com o driver atualizado) | O reconhecimento de voz e a IA ficam mais rápidos nela. Sem placa NVIDIA, tudo roda no processador, com um modelo de voz menor e respostas mais lentas. |
 | **WebView2 Runtime** | Já vem no Windows 11 e com o Edge. No Windows 10, se a janela não abrir, instale-o pelo site da Microsoft. |
 
-**Espaço em disco:** ~6 GB na instalação básica, mais ~5 GB com a clonagem de voz.
+**Espaço em disco:** ~6 GB na instalação básica.
 
 ---
 
@@ -53,7 +52,7 @@ Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho a
 | Páginas das janelas, sons de ativação, olho e esfera | `recursos/` |
 | Os assistentes originais, Merlin e Jarvis (não podem ser excluídos; "Restaurar original" volta para eles) | `recursos/assistentes_padrao/*.json` |
 | **Vozes do Piper** em português (Faber, Cadu, Jeff; ~63 MB cada) | `vozes/*.onnx` |
-| Ferramentas (baixar modelos, instalar a clonagem, avaliar a IA, gerar sons) | `ferramentas/` |
+| Ferramentas (baixar modelos, avaliar a IA, gerar sons) | `ferramentas/` |
 | Testes automáticos | `tests/` |
 | Ajustes dos assistentes originais | `assistentes/*.json` |
 | Ajustes das habilidades | `skills/*.json` |
@@ -68,16 +67,14 @@ Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho a
 | Ollama + um modelo de IA | ~5 GB | instalador do Ollama + `ollama pull` |
 | Modelos de reconhecimento de voz (Whisper) | ~2,1 GB | `ferramentas\baixar_modelos.py` → pasta `modelos/` |
 | Python separado para os scripts | ~0,2 GB | Botão **Preparar**, na aba **Automações** |
-| *(Opcional)* Clonagem de voz: PyTorch + XTTS-v2 | ~5 GB | `ferramentas\instalar_clonagem.py` |
 
 ### Criado no seu PC durante o uso (fora do git)
 
 | Pasta | Conteúdo |
 |---|---|
 | `.venv/` | o ambiente Python com as bibliotecas |
-| `modelos/` | modelos do Whisper e da clonagem |
+| `modelos/` | modelos do Whisper |
 | `registros/` | o raciocínio da IA, um arquivo por dia, apagado após 30 dias |
-| `vozes/clonadas/` | amostras das vozes clonadas (dados pessoais) |
 | `merlin_config.json` | suas preferências (assistente, voz, modelo e apelidos de pastas) |
 | `automacoes/` | seus scripts e o Python separado que os executa |
 
@@ -113,19 +110,6 @@ Baixe outro modelo com `ollama pull` e selecione-o em **Central → Inteligênci
 | Muito limitada | `llama3.2` | O mais leve; deve errar mais |
 
 Quanto menor o modelo, maior a chance de errar ao entender pedidos e, principalmente, ao escrever scripts. As memórias indicadas são aproximadas.
-
-### Clonagem de voz (opcional)
-
-```powershell
-.venv\Scripts\python.exe ferramentas\instalar_clonagem.py
-```
-
-O instalador faz três coisas:
-- instala o PyTorch para placas NVIDIA (CUDA 12.8, compatível com a série RTX 50);
-- instala o XTTS-v2 (pacote `coqui-tts`);
-- baixa o modelo para `modelos\xtts_v2`.
-
-Depois disso, a aba **Clonagem** da Central passa a gravar e salvar vozes. O modelo XTTS-v2 tem licença **não comercial** (Coqui Public Model License).
 
 ---
 
@@ -192,7 +176,7 @@ microfone
   → IA (Ollama): entende cada uma     qual habilidade e qual alvo; regras do código corrigem a IA
   → habilidades executam              abrir programa, clicar, pesquisar, conversar...
   → resposta única                    "Abri o chrome e fechei o telegram"
-  → voz (Piper ou voz clonada)        toca enquanto o texto aparece na janela
+  → voz (Piper)                       toca enquanto o texto aparece na janela
 ```
 
 ### Estrutura do código
@@ -205,7 +189,7 @@ microfone
 | `merlin/acoes/` | o que é feito no Windows: janelas, botões, programas, navegador |
 | `merlin/automacao/` | scripts: checagem do código, armazenamento, Python separado e agendamento |
 | `merlin/personalidades/` | carrega os assistentes (todos em .json): os originais de `recursos/assistentes_padrao/` e os da pasta `assistentes/` |
-| `merlin/voz/` | síntese (Piper e clonagem), efeitos, reprodução e interrupção |
+| `merlin/voz/` | síntese (Piper), efeitos, reprodução e interrupção |
 | `merlin/nucleo/` | o fluxo de cada pedido, sessão, memória da conversa, raciocínio |
 | `merlin/interface/` | janelas: a principal (bolinha e cartão) e a Central (ajustes, editor, habilidades) |
 | `merlin/config.py` | ajustes técnicos (tempos, limites, caminhos) |
@@ -225,7 +209,6 @@ microfone
 - **Em espera, o microfone fica aberto:** ele transcreve o que é falado perto apenas para procurar o nome do assistente, e o que não tem o nome é descartado.
 - **O que fica salvo no disco:**
   - `registros/`: o raciocínio de cada pedido, apagado após 30 dias;
-  - `vozes/clonadas/`: as amostras das vozes clonadas;
   - `merlin_config.json` e `assistentes/`: as suas preferências;
   - `automacoes/`: seus scripts, as pastas escolhidas e o resultado das execuções agendadas.
 
@@ -256,5 +239,4 @@ Ao criar uma habilidade, acrescente frases dela em `ferramentas/frases_avaliacao
 | Um script dá erro de biblioteca | Abra o script na aba **Automações** e use o botão de instalar. Se não aparecer, clique em **Preparar** na lista de scripts. |
 | "Algo deu errado" na aba Automações depois de atualizar | Feche e abra o assistente. |
 | Script agendado não rodou | O assistente estava aberto na hora marcada? Veja **Últimas execuções agendadas** na tela do script. |
-| Voz clonada demora na primeira fala | Normal: o modelo leva ~16 s para carregar. As falas seguintes levam 1 a 2 s. |
 | Aviso de `flash-attn` ou `torchaudio` no terminal | Inofensivo. |

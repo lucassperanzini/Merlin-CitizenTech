@@ -16,7 +16,6 @@ from merlin.ia.confirmacao import ClassificadorConfirmacao
 from merlin.ia.divisao import DivisorTarefas
 from merlin.ia.intencoes import ClassificadorIntencao, TipoIntencao
 from merlin.ia.frases import GeradorFrases
-from merlin.interface.clonagem_voz import ServicoClonagem
 from merlin.interface.assistentes import ApiAssistentes, ServicoAssistentes
 from merlin.interface.central import ApiCentral, JanelaCentral
 from merlin.interface.configuracoes import ApiConfiguracoes, ServicoConfiguracoes
@@ -82,9 +81,7 @@ def construir_aplicacao() -> Aplicacao:
     servico_configuracoes = ServicoConfiguracoes(preferencias, locutor, canal, memoria, cliente_ia, estado, transcritor)
     # Central: uma janela só, com abas, para configurar e investigar
     central = JanelaCentral(ApiCentral(
-        ajustes=ApiConfiguracoes(
-            servico_configuracoes,
-            clonagem=ServicoClonagem(ouvinte, transcritor, preferencias, locutor, sintetizador, canal)),
+        ajustes=ApiConfiguracoes(servico_configuracoes),
         assistentes=ApiAssistentes(
             ServicoAssistentes(preferencias, canal, cliente_ia, servico_configuracoes.trocar_personalidade)),
         habilidades=ApiPainelHabilidades(ServicoPainelHabilidades(cliente_ia)),
