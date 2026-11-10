@@ -19,6 +19,7 @@ from merlin.ia.frases import GeradorFrases
 from merlin.interface.assistentes import ApiAssistentes, ServicoAssistentes
 from merlin.interface.central import ApiCentral, JanelaCentral
 from merlin.interface.configuracoes import ApiConfiguracoes, ServicoConfiguracoes
+from merlin.interface.painel_alertas import ApiAlertas, ServicoAlertas
 from merlin.interface.painel_habilidades import ApiPainelHabilidades, ServicoPainelHabilidades
 from merlin.interface.eventos import CanalInterface
 from merlin.interface.janela import JanelaMerlin
@@ -82,6 +83,7 @@ def construir_aplicacao() -> Aplicacao:
         assistentes=ApiAssistentes(
             ServicoAssistentes(preferencias, canal, cliente_ia, servico_configuracoes.trocar_personalidade)),
         habilidades=ApiPainelHabilidades(ServicoPainelHabilidades(cliente_ia)),
+        alertas=ApiAlertas(ServicoAlertas()),
     ))
 
     processador = ProcessadorComandos(

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Alertas</title>
+<!--MAPA-->
+<style>
+  :root {
+    --fundo: #05070c; --painel: #0b1019; --campo: #0e1522; --borda: #1b2638; --texto: #dbe6ff;
+    --suave: #8a97b3; --destaque: #35d6ff; --nao: #ff8a7a;
+    --baixo: #3ec46d; --medio: #ffd23f; --alto: #ff8a3d; --critico: #ff4d4d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { display: flex; flex-direction: column; overflow: hidden; padding: 18px 22px 16px; background: var(--fundo); color: var(--texto);
+         font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+  [hidden] { display: none !important; }
+  h1 { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
+  p { margin: 0 0 10px; color: var(--suave); font-size: 13px; }
+  .topo { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  button { font: inherit; color: var(--texto); padding: 7px 14px; border-radius: 7px; border: 1px solid var(--borda); background: var(--campo); cursor: pointer; white-space: nowrap; }
+  button:hover { border-color: var(--destaque); }
+  button:disabled { opacity: .6; cursor: progress; }
+  button.principal { background: var(--destaque); border-color: var(--destaque); color: #05070c; font-weight: 600; }
+  button:focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
+  #mensagem { flex: 1; min-width: 200px; font-size: 13px; color: var(--suave); overflow-wrap: anywhere; }
+  #mensagem.erro { color: var(--nao); }
+  .numeros { flex: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 10px; }
+  .numero { flex: 1 1 100px; padding: 8px 12px; background: var(--painel); border-radius: 10px; }
+  .numero b { display: block; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .numero span { font-size: 12px; color: var(--suave); }
+  #mapa { flex: 1; min-height: 360px; border-radius: 10px; background: #0a0f18; }
+  .nota { flex: none; margin-top: 6px; font-size: 12px; color: var(--suave); overflow-wrap: anywhere; }
+  /* Leaflet no tema escuro da Central */
+  .leaflet-container { font: 13px/1.4 "Segoe UI", system-ui, sans-serif; }
+  /* O OpenStreetMap é claro: escurecido só no fundo, sem mexer nas cores dos focos e do contorno */
+  .fundo-escurecido { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.85) saturate(.6); }
+  .leaflet-control-layers { background: rgba(11, 16, 25, .92); color: var(--texto); border: 1px solid var(--borda) !important; border-radius: 8px; }
+  .leaflet-control-layers-expanded { padding: 6px 10px; }
+  .leaflet-control-layers label { cursor: pointer; }
+  .leaflet-control-attribution { background: rgba(5, 7, 12, .75) !important; color: var(--suave); }
+  .leaflet-control-attribution a { color: var(--destaque); }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--painel); color: var(--texto); border: 1px solid var(--borda); }
+  .leaflet-bar a { background: var(--campo); color: var(--texto); border-color: var(--borda); }
+  .legenda { padding: 8px 10px; background: rgba(11, 16, 25, .92); border: 1px solid var(--borda); border-radius: 8px; color: var(--texto); }
+  .legenda b { display: block; margin-bottom: 4px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); }
+  .legenda label { display: flex; align-items: center; gap: 6px; padding: 1px 0; cursor: pointer; font-variant-numeric: tabular-nums; }
+  .legenda i { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .5); }
+  .popup b { font-size: 14px; }
+  .popup dl { display: grid; grid-template-columns: auto auto; gap: 1px 10px; margin: 6px 0 8px; }
+  .popup dt { color: var(--suave); }
+  .popup dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .popup .novo { color: var(--destaque); font-weight: 600; }
+  .popup .filtrado { margin-top: 4px; color: var(--medio); font-size: 12px; }
+  .legenda b.segundo { margin-top: 8px; }
+  .popup button { padding: 3px 10px; font-size: 12px; }
+</style>
+</head>
+<body>
+  <h1>Alertas · focos de calor</h1>
+  <p>Consulta a NASA (FIRMS) pelo robô FIRMS Monitor e mostra no mapa os focos ativos, coloridos pelo risco. Clique num ponto para ver os detalhes.</p>
+  <div class="topo">
+    <button id="buscar" class="principal" type="button">Buscar focos agora</button>
+    <div id="mensagem" role="status" aria-live="polite"></div>
+  </div>
+  <div class="numeros" id="numeros" hidden></div>
+  <div id="mapa" role="region" aria-label="Mapa dos focos de calor"></div>
+  <div class="nota" id="nota"></div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const api = () => window.pywebview.api;
+  const elemento = (tag, propriedades = {}, ...filhos) => { const e = Object.assign(document.createElement(tag), propriedades); e.append(...filhos); return e; };
+  const CORES = { 1: "#3ec46d", 2: "#ffd23f", 3: "#ff8a3d", 4: "#ff4d4d" };
+  const RAIO = { 1: 3, 2: 4, 3: 6, 4: 8 };
+  // Fundos de mapa pela internet. Com a chave MAPTILER_KEY no .env: satélite, escuro e ruas do MapTiler.
+  // Sem ela, ou se ela falhar: o OpenStreetMap, escurecido. Sem internet: só o contorno dos estados.
+  // (A CARTO passou a exigir chave: sem ela, devolve imagens com "API KEY REQUIRED", e não um erro.)
+  const CREDITO_OSM = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+  const CREDITO_MAPTILER = '&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> ' + CREDITO_OSM;
+  const MAPTILER = { "Satélite": "satellite/256/{z}/{x}/{y}.jpg", "Escuro": "streets-v2-dark/256/{z}/{x}/{y}.png", "Ruas": "streets-v2/256/{z}/{x}/{y}.png" };
+
+  function avisar(texto = "", erro = false) {
+    $("mensagem").textContent = texto;
+    $("mensagem").classList.toggle("erro", erro);
+  }
+
+  // --- O mapa, que aparece já ao abrir a aba, com o contorno dos estados
+  const mapa = L.map("mapa", { preferCanvas: true, zoomSnap: 0.5, worldCopyJump: true });
+  const contorno = L.geoJSON(window.CONTORNO_BRASIL, { style: { color: "#35d6ff", weight: 1, opacity: .55, fill: true, fillColor: "#0e1522", fillOpacity: .12 }, interactive: false }).addTo(mapa);
+  // A aba começa escondida (tamanho zero): só dá para enquadrar o Brasil quando ela aparecer de verdade
+  let enquadrado = false;
+  function enquadrar() {
+    const tamanho = mapa.getSize();
+    if (enquadrado || !tamanho.x || !tamanho.y) return;
+    mapa.fitBounds(contorno.getBounds(), { padding: [10, 10] });
+    enquadrado = true;
+  }
+  mapa.setView([-14, -52], 4);
+  window.estadoDoFundo = "carregando";
+
+  let fundoAtual = null, seletorDeFundo = null;
+
+  function avisarFundo(texto) { $("nota").dataset.fundo = texto; atualizarNota(); }
+
+  // Uma camada de fundo que avisa quando não consegue carregar nada (sem internet, chave recusada...)
+  function camadaDeFundo(url, credito, nome, aoFalhar, classe = "") {
+    const camada = L.tileLayer(url, { attribution: credito, maxZoom: 19, className: classe });
+    let carregados = 0, falhas = 0;
+    camada.on("tileload", () => { carregados++; window.estadoDoFundo = `ok:${nome}`; });
+    camada.on("tileerror", () => {
+      falhas++;
+      if (!carregados && falhas >= 4) aoFalhar();
+    });
+    return camada;
+  }
+
+  function trocarFundo(camada) {
+    if (fundoAtual && fundoAtual !== camada) mapa.removeLayer(fundoAtual);
+    fundoAtual = camada;
+    if (camada) { camada.addTo(mapa); camada.bringToBack(); }
+  }
+
+  function usarOpenStreetMap(motivo = "") {
+    if (seletorDeFundo) { mapa.removeControl(seletorDeFundo); seletorDeFundo = null; }
+    const semFundo = () => { trocarFundo(null); window.estadoDoFundo = "sem fundo"; avisarFundo("Sem internet para o fundo do mapa: aparecem só os estados."); };
+    trocarFundo(camadaDeFundo("https://tile.openstreetmap.org/{z}/{x}/{y}.png", CREDITO_OSM, "OpenStreetMap", semFundo, "fundo-escurecido"));
+    avisarFundo(motivo);
+  }
+
+  function usarMapTiler(chave, salvo) {
+    const falhou = () => usarOpenStreetMap("A chave do MapTiler não funcionou (confira MAPTILER_KEY no .env): usando o OpenStreetMap.");
+    const fundos = Object.fromEntries(Object.entries(MAPTILER).map(([nome, caminho]) =>
+      [nome, camadaDeFundo(`https://api.maptiler.com/maps/${caminho}?key=${encodeURIComponent(chave)}`, CREDITO_MAPTILER, nome, falhou)]));
+    trocarFundo(fundos[salvo in fundos ? salvo : "Satélite"]);
+    seletorDeFundo = L.control.layers(fundos, null, { position: "topright", collapsed: false }).addTo(mapa);
+    avisarFundo("");
+  }
+  mapa.on("baselayerchange", e => {
+    fundoAtual = e.layer;
+    e.layer.bringToBack();
+    api().escolher_fundo(e.name).catch(() => {});
+  });
+
+  // A chave vem do .env pelo Python, já conferida; até a resposta chegar, o mapa mostra só os estados
+  async function escolherFundo() {
+    let r = {};
+    try { r = await api().fundos(); } catch (e) {}
+    r.maptiler ? usarMapTiler(r.maptiler, r.escolhido) : usarOpenStreetMap(r.aviso || "");
+  }
+
+  // --- Focos e legenda (com filtro por nível)
+  const camadas = { 1: L.layerGroup(), 2: L.layerGroup(), 3: L.layerGroup(), 4: L.layerGroup() };
+  Object.values(camadas).forEach(c => c.addTo(mapa));
+  let sóNovos = false, comFiltro = true, ultimo = null;
+  // Os focos que aparecem agora: com filtro, só os ativos; sem filtro, também os que os filtros do robô tiraram
+  const visiveis = r => r.focos.filter(f => (comFiltro ? !f.filtrado : true) && (!sóNovos || f.novo));
+
+  function detalhe(f) {
+    const linhas = [["FRP", `${f.frp.toFixed(1)} MW`], ["Detectado", `${f.quando} UTC`], ["Latitude", f.latitude.toFixed(5)],
+                    ["Longitude", f.longitude.toFixed(5)], ["Satélite", f.satelite], ["Confiança", f.confianca]];
+    const lista = elemento("dl", {}, ...linhas.flatMap(([a, b]) => [elemento("dt", { textContent: a }), elemento("dd", { textContent: b })]));
+    const botao = elemento("button", { type: "button", textContent: "Abrir no Google Maps", onclick: async () => {
+      const r = await api().abrir_mapa(f.latitude, f.longitude);
+      if (r.erro) avisar(r.erro, true);
+    } });
+    return elemento("div", { className: "popup" }, elemento("b", { textContent: `Risco ${f.nivel}` }),
+      f.novo ? elemento("span", { className: "novo", textContent: " · novo" }) : "",
+      f.filtrado ? elemento("div", { className: "filtrado", textContent: `Tirado pelo filtro do robô: ${f.filtrado}` }) : "", lista, botao);
+  }
+
+  function desenharFocos(r) {
+    Object.values(camadas).forEach(c => c.clearLayers());
+    // Os mais fracos primeiro, e os descartados antes dos ativos: os críticos ativos ficam por cima
+    const lista = visiveis(r).reverse().sort((a, b) => !!b.filtrado - !!a.filtrado);
+    lista.forEach(f => {
+      // Descartado pelo filtro: só o contorno, tracejado, para não se confundir com um foco ativo
+      const estilo = f.filtrado
+        ? { radius: RAIO[f.grau], color: CORES[f.grau], weight: 1.5, dashArray: "3 3", fillColor: CORES[f.grau], fillOpacity: .12 }
+        : { radius: RAIO[f.grau], color: "#05070c", weight: 1, fillColor: CORES[f.grau], fillOpacity: .9 };
+      L.circleMarker([f.latitude, f.longitude], estilo)
+        .bindPopup(() => detalhe(f), { autoPanPadding: [20, 20] }).addTo(camadas[f.grau]);
+    });
+  }
+
+  const legenda = L.control({ position: "bottomright" });
+  legenda.onAdd = () => elemento("div", { className: "legenda", id: "legenda" });
+  legenda.addTo(mapa);
+  function desenharLegenda(r) {
+    const caixa = $("legenda");
+    L.DomEvent.disableClickPropagation(caixa);
+    const grau = { "Crítico": 4, "Alto": 3, "Médio": 2, "Baixo": 1 };
+    // As quantidades contam o que está no mapa agora (com ou sem filtro, só novos ou não)
+    const conta = {};
+    visiveis(r).forEach(f => { conta[f.grau] = (conta[f.grau] || 0) + 1; });
+    const redesenhar = () => { desenharFocos(ultimo); desenharLegenda(ultimo); };
+    const filtro = elemento("label", { title: r.descartados ? `Sem o filtro, aparecem também ${r.descartados} foco(s) que o robô descarta, com contorno tracejado.` : "" },
+      elemento("input", { type: "checkbox", checked: comFiltro, onchange: e => { comFiltro = e.target.checked; redesenhar(); } }),
+      `Aplicar filtros do robô${r.descartados ? ` (−${r.descartados})` : ""}`);
+    caixa.replaceChildren(elemento("b", { textContent: "Risco (FRP)" }), ...r.por_nivel.map(n => {
+      const g = grau[n.nivel];
+      const marcar = elemento("input", { type: "checkbox", checked: mapa.hasLayer(camadas[g]), onchange: e => e.target.checked ? camadas[g].addTo(mapa) : mapa.removeLayer(camadas[g]) });
+      return elemento("label", {}, marcar, elemento("i", { style: `background:${CORES[g]}` }), `${n.nivel} · ${conta[g] || 0}`);
+    }), elemento("b", { className: "segundo", textContent: "Mostrar" }), filtro,
+       elemento("label", {}, elemento("input", { type: "checkbox", checked: sóNovos, onchange: e => { sóNovos = e.target.checked; redesenhar(); } }), "Só os novos"));
+  }
+
+  const numero = (valor, rotulo) => elemento("div", { className: "numero" }, elemento("b", { textContent: valor }), elemento("span", { textContent: rotulo }));
+  function atualizarNota() {
+    const partes = [$("nota").dataset.consulta, $("nota").dataset.fundo].filter(Boolean);
+    $("nota").textContent = partes.join(" ");
+  }
+  function mostrar(r) {
+    ultimo = r;
+    $("numeros").replaceChildren(numero(r.coletados, "coletados pela NASA"), numero(r.ativos, "ativos após os filtros"),
+      numero(r.novos, "novos desde a última consulta"), numero(r.alertas, `em alerta (${r.alerta_a_partir_de} ou mais)`));
+    $("numeros").hidden = false;
+    desenharFocos(r);
+    desenharLegenda(r);
+    const cortados = r.ativos + r.descartados > r.focos.length ? ` No mapa, os ${r.focos.length} mais fortes (ativos primeiro).` : "";
+    const motivos = r.por_motivo.length ? ` Tirados pelos filtros: ${r.por_motivo.map(m => `${m.quantidade} por ${m.motivo}`).join(", ")}.` : "";
+    $("nota").dataset.consulta = `Consulta de ${r.consultado_em} · ${r.fonte} · últimas ${r.dias * 24} h.${motivos}${cortados} Ocorrências registradas pelo robô em ${r.csv}.`;
+    atualizarNota();
+    mapa.invalidateSize();
+  }
+
+  $("buscar").onclick = async () => {
+    $("buscar").disabled = true;
+    avisar("Consultando a NASA… pode levar até 1 minuto.");
+    try {
+      const r = await api().buscar();
+      if (r.erro) return avisar(r.erro, true);
+      avisar(r.ativos ? "" : "Nenhum foco ativo nesta consulta.");
+      mostrar(r);
+    } catch (e) {
+      avisar("Algo deu errado na consulta.", true);
+    } finally {
+      $("buscar").disabled = false;
+    }
+  };
+  // A aba fica escondida até ser aberta: ao aparecer, o mapa precisa medir o espaço de novo
+  new ResizeObserver(() => { mapa.invalidateSize(); enquadrar(); }).observe($("mapa"));
+  window.addEventListener("pywebviewready", escolherFundo);
+</script>
+</body>
+</html>
