@@ -12,3 +12,7 @@ automacoes/
 assistentes/rick.json
 # Preferências de cada pessoa: têm caminhos de pastas pessoais
 merlin_config.json
+# Configuração do robô FIRMS Monitor: tem a chave da NASA
+.env
+# CSV e log que o robô grava
+dados/
