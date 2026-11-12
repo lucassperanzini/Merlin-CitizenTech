@@ -41,9 +41,9 @@ FRASES = [
     ("clica em cancelar no word", "clicar_botao", "cancelar"),
     ("seleciona a opção lembrar de mim", "clicar_botao", None),
     # trocar_assistente
-    ("muda pro jarvis", "trocar_assistente", "jarvis"),
+    ("muda pra ana", "trocar_assistente", "ana"),
     ("coloca o merlin no lugar", "trocar_assistente", "merlin"),
-    ("troca de assistente para o jarvis", "trocar_assistente", "jarvis"),
+    ("troca de assistente para a ana", "trocar_assistente", "ana"),
     ("quais assistentes você tem", "conversar", None),
     # abrir_pasta
     ("abre a pasta de downloads", "abrir_pasta", "downloads"),

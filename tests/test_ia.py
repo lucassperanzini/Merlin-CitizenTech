@@ -8,9 +8,9 @@ from merlin.ia.frases import GeradorFrases, frase_valida, valida_para
 from merlin.ia.divisao import DivisorTarefas
 from merlin.ia.intencoes import ClassificadorIntencao, TipoIntencao
 from merlin.personalidades import EMBUTIDAS
-from tests.falsos import ClienteFalso
+from tests.falsos import ClienteFalso, assistente_mago
 
-MERLIN, JARVIS = EMBUTIDAS["merlin"], EMBUTIDAS["jarvis"]
+MERLIN, MAGO = EMBUTIDAS["merlin"], assistente_mago()
 
 
 def classificar(alvo, intencao, busca="", comando="frase"):
@@ -49,7 +49,7 @@ class TestRegrasDeIntencao(unittest.TestCase):
             self.assertIs(classificar("x", "clicar_botao", comando=frase).tipo, TipoIntencao.CONVERSAR, frase)
 
     def test_configuracoes_do_assistente(self):
-        for frase in ("abre as configurações", "abre suas configurações", "abre as configurações do jarvis",
+        for frase in ("abre as configurações", "abre suas configurações", "abre as configurações do merlin",
                       "quero mexer nos seus ajustes"):
             self.assertIs(classificar("merlin", "abrir_configuracoes", comando=frase).tipo,
                           TipoIntencao.ABRIR_CONFIGURACOES, frase)
@@ -130,39 +130,41 @@ def gerador(conjunto, resposta):
     return GeradorFrases(ClienteFalso(resposta), lambda: conjunto)
 
 
-class TestFrasesDoMerlin(unittest.TestCase):
+class TestFrasesComRegras(unittest.TestCase):
+    """Um assistente que exige o nome e não chama de senhor (o antigo mago, em tests/assistente_mago.json)."""
+
     TEXTO = "Recolho meu cajado sob a lua. Basta chamar meu nome."
 
     def test_usa_a_frase_do_modelo(self):
-        self.assertEqual(gerador(MERLIN.despedida, self.TEXTO).gerar(), self.TEXTO)
+        self.assertEqual(gerador(MAGO.despedida, self.TEXTO).gerar(), self.TEXTO)
 
     def test_pergunta_lixo_e_tratamento_viram_reserva(self):
         for texto in ("Precisa de mais alguma coisa antes de eu ir?", 'vron {"name": "x"}', "", "Tchau.",
                       "Vou descansar, meu senhor. Basta chamar."):
-            self.assertIn(gerador(MERLIN.despedida, texto).gerar(), MERLIN.despedida.reservas, texto)
+            self.assertIn(gerador(MAGO.despedida, texto).gerar(), MAGO.despedida.reservas, texto)
 
     def test_sem_ia_usa_reserva_sem_repetir_em_seguida(self):
-        for conjunto in (MERLIN.despedida, MERLIN.saudacao):
+        for conjunto in (MAGO.despedida, MAGO.saudacao):
             g = gerador(conjunto, ConnectionError("fora do ar"))
             frases = [g.gerar() for _ in range(30)]
             self.assertTrue(all(f in conjunto.reservas for f in frases))
             self.assertTrue(all(a != b for a, b in zip(frases, frases[1:])))
 
     def test_frase_repetida_e_copia_do_exemplo_viram_reserva(self):
-        g = gerador(MERLIN.despedida, self.TEXTO)
+        g = gerador(MAGO.despedida, self.TEXTO)
         g.gerar()
-        self.assertIn(g.gerar(), MERLIN.despedida.reservas)
-        self.assertIn(gerador(MERLIN.despedida, MERLIN.despedida.exemplos[0]).gerar(), MERLIN.despedida.reservas)
+        self.assertIn(g.gerar(), MAGO.despedida.reservas)
+        self.assertIn(gerador(MAGO.despedida, MAGO.despedida.exemplos[0]).gerar(), MAGO.despedida.reservas)
 
     def test_saudacao_do_merlin_precisa_do_nome(self):
-        self.assertIn(gerador(MERLIN.saudacao, "Sob a lua, eu ofereço meus conselhos. O que deseja?").gerar(),
-                      MERLIN.saudacao.reservas)
+        self.assertIn(gerador(MAGO.saudacao, "Sob a lua, eu ofereço meus conselhos. O que deseja?").gerar(),
+                      MAGO.saudacao.reservas)
         texto = "Sob a lua, eu sou Merlin, seu mago. Como posso ajudar?"
-        self.assertEqual(gerador(MERLIN.saudacao, texto).gerar(), texto)
+        self.assertEqual(gerador(MAGO.saudacao, texto).gerar(), texto)
 
     def test_palavrao_vira_reserva(self):
         texto = "Vou mijar perto do caldeirão, eu sou Merlin. Volto quando chamar."
-        for conjunto in (MERLIN.despedida, MERLIN.saudacao):
+        for conjunto in (MAGO.despedida, MAGO.saudacao):
             self.assertIn(gerador(conjunto, texto).gerar(), conjunto.reservas)
 
     def test_filtro_nao_barra_palavras_normais(self):
@@ -171,7 +173,7 @@ class TestFrasesDoMerlin(unittest.TestCase):
 
     def test_tema_exemplo_e_recentes_vao_no_pedido(self):
         cliente = ClienteFalso("Sob a lua, eu sou Merlin, seu mago. Como posso ajudar?")
-        g = GeradorFrases(cliente, lambda: MERLIN.saudacao)
+        g = GeradorFrases(cliente, lambda: MAGO.saudacao)
         g.gerar()
         g.gerar()
         pedido = cliente.chamadas[1][0]["content"]
@@ -180,34 +182,34 @@ class TestFrasesDoMerlin(unittest.TestCase):
         self.assertNotIn("{exemplo}", pedido)
 
 
-class TestFrasesDoJarvis(unittest.TestCase):
-    def test_jarvis_pode_chamar_de_senhor(self):
+class TestFrasesDoMerlin(unittest.TestCase):
+    def test_merlin_pode_chamar_de_senhor(self):
         texto = "Reduzindo a energia por ora, senhor. É só me chamar."
-        self.assertEqual(gerador(JARVIS.despedida, texto).gerar(), texto)
+        self.assertEqual(gerador(MERLIN.despedida, texto).gerar(), texto)
 
-    def test_saudacao_do_jarvis_nao_exige_o_nome(self):
+    def test_saudacao_do_merlin_nao_exige_o_nome(self):
         texto = "Sistemas prontos e a rede estável, senhor. Em que posso ajudar?"
-        self.assertEqual(gerador(JARVIS.saudacao, texto).gerar(), texto)
+        self.assertEqual(gerador(MERLIN.saudacao, texto).gerar(), texto)
 
     def test_reservas_sao_validas(self):
-        for p in (MERLIN, JARVIS):
+        for p in (MERLIN, MAGO):
             for conjunto in (p.saudacao, p.despedida):
                 for frase in conjunto.reservas:
                     self.assertTrue(valida_para(frase, conjunto), f"{p.id}: {frase}")
                 self.assertGreater(len(conjunto.reservas), 3)  # sempre sobra uma além das recentes
 
     def test_troca_de_personalidade_muda_as_frases_na_hora(self):
-        escolhida = {"p": MERLIN}
+        escolhida = {"p": MAGO}
         g = GeradorFrases(ClienteFalso(ConnectionError("x")), lambda: escolhida["p"].despedida)
+        self.assertIn(g.gerar(), MAGO.despedida.reservas)
+        escolhida["p"] = MERLIN
         self.assertIn(g.gerar(), MERLIN.despedida.reservas)
-        escolhida["p"] = JARVIS
-        self.assertIn(g.gerar(), JARVIS.despedida.reservas)
 
 
 class TestAcoesDeSaida(unittest.TestCase):
     def test_so_saem_depois_de_falar(self):
         sessao = mock.Mock()
-        r = Dispensar(sessao, gerador(MERLIN.despedida, "Recolho meu cajado sob a lua. Basta chamar meu nome."))(None)
+        r = Dispensar(sessao, gerador(MAGO.despedida, "Recolho meu cajado sob a lua. Basta chamar meu nome."))(None)
         sessao.desativar.assert_not_called()
         r.depois()
         sessao.desativar.assert_called_once()

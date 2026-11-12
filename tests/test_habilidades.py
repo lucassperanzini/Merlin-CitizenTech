@@ -222,10 +222,10 @@ class TestDuasEtapas(unittest.TestCase):
 
 
 class TestPersonalidadesDescobertas(unittest.TestCase):
-    def test_encontra_as_duas_em_ordem_e_o_padrao(self):
-        # os do código, em ordem; os criados no configurador (como os seus) vêm depois
-        self.assertEqual(list(EMBUTIDAS), ["merlin", "jarvis"])
-        self.assertEqual(list(PERSONALIDADES)[:2], ["merlin", "jarvis"])
+    def test_encontra_o_original_primeiro_e_o_padrao(self):
+        # o original vem primeiro; os criados no configurador (como os seus) vêm depois
+        self.assertEqual(list(EMBUTIDAS), ["merlin"])
+        self.assertEqual(list(PERSONALIDADES)[:1], ["merlin"])
         self.assertEqual(personalidade_padrao().id, "merlin")
 
     def test_alvo_do_assistente_e_um_nome_de_personalidade(self):

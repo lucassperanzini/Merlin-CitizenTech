@@ -2,7 +2,7 @@
 
 Assistente pessoal por voz para Windows, **100% local**: ouve, entende e responde em voz alta e executa tarefas no computador (abrir e fechar programas, pesquisar na internet, clicar em botões). Nada do que você fala sai do seu PC.
 
-Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho animado) e **Jarvis** (um mordomo digital, com uma esfera 3D), e você pode criar outros pela própria interface.
+Vem com um assistente pronto, o **Merlin** (um mordomo digital, com uma esfera 3D), e você pode criar outros pela própria interface.
 
 ---
 
@@ -48,7 +48,7 @@ Vem com dois assistentes prontos, **Merlin** (um mago conselheiro, com um olho a
 |---|---|
 | Código do assistente | `main.py`, `merlin/` |
 | Páginas das janelas, sons de ativação, olho e esfera | `recursos/` |
-| Os assistentes originais, Merlin e Jarvis (não podem ser excluídos; "Restaurar original" volta para eles) | `recursos/assistentes_padrao/*.json` |
+| O assistente original, Merlin (não pode ser excluído; "Restaurar original" volta para ele) | `recursos/assistentes_padrao/*.json` |
 | **Vozes do Piper** em português (Faber, Cadu, Jeff; ~63 MB cada) | `vozes/*.onnx` |
 | Ferramentas (baixar modelos, avaliar a IA, gerar sons) | `ferramentas/` |
 | Testes automáticos | `tests/` |
@@ -165,7 +165,7 @@ microfone
 
 ### Personalizar
 
-- **Assistentes:** pela aba **Editor** da Central. Lá você define nome, palavras de chamada, voz, aparência, quem ele é, como ele fala, frases prontas e expressões típicas. A IA local pode sugerir o resto a partir de "Quem ele é". Todos os assistentes são arquivos .json no mesmo formato: os originais (Merlin e Jarvis) em `recursos/assistentes_padrao/`, e os seus e os ajustes dos originais em `assistentes_citizentech/`.
+- **Assistentes:** pela aba **Editor** da Central. Lá você define nome, palavras de chamada, voz, aparência, quem ele é, como ele fala, frases prontas e expressões típicas. A IA local pode sugerir o resto a partir de "Quem ele é". Todos os assistentes são arquivos .json no mesmo formato: o original (Merlin) em `recursos/assistentes_padrao/`, e os seus e os ajustes do original em `assistentes_citizentech/`.
 - **Habilidades:** crie um arquivo em `merlin/habilidades/` (veja um vizinho como modelo) e a ação em `merlin/acoes/`. Ela entra sozinha no que a IA lê e nas ações, e aparece na aba Skills da Central, onde você pode ajustar o título, a descrição e os exemplos (ficam em `skills/*.json`).
 - **Ajustes técnicos:** em `merlin/config.py`, por exemplo a pausa que encerra uma frase (`PAUSA_FIM_FRASE`) e o tempo de inatividade (`TEMPO_INATIVIDADE`).
 

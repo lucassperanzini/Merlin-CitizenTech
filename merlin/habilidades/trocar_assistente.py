@@ -19,7 +19,7 @@ def criar_acao(recursos):
 HABILIDADE = Habilidade(
     nome="trocar_assistente",
     titulo="Trocar de assistente",
-    resumo="Passa para outro assistente, como Merlin ou Jarvis.",
+    resumo="Passa para outro assistente, como o Merlin ou um criado no Editor.",
     icone="🔄",
     regras_resumo=('Perguntas (“quais assistentes você tem?”) viram conversa.',),
     grupo=grupos.ASSISTENTE,
@@ -27,9 +27,9 @@ HABILIDADE = Habilidade(
     descricao="a pessoa pede para trocar de assistente, mudar para outro assistente ou chamar outro assistente "
               "no lugar deste. O alvo é só o nome do assistente pedido.",
     exemplos=(
-        Exemplo("troca para o jarvis", "jarvis"),
+        Exemplo("troca para a ana", "ana"),
         Exemplo("quero falar com o merlin", "merlin"),
-        Exemplo("muda o assistente pro jarvis", "jarvis"),
+        Exemplo("muda o assistente pra ana", "ana"),
     ),
     regra=regra,
     criar_acao=criar_acao,

@@ -15,7 +15,7 @@ class ConjuntoFrases:
     exemplos: tuple[str, ...] = ("",)
     exige_nome: str | None = None  # a frase precisa conter este nome
     sem_perguntas: bool = False
-    proibir_tratamentos: bool = False  # o Merlin não chama ninguém de "senhor"; o Jarvis chama
+    proibir_tratamentos: bool = False  # para quem não deve chamar ninguém de "senhor"
     tamanho_maximo: int = 170
     expressoes: tuple[str, ...] = ()  # gírias e bordões do assistente: duas são oferecidas em parte das frases
     frequencia_expressoes: float = 0.5  # em que fração das frases as expressões são oferecidas (0 a 1)

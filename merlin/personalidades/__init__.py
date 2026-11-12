@@ -1,6 +1,6 @@
 """As personalidades (assistentes) disponíveis. Todas são arquivos .json, no mesmo formato:
 
-- originais: recursos/assistentes_padrao/ (Merlin e Jarvis). Não podem ser excluídos pela interface, e
+- original: recursos/assistentes_padrao/ (Merlin). Não podem ser excluídos pela interface, e
   "Restaurar original" volta para eles;
 - configurador: assistentes_citizentech/, criados ou ajustados na aba Editor. Um .json com o id de um original é um ajuste
   dele (vale no lugar do original; apagar o arquivo restaura o padrão). Um id novo é um assistente novo.

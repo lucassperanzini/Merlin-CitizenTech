@@ -20,8 +20,7 @@ Nome do assistente: {nome}
 Quem ele é: {descricao}
 
 Preencha:
-- jeito: duas ou três frases, falando com o assistente ("Você é...", "Trate a pessoa por..."), descrevendo como ele fala: o tom, o humor, o tamanho das respostas e como ele chama a pessoa. Não repita a história dele (ela já está em "Quem ele é"), sem regras técnicas e sem listar gírias (elas vão em expressoes).
-- expressoes: até 6 gírias ou bordões que ele usa, sem palavrões, cada um no formato "expressão — quando usar". Só expressões que combinem com a descrição; nenhuma, se o personagem não tiver gírias.
+- jeito: duas ou três frases, falando com o assistente ("Você é...", "Trate a pessoa por..."), descrevendo como ele fala: o tom, o humor, o tamanho das respostas e como ele chama a pessoa. Não repita a história dele (ela já está em "Quem ele é"), sem regras técnicas.
 - apresentacao: uma frase curta que ele diz quando é escolhido, citando o próprio nome.
 - variacoes_do_nome: até 6 jeitos como um reconhecedor de voz pode escrever o nome dele errado, em minúsculas (ex.: para "Jarvis": jarves, javis, jervis).
 - temas: 8 imagens ou assuntos ligados ao personagem, de uma a três palavras cada, para variar as falas.
@@ -36,12 +35,11 @@ ESQUEMA = {
         "jeito": {"type": "string"},
         "apresentacao": {"type": "string"},
         "variacoes_do_nome": {"type": "array", "items": {"type": "string"}},
-        "expressoes": {"type": "array", "items": {"type": "string"}},
         "temas": {"type": "array", "items": {"type": "string"}},
         "saudacoes": {"type": "array", "items": {"type": "string"}},
         "despedidas": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["jeito", "apresentacao", "variacoes_do_nome", "expressoes", "temas", "saudacoes", "despedidas"],
+    "required": ["jeito", "apresentacao", "variacoes_do_nome", "temas", "saudacoes", "despedidas"],
 }
 
 
@@ -68,8 +66,6 @@ class CriadorAssistente:
         variacoes = [str(v).strip().lower() for v in sugestao.get("variacoes_do_nome", []) if len(str(v).strip()) >= 3]
         dados["palavras_ativacao"] = list(dict.fromkeys([nome.lower(), *variacoes]))
         temas = [str(t).strip() for t in sugestao.get("temas", []) if str(t).strip()][:10]
-        expressoes = [" ".join(str(e).split()) for e in sugestao.get("expressoes", []) if str(e).strip()]
-        dados["expressoes"] = [e for e in dict.fromkeys(expressoes) if len(e) <= 80 and "{" not in e][:6]
         for parte, chave in (("saudacao", "saudacoes"), ("despedida", "despedidas")):
             regras = dados[parte]
             conjunto = ConjuntoFrases("", (), (), sem_perguntas=regras.get("sem_perguntas", False),

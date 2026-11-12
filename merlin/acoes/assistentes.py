@@ -1,11 +1,11 @@
-"""Trocar de assistente (personalidade): por voz ("troca para o Jarvis") ou pela lista no nome da bolinha."""
+"""Trocar de assistente (personalidade): por voz ("troca para a Ana") ou pela lista no nome da bolinha."""
 import re
 
 from merlin.nucleo.resposta import Resultado
 from merlin.personalidades import PERSONALIDADES
 from merlin.texto import normalizar
 
-# Palavras que acompanham o nome no pedido e não fazem parte dele: "para o jarvis", "pro jarvis", "com a ana"
+# Palavras que acompanham o nome no pedido e não fazem parte dele: "para a ana", "pro merlin", "com a ana"
 LIGACOES = {"o", "a", "os", "as", "pro", "pra", "para", "com", "assistente", "de", "do", "da"}
 
 

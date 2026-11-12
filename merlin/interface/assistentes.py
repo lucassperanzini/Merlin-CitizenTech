@@ -63,7 +63,7 @@ class ServicoAssistentes:
         dados["id"] = identificador
         if identificador not in EMBUTIDAS:
             # As instruções não aparecem na tela: são remontadas do nome e do jeito a cada vez que salva.
-            # Os originais (Merlin e Jarvis) mantêm as suas, escritas à mão no arquivo deles.
+            # O original (Merlin) mantém as suas, escritas à mão no arquivo deles.
             if not str(dados.get("prompt_conversa", "")).strip() and dados.get("nome", "").strip():
                 jeito = modelo.extrair_jeito(dados["nome"], dados.get("jeito") or dados.get("descricao")
                                              or dados.get("contexto") or "")

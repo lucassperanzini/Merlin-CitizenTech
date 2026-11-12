@@ -57,13 +57,6 @@
   #status.erro { color: var(--erro); }
   #status.aviso { color: var(--aviso); }
   [hidden] { display: none !important; }
-  /* Tabela de expressões típicas: uma linha por expressão, com o contexto de uso ao lado */
-  .expressoes { display: grid; gap: 6px; }
-  .expressoes .cabecalho, .expressoes .linha-expr { display: grid; grid-template-columns: 1fr 1.6fr 34px; gap: 6px; align-items: center; }
-  .expressoes .cabecalho span { font-size: 12px; color: var(--suave); }
-  .expressoes .remover { padding: 6px 0; background: transparent; border-color: transparent; color: var(--suave); }
-  .expressoes .remover:hover { color: var(--texto); border-color: var(--borda); }
-  #adicionar-expressao { justify-self: start; background: var(--campo); border-color: var(--borda); }
 </style>
 </head>
 <body>
@@ -99,33 +92,13 @@
         A IA usa como pano de fundo, só quando fizer sentido, sem recitar.</p>
       <div class="linha" style="margin-top:8px">
         <button id="sugerir" type="button" class="principal">Sugerir o resto com IA</button>
-        <span class="ajuda" style="margin:0">Leva uns 10 segundos. A partir de quem ele é, preenche como ele fala, as frases e as expressões; você revisa antes de salvar.</span>
+        <span class="ajuda" style="margin:0">Leva uns 10 segundos. A partir de quem ele é, preenche como ele fala e as frases; você revisa antes de salvar.</span>
       </div>
       <div class="grade" style="margin-top:12px">
         <label class="inteiro">Apresentação (dita ao escolher este assistente)<input id="apresentacao"></label>
         <label class="inteiro">Como ele fala<textarea id="conversa" rows="5"
           placeholder="O tom, o humor, o tamanho das respostas e como ele chama você. Ex.: fala com calma e carinho, em frases curtas, e chama você pelo nome."></textarea></label>
         <p class="ajuda inteiro" style="margin-top:-4px">Vale para toda resposta. A história dele vai em "Quem ele é", acima.</p>
-        <div class="inteiro" style="display:grid; gap:4px">
-          <span style="font-size:13px; color:var(--suave)">Expressões típicas</span>
-          <div class="expressoes" id="expressoes">
-            <div class="cabecalho"><span>Expressão</span><span>Quando usar (opcional)</span><span></span></div>
-            <div id="linhas-expressoes" style="display:grid; gap:6px"></div>
-            <button id="adicionar-expressao" type="button">+ Adicionar expressão</button>
-          </div>
-          <span class="ajuda" style="margin:0">Gírias e bordões que ele usa só quando combinam, sem comentar que usa.
-            O "quando usar" ajuda a IA a acertar o sentido. Melhor aqui do que no texto acima: lá, ele trata como fato
-            sobre si e às vezes repete ("gosto de ser chamado de…").</span>
-        </div>
-        <label>Frequência das expressões
-          <select id="frequencia">
-            <option value="0.25">Raramente (1 em cada 4 falas)</option>
-            <option value="0.5">Às vezes (metade das falas)</option>
-            <option value="0.75">Frequentemente (3 em cada 4)</option>
-            <option value="1">Sempre que combinar</option>
-          </select>
-          <span class="ajuda" style="margin:0">Em quantas falas ele recebe as expressões; mesmo assim, só usa se combinar.</span>
-        </label>
         <label class="linha inteiro" style="color:var(--texto)"><input id="diz-nome" type="checkbox" style="width:auto">
           Sempre dizer o próprio nome nas saudações que ele inventa</label>
         <label class="linha inteiro" style="color:var(--texto)"><input id="sem-tratamentos" type="checkbox" style="width:auto">
@@ -175,38 +148,6 @@
     if (select.value !== valor && itens.length) select.value = itens[0][0];
   }
 
-  // As expressões são guardadas como "expressão — quando usar"; a tabela mostra as duas partes separadas
-  const SEPARADOR = " — ";
-  function linhaExpressao(termo = "", contexto = "") {
-    const linha = document.createElement("div");
-    linha.className = "linha-expr";
-    const campoTermo = Object.assign(document.createElement("input"), { value: termo, placeholder: "expressão" });
-    const campoContexto = Object.assign(document.createElement("input"),
-                                        { value: contexto, placeholder: "quando usar (opcional)" });
-    campoTermo.className = "termo"; campoContexto.className = "contexto";
-    campoTermo.setAttribute("aria-label", "Expressão");
-    campoContexto.setAttribute("aria-label", "Quando usar");
-    const remover = Object.assign(document.createElement("button"), { type: "button", textContent: "✕", title: "Remover" });
-    remover.className = "remover";
-    remover.setAttribute("aria-label", "Remover expressão");
-    remover.addEventListener("click", () => linha.remove());
-    linha.append(campoTermo, campoContexto, remover);
-    return linha;
-  }
-  function mostrarExpressoes(lista) {
-    $("linhas-expressoes").replaceChildren(...lista.map(texto => {
-      const partes = texto.split(/\s+[—–-]\s+/);  // aceita também o traço comum digitado à mão
-      return linhaExpressao(partes[0], partes.slice(1).join(" — "));
-    }));
-  }
-  function coletarExpressoes() {
-    return [...document.querySelectorAll("#linhas-expressoes .linha-expr")].map(linha => {
-      const termo = linha.querySelector(".termo").value.trim();
-      const contexto = linha.querySelector(".contexto").value.trim();
-      return termo ? (contexto ? termo + SEPARADOR + contexto : termo) : "";
-    }).filter(Boolean);
-  }
-
   function mostrar(dados) {
     atual = dados;
     $("nome").value = dados.nome || "";
@@ -220,9 +161,6 @@
     $("contexto").value = dados.contexto || "";
     $("apresentacao").value = dados.apresentacao || "";
     $("conversa").value = dados.prompt_conversa || "";
-    mostrarExpressoes(dados.expressoes || []);
-    $("frequencia").value = String(dados.frequencia_expressoes ?? 0.5);
-    if (!$("frequencia").value) $("frequencia").value = "0.5";  // valor salvo fora das opções
     $("nao-comentar").checked = dados.nao_comentar_instrucoes !== false;
     $("saudacoes").value = juntar(dados.saudacao.reservas);
     $("despedidas").value = juntar(dados.despedida.reservas);
@@ -248,8 +186,7 @@
       cor: $("cor-padrao").checked ? "" : $("cor").value,
       contexto: $("contexto").value.trim(), apresentacao: $("apresentacao").value.trim(),
       prompt_conversa: $("conversa").value.trim(),
-      expressoes: coletarExpressoes(),
-      frequencia_expressoes: Number($("frequencia").value),
+      expressoes: [],  // as expressões típicas saíram do editor: salvar limpa as que estavam no arquivo
       nao_comentar_instrucoes: $("nao-comentar").checked,
     });
     d.saudacao = { ...d.saudacao, reservas: separar($("saudacoes").value), temas: temasSaudacao,
@@ -292,11 +229,6 @@
     avisar("Dê um nome, descreva o assistente e clique em \"Sugerir o resto com IA\".");
   });
   $("cor-padrao").addEventListener("change", () => { $("cor").disabled = $("cor-padrao").checked; });
-  $("adicionar-expressao").addEventListener("click", () => {
-    const linha = linhaExpressao();
-    $("linhas-expressoes").append(linha);
-    linha.querySelector(".termo").focus();
-  });
   $("nome").addEventListener("change", () => {
     if (!$("palavras").value.trim()) $("palavras").value = $("nome").value.trim().toLowerCase();
   });

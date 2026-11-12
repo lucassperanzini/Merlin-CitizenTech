@@ -81,3 +81,40 @@ class ConfirmadorFalso:
 class SaudacaoFalsa:
     def gerar(self):
         return "saudação"
+
+
+# --- Assistentes de teste: o projeto vem com um assistente original só (o Merlin)
+def assistente_de_teste(nome="Sexta-feira", **mudancas):
+    """Os dados de um assistente novo, válido, como o Editor da Central salvaria."""
+    from merlin.personalidades import modelo
+    dados = modelo.novo_assistente(nome, "Você é animada e chama a pessoa de chefe.")
+    for parte, frase in (("saudacao", "Oi, chefe! Em que posso ajudar"), ("despedida", "Volto quando chamar, chefe")):
+        dados[parte]["reservas"] = [f"{frase}, versão {i}." for i in range(5)]
+        dados[parte]["temas"] = ["o trabalho", "o café"]
+    dados["palavras_ativacao"] = ["sexta-feira", "sexta feira"]
+    dados.update(mudancas)
+    return dados
+
+
+def com_segundo_assistente(teste):
+    """Registra a Sexta-feira (id "sexta_feira") ao lado do Merlin só durante o teste, para testar trocas."""
+    import tempfile
+    from pathlib import Path
+
+    from merlin.personalidades import armazenamento, recarregar
+    pasta = tempfile.TemporaryDirectory()
+    teste.addCleanup(pasta.cleanup)
+    teste.addCleanup(recarregar)  # volta ao registro real depois do teste
+    armazenamento.salvar(armazenamento.de_dados(assistente_de_teste()), Path(pasta.name))
+    recarregar(Path(pasta.name))
+
+
+def assistente_mago():
+    """O antigo Merlin mago, guardado só para os testes: as regras das frases dele (exigir o nome, não chamar de
+    senhor) continuam valendo para os assistentes criados no Editor."""
+    import json
+    from pathlib import Path
+
+    from merlin.personalidades import armazenamento
+    dados = json.loads((Path(__file__).parent / "assistente_mago.json").read_text(encoding="utf-8"))
+    return armazenamento.de_dados(dados)

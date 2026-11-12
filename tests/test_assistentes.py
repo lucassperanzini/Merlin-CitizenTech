@@ -7,18 +7,9 @@ from unittest import mock
 from merlin.interface.assistentes import ServicoAssistentes
 from merlin.personalidades import EMBUTIDAS, NOMES_DO_ASSISTENTE, PERSONALIDADES, armazenamento, modelo, recarregar
 from merlin.personalidades.armazenamento import DadosInvalidos
+from tests.falsos import assistente_de_teste as assistente_valido
 
-MERLIN, JARVIS = EMBUTIDAS["merlin"], EMBUTIDAS["jarvis"]
-
-
-def assistente_valido(nome="Sexta-feira", **mudancas):
-    dados = modelo.novo_assistente(nome, "Você é animada e chama a pessoa de chefe.")
-    for parte, frase in (("saudacao", "Oi, chefe! Em que posso ajudar"), ("despedida", "Volto quando chamar, chefe")):
-        dados[parte]["reservas"] = [f"{frase}, versão {i}." for i in range(5)]
-        dados[parte]["temas"] = ["o trabalho", "o café"]
-    dados["palavras_ativacao"] = ["sexta-feira", "sexta feira"]
-    dados.update(mudancas)
-    return dados
+MERLIN = EMBUTIDAS["merlin"]
 
 
 class PastaTemporaria(unittest.TestCase):
@@ -31,8 +22,7 @@ class PastaTemporaria(unittest.TestCase):
 
 class TestArmazenamento(PastaTemporaria):
     def test_ida_e_volta_mantem_os_originais_identicos(self):
-        for original in (MERLIN, JARVIS):
-            self.assertEqual(armazenamento.de_dados(armazenamento.para_dados(original), original), original)
+        self.assertEqual(armazenamento.de_dados(armazenamento.para_dados(MERLIN), MERLIN), MERLIN)
 
     def test_assistente_novo_valido(self):
         p = armazenamento.de_dados(assistente_valido())
@@ -74,9 +64,9 @@ class TestArmazenamento(PastaTemporaria):
         (self.pasta / "merlin.json").write_text(json.dumps(ajuste, ensure_ascii=False), encoding="utf-8")
         armazenamento.salvar(armazenamento.de_dados(assistente_valido()), self.pasta)
         recarregar(self.pasta)
-        self.assertEqual(list(PERSONALIDADES), ["merlin", "jarvis", "sexta_feira"])
+        self.assertEqual(list(PERSONALIDADES), ["merlin", "sexta_feira"])
         self.assertEqual(PERSONALIDADES["merlin"].apresentacao, "Merlin ajustado.")
-        self.assertEqual(PERSONALIDADES["merlin"].vozes_proprias, MERLIN.vozes_proprias)  # a voz do mago continua
+        self.assertEqual(PERSONALIDADES["merlin"].vozes_proprias, MERLIN.vozes_proprias)  # a voz digital dele continua
         self.assertIn("sexta_feira", NOMES_DO_ASSISTENTE)
 
 
@@ -103,9 +93,9 @@ class TestServico(PastaTemporaria):
         self.assertEqual(r["id"], "sexta_feira_2")
 
     def test_palavra_de_chamada_de_outro_assistente_e_recusada(self):
-        r = self.servico.salvar(assistente_valido(palavras_ativacao=["jarvis"]))
+        r = self.servico.salvar(assistente_valido(palavras_ativacao=["merlin"]))
         self.assertIn("já usadas", r["erro"])
-        self.assertIn("Jarvis", r["erro"])
+        self.assertIn("Merlin", r["erro"])
 
     def test_frase_recusada_diz_o_motivo(self):
         casos = [("saudacao", "Oi.", "curta demais"),
@@ -136,12 +126,12 @@ class TestServico(PastaTemporaria):
         self.assertIn("sexta", r["avisos"][0])
 
     def test_ajustar_e_restaurar_um_original(self):
-        dados = self.servico.abrir("jarvis") | {"apresentacao": "Jarvis ajustado."}
+        dados = self.servico.abrir("merlin") | {"apresentacao": "Merlin ajustado."}
         self.servico.salvar(dados)
-        self.assertEqual(PERSONALIDADES["jarvis"].apresentacao, "Jarvis ajustado.")
-        self.assertTrue(self.servico.abrir("jarvis")["ajustado"])
-        self.servico.restaurar("jarvis")
-        self.assertEqual(PERSONALIDADES["jarvis"], JARVIS)
+        self.assertEqual(PERSONALIDADES["merlin"].apresentacao, "Merlin ajustado.")
+        self.assertTrue(self.servico.abrir("merlin")["ajustado"])
+        self.servico.restaurar("merlin")
+        self.assertEqual(PERSONALIDADES["merlin"], MERLIN)
 
     def test_instrucoes_sao_montadas_sozinhas_a_partir_do_nome(self):
         dados = assistente_valido()
@@ -324,16 +314,18 @@ class TestExpressoes(unittest.TestCase):
         GeradorFrases(cliente, lambda: MERLIN.saudacao).gerar()
         self.assertNotIn("expressões típicas", cliente.chamadas[0][0]["content"])
 
-    def test_ia_sugere_expressoes(self):
-        from merlin.ia.criador_assistente import CriadorAssistente
+    def test_ia_nao_sugere_expressoes(self):
+        # as expressões típicas saíram do editor: a sugestão não traz nada que a pessoa não veja na tela
+        from merlin.ia.criador_assistente import ESQUEMA, PROMPT, CriadorAssistente
         from tests.falsos import ClienteFalso
 
+        self.assertNotIn("expressoes", ESQUEMA["properties"])
+        self.assertNotIn("expressoes", PROMPT)
         boas = [f"Fala, mano, pronto para ajudar, opção {i}." for i in range(5)]
         resposta = {"jeito": "Você é sarcástico.", "apresentacao": "Rick na área, velho!", "variacoes_do_nome": ["rik"],
-                    "expressoes": ["velho", "mano", "velho", "x" * 90], "temas": ["o rolê"],
-                    "saudacoes": boas, "despedidas": boas}
+                    "expressoes": ["velho", "mano"], "temas": ["o rolê"], "saudacoes": boas, "despedidas": boas}
         dados = CriadorAssistente(ClienteFalso(json.dumps(resposta))).sugerir("Rick", "sarcástico")
-        self.assertEqual(dados["expressoes"], ["velho", "mano"])  # sem repetidas nem compridas demais
+        self.assertEqual(dados.get("expressoes", []), [])
 
 
 class TestQuemEleE(unittest.TestCase):
@@ -360,21 +352,20 @@ class TestQuemEleE(unittest.TestCase):
 
     def test_assistentes_atuais_comecam_sem_contexto(self):
         self.assertEqual(MERLIN.contexto, "")
-        self.assertEqual(JARVIS.contexto, "")
 
 
 class TestOriginaisEmJson(unittest.TestCase):
-    """Merlin e Jarvis são arquivos .json como os outros; só não podem ser excluídos pela interface."""
+    """O Merlin original é um arquivo .json como os outros; só não podem ser excluídos pela interface."""
 
     def test_originais_vem_dos_arquivos_padrao_na_ordem_certa(self):
         from merlin.config import PASTA_ASSISTENTES_PADRAO
-        self.assertEqual(sorted(a.stem for a in PASTA_ASSISTENTES_PADRAO.glob("*.json")), ["jarvis", "merlin"])
-        self.assertEqual(list(EMBUTIDAS), ["merlin", "jarvis"])
+        self.assertEqual(sorted(a.stem for a in PASTA_ASSISTENTES_PADRAO.glob("*.json")), ["merlin"])
+        self.assertEqual(list(EMBUTIDAS), ["merlin"])
 
     def test_vozes_proprias_vao_e_voltam_do_arquivo(self):
-        dados = json.loads(json.dumps(armazenamento.para_dados(JARVIS)))
-        self.assertEqual(dados["vozes_proprias"][0]["id"], "jarvis_digital")
-        self.assertEqual(armazenamento.de_dados(dados), JARVIS)
+        dados = json.loads(json.dumps(armazenamento.para_dados(MERLIN)))
+        self.assertEqual(dados["vozes_proprias"][0]["id"], "merlin_digital")
+        self.assertEqual(armazenamento.de_dados(dados), MERLIN)
 
     def test_voz_propria_incompleta_e_recusada(self):
         dados = armazenamento.para_dados(MERLIN)
