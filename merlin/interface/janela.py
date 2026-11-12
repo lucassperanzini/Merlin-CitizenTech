@@ -1,5 +1,5 @@
 """Janela do assistente: mostra e esconde, e repassa à página tudo o que chega pelo canal.
-A aparência (olho do Merlin ou esfera do Jarvis) segue a personalidade escolhida.
+A aparência (esfera ou olho) segue a personalidade escolhida.
 Em espera, a janela fica numa bolinha no canto da tela, que cresce até o centro quando o assistente é chamado."""
 import json
 import logging
@@ -39,7 +39,8 @@ class ApiJanela:
     """Funções que a página pode chamar. O pywebview expõe tudo o que é público, por isso os atributos são privados."""
 
     def __init__(self, central, sessao, estado=None, mostrar_botoes=None, abrir_menu=None, trocar_assistente=None,
-                 raciocinio=None, painel=None, debug=None, balao=None):
+                 raciocinio=None, painel=None, debug=None, balao=None, ver_alertas=None):
+        self._ver_alertas = ver_alertas
         self._balao = balao
         self.raciocinio = raciocinio  # a API da página do raciocínio, no painel à esquerda do cartão
         self._painel = painel
@@ -53,6 +54,12 @@ class ApiJanela:
 
     def abrir_configuracoes(self):
         self._central.abrir_aba("assistente")
+
+    def abrir_alertas(self):
+        """Sino da órbita ou atalho do cartão: abre a aba Alertas da Central, desliga o alarme e tira o vermelho."""
+        if self._ver_alertas:
+            self._ver_alertas()
+        self._central.abrir_aba("alertas")
 
     def alternar_microfone(self) -> bool:
         """Botão de mudo: liga ou desliga a escuta. Devolve True se o microfone ficou desligado."""
@@ -127,7 +134,8 @@ class ApiJanela:
 
 
 class JanelaMerlin:
-    def __init__(self, estado, canal, sessao, preferencias, central, trocar_assistente=None, raciocinio=None):
+    def __init__(self, estado, canal, sessao, preferencias, central, trocar_assistente=None, raciocinio=None,
+                 ver_alertas=None):
         self._estado = estado
         self._canal = canal
         self._sessao = sessao
@@ -153,7 +161,7 @@ class JanelaMerlin:
             preferencias.personalidade.nome, html=self._montar_pagina(),
             js_api=ApiJanela(central, sessao, estado, self._mostrar_botoes_compactos, self._abrir_menu_compacto,
                              trocar_assistente, raciocinio, self._abrir_painel, self._alternar_debug,
-                             self._mostrar_balao),
+                             self._mostrar_balao, ver_alertas),
             width=largura, height=altura, x=x, y=y,
             resizable=False, on_top=True, hidden=True, background_color="#05070C",
             min_size=(100, 100),  # o padrão (200 de largura) não deixaria a bolinha do canto ficar redonda
@@ -226,6 +234,10 @@ class JanelaMerlin:
             self._chamar_pagina("mostrarRascunho", dado)
         elif tipo is TipoEvento.AVISO and self._compacta:
             self._chamar_pagina("mostrarBalao", dado)
+        elif tipo is TipoEvento.ALERTA:  # na bolinha e no cartão: fica vermelho até a pessoa abrir os alertas
+            self._chamar_pagina("definirAlerta", dado)
+        elif tipo is TipoEvento.ATALHO_ALERTAS:
+            self._chamar_pagina("prepararAtalhoAlertas")
         elif tipo is TipoEvento.LEGENDA and self._visivel:
             self._chamar_pagina("definirLegenda", dado)
         elif tipo is TipoEvento.RESPOSTA and self._visivel:

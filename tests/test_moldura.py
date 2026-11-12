@@ -32,9 +32,9 @@ class TestMoldura(unittest.TestCase):
         circulo, faixa, botoes = formas_compactas(1.0)
         self.assertEqual(circulo, (318, 0, 438, 120))  # a bolinha à direita, depois do balão e dos botões
         self.assertEqual(faixa, (303, 124, 453, 148))  # o nome embaixo, centralizado na bolinha
-        self.assertEqual(len(botoes), 3)  # configurações, microfone e modo debug
-        self.assertEqual(botoes[1], (280, 46, 308, 74))  # o do meio, bem à esquerda e na altura do centro
-        self.assertEqual(120 - botoes[2][3], botoes[0][1])  # os outros dois, simétricos
+        self.assertEqual(len(botoes), 4)  # alerta, configurações, microfone e modo debug
+        self.assertEqual(120 - botoes[3][3], botoes[0][1])  # simétricos em volta do centro da bolinha
+        self.assertEqual(120 - botoes[2][3], botoes[1][1])
         circulo, faixa, _ = formas_compactas(1.5)
         self.assertEqual(circulo[2] - circulo[0], 180)  # acompanha a escala da tela
         self.assertEqual(faixa[3], 222)

@@ -29,8 +29,21 @@ LADO_COMPACTO = 120  # diâmetro da bolinha
 LARGURA_NOME = 150  # um pouco mais larga que a bolinha, para caber o nome
 ESPACO_NOME = 4  # entre a bolinha e a faixa do nome
 ALTURA_NOME = 24
-BOTOES_COMPACTOS = ("engrenagem", "microfone", "debug")  # ids dos botões na página, de cima para baixo
-ANGULOS_BOTOES = (148, 180, 212)  # graus a partir da direita, no sentido anti-horário: 180 é bem à esquerda
+# ids dos botões na página, de cima para baixo. O de alerta fica no topo: é o que precisa ser visto primeiro.
+BOTOES_COMPACTOS = ("alerta", "engrenagem", "microfone", "debug")
+# Graus a partir da direita, no sentido anti-horário: 180 é bem à esquerda. De 148 a 212 cabem na altura da
+# janela (a bolinha mais o nome); quatro botões nesse arco ficam a uns 3 pontos um do outro.
+ANGULOS_BOTOES = (148, 169, 191, 212)
+# Perfil operador: sem o botão do modo debug, os outros três ocupam o mesmo arco
+BOTOES_OPERADOR = ("alerta", "engrenagem", "microfone")
+ANGULOS_OPERADOR = (148, 180, 212)
+_botoes_em_uso = (BOTOES_COMPACTOS, ANGULOS_BOTOES)
+
+
+def usar_botao_debug(com_debug: bool) -> None:
+    """Chamado uma vez, ao abrir, conforme o perfil: o recorte da janela e a página seguem o mesmo desenho."""
+    global _botoes_em_uso
+    _botoes_em_uso = (BOTOES_COMPACTOS, ANGULOS_BOTOES) if com_debug else (BOTOES_OPERADOR, ANGULOS_OPERADOR)
 DIAMETRO_BOTAO = 28
 ORBITA_BOTOES = 84  # do centro da bolinha ao centro de cada botão: sobra um vão entre eles e a bolinha
 # Modo discreto: o balão com a resposta curta aparece à esquerda da bolinha. O espaço dele fica reservado na janela
@@ -86,7 +99,7 @@ def desenho_compacto() -> dict:
                "x": round(cx + ORBITA_BOTOES * math.cos(math.radians(angulo)) - raio_botao, 1),
                "y": round(cy - ORBITA_BOTOES * math.sin(math.radians(angulo)) - raio_botao, 1),
                "lado": DIAMETRO_BOTAO}
-              for id_botao, angulo in zip(BOTOES_COMPACTOS, ANGULOS_BOTOES)]
+              for id_botao, angulo in zip(*_botoes_em_uso)]
     return {
         "largura": cx + max(raio, LARGURA_NOME / 2),
         "altura": LADO_COMPACTO + ESPACO_NOME + ALTURA_NOME,

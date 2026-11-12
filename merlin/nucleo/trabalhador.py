@@ -28,7 +28,10 @@ class TrabalhadorComandos:
 
     def _atender(self, frase):
         try:
-            self._processador.processar(frase)
+            if callable(frase):  # um aviso do próprio Merlin (como o de focos de incêndio), e não uma frase ouvida
+                frase()
+            else:
+                self._processador.processar(frase)
         except Exception as erro:
             logger.error("[ERRO] %s", erro)
         finally:

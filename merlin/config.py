@@ -36,19 +36,23 @@ ARQ_ENV = PASTA_RAIZ / ".env"  # configuração do robô FIRMS Monitor, com a ch
 ARQ_ULTIMA_CONSULTA = PASTA_RAIZ / "dados" / "alertas" / "ultima_consulta.json"  # volta ao mapa ao abrir a aba Alertas
 PASTA_SKILLS = PASTA_RAIZ / "skills"  # ajustes das skills feitos na Central (um .json por skill ajustada)
 PASTA_ASSISTENTES = PASTA_RAIZ / "assistentes_citizentech"  # assistentes criados ou ajustados no configurador (um .json cada)
-# Os originais (Merlin e Jarvis): o padrão para "Restaurar original". Não podem ser excluídos pela interface.
+# O original (Merlin): o padrão para "Restaurar original". Não podem ser excluídos pela interface.
 PASTA_ASSISTENTES_PADRAO = PASTA_RAIZ / "recursos" / "assistentes_padrao"
 PASTA_REGISTROS = PASTA_RAIZ / "registros"  # raciocínio da IA, um arquivo de texto por dia
 DIAS_DE_REGISTRO = 30  # registros mais antigos que isso são apagados ao abrir o assistente
 ARQ_THREE = PASTA_RAIZ / "recursos" / "vendor" / "three.min.js"
 ARQ_ESFERA = PASTA_RAIZ / "recursos" / "esfera.js"
 VOLUME_SOM_ATIVACAO = 0.7  # de 0 (mudo) a 1
+# Alarme dos focos em alerta: toca em ciclos até a pessoa abrir os alertas (ferramentas/gerar_som_alarme.py)
+ARQ_ALARME = PASTA_RAIZ / "recursos" / "alarme.wav"
+VOLUME_ALARME = 0.8  # de 0 (mudo) a 1
+PAUSA_ALARME = 2.0  # segundos de silêncio entre um ciclo e outro
 
 # Janela ativa: um cartão encostado no canto direito, acima da bolinha, para não cobrir o programa em uso
 JANELA_LARGURA, JANELA_ALTURA = 400, 620  # em pontos (viram pixels conforme a escala da tela)
 
 # Vozes neurais OFFLINE (Piper). Os arquivos .onnx ficam na pasta "vozes".
-# As vozes com efeito (mago, Jarvis) ficam no arquivo de cada personalidade; o seletor junta as duas listas.
+# As vozes com efeito (como a digital do Merlin) ficam no arquivo de cada personalidade; o seletor junta as duas listas.
 VOZ_RESERVA = "pt_BR-faber-medium"  # usada se a voz escolhida não existir
 VOZES_PIPER = {
     "Faber (masculina)": "pt_BR-faber-medium",

@@ -25,6 +25,8 @@ class TipoEvento(Enum):
     ABRIR_CONFIGURACOES = "abrir_configuracoes"
     RASCUNHO = "rascunho"  # um texto escrito pela IA, no cartão, com os botões Colar, Copiar e Descartar
     AVISO = "aviso"  # modo discreto: uma resposta curta num balão ao lado da bolinha, sem abrir o cartão
+    ALERTA = "alerta"  # focos de incêndio em alerta: a bolinha fica vermelha até a pessoa ver os alertas
+    ATALHO_ALERTAS = "atalho_alertas"  # a próxima resposta é a fala do alerta: ganha o atalho para a aba Alertas
 
 
 class CanalInterface:
@@ -67,6 +69,14 @@ class CanalInterface:
 
     def aviso(self, texto: str) -> None:
         self._fila.put((TipoEvento.AVISO, texto))
+
+    def alerta(self, dados: dict | None) -> None:
+        """{"quantidade": focos em alerta, "texto": a frase falada}; None: os alertas foram vistos (cores normais)."""
+        self._fila.put((TipoEvento.ALERTA, dados))
+
+    def atalho_alertas(self) -> None:
+        """Logo antes da fala do alerta: o cartão põe, embaixo dela, o atalho para a aba Alertas."""
+        self._fila.put((TipoEvento.ATALHO_ALERTAS, None))
 
     def abrir_configuracoes(self) -> None:
         self._fila.put((TipoEvento.ABRIR_CONFIGURACOES, None))

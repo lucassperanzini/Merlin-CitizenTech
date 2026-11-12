@@ -27,6 +27,22 @@
   button:disabled { opacity: .6; cursor: progress; }
   button.principal { background: var(--destaque); border-color: var(--destaque); color: #05070c; font-weight: 600; }
   button:focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
+  /* Busca automática e modo teste: o administrador configura; o operador só vê quando roda */
+  .automatico { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; padding: 8px 12px;
+                background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; font-size: 13px; color: var(--suave); }
+  .automatico .titulo { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+  .automatico select { font: inherit; color: var(--texto); padding: 5px 8px; border-radius: 7px; border: 1px solid var(--borda); background: var(--campo); cursor: pointer; }
+  .automatico select:hover { border-color: var(--destaque); }
+  .automatico .proxima { color: var(--texto); font-variant-numeric: tabular-nums; }
+  .automatico .separa { width: 1px; height: 22px; background: var(--borda); }
+  .automatico .chave { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; color: var(--texto); }
+  .automatico .chave input { accent-color: var(--medio); width: 15px; height: 15px; margin: 0; cursor: pointer; }
+  .automatico .chave small { color: var(--suave); }
+  .aviso-teste { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; padding: 7px 12px; border-radius: 10px; font-size: 13px;
+                 border: 1px solid color-mix(in srgb, var(--medio) 50%, var(--borda)); color: var(--texto);
+                 background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--medio) 12%, var(--painel)) 0 10px, var(--painel) 10px 20px); }
+  .aviso-teste b { color: var(--medio); letter-spacing: .08em; white-space: nowrap; }
+  .quando.teste::before { background: var(--medio); }
   #mensagem { flex: 1; min-width: 200px; font-size: 13px; color: var(--suave); overflow-wrap: anywhere; }
   #mensagem.erro { color: var(--nao); }
   .numeros { flex: none; display: grid; grid-template-columns: minmax(240px, 2fr) repeat(3, minmax(120px, 1fr)); gap: 8px; margin: 12px 0 8px; }
@@ -85,9 +101,14 @@
   <h1>Alertas · focos de calor</h1>
   <p>Focos de calor da NASA (FIRMS), trazidos pelo robô FIRMS Monitor e coloridos pelo risco. Clique num ponto para ver os detalhes.</p>
   <div class="topo">
-    <button id="buscar" class="principal" type="button">Buscar focos agora</button>
     <span class="quando" id="quando" hidden></span>
     <div id="mensagem" role="status" aria-live="polite"></div>
+  </div>
+  <div class="automatico" id="automatico" hidden></div>
+  <div class="aviso-teste" id="aviso-teste" role="note" hidden>
+    <b>MODO TESTE</b>
+    <span>Antes de cada busca, o CSV do robô e a última consulta são apagados: todos os focos voltam como novos,
+      e os do nível de alerta disparam o aviso do Merlin a cada vez.</span>
   </div>
   <div class="numeros" id="numeros" hidden></div>
   <div class="filtros" id="filtros" role="group" aria-label="Filtros do mapa" hidden></div>
@@ -280,15 +301,21 @@
       numero("Novos", r.novos, pequeno(guardada ? "naquela consulta" : "desde a consulta anterior"), `novos ${r.novos ? "tem" : ""}`),
       numero("Coletados", r.coletados, pequeno(r.descartados ? `pela NASA · ${r.descartados} tirados pelos filtros` : "pela NASA")));
     $("numeros").hidden = false;
-    $("quando").textContent = `${guardada ? "Última consulta" : "Consultado"}: ${r.consultado_em} · ${r.fonte} · ${r.dias * 24} h`;
+    const origem = guardada ? "Última consulta" : r.teste ? "Teste (começou do zero)" : r.automatica ? "Busca automática" : "Consultado";
+    $("quando").textContent = `${origem}: ${r.consultado_em} · ${r.fonte} · ${r.dias * 24} h`;
     $("quando").classList.toggle("antiga", guardada);
-    $("quando").title = guardada ? "Dados guardados da última busca. Clique em Buscar focos agora para atualizar." : "";
+    $("quando").classList.toggle("teste", !!r.teste);
+    $("quando").title = guardada ? "Dados guardados da última busca. A próxima busca automática atualiza o mapa."
+      : r.teste ? "Modo teste: o CSV e a última consulta foram apagados antes desta busca." : "";
+    if (r.versao) versaoVista = Math.max(versaoVista, r.versao);
     $("quando").hidden = false;
     desenharFocos(r);
     desenharFiltros(r);
     const cortados = r.ativos + r.descartados > r.focos.length ? ` No mapa, os ${r.focos.length} mais fortes (ativos primeiro).` : "";
     const motivos = r.por_motivo.length ? `Tirados pelos filtros: ${r.por_motivo.map(m => `${m.quantidade} por ${m.motivo}`).join(", ")}.` : "";
-    $("nota").dataset.consulta = `${motivos}${cortados} Ocorrências gravadas pelo robô em ${r.csv}.`.trim();
+    const gravadas = r.teste ? `Modo teste: o CSV do robô (${r.csv}) foi apagado e gravado de novo só com esta busca.`
+      : `Ocorrências gravadas pelo robô em ${r.csv}.`;
+    $("nota").dataset.consulta = `${motivos}${cortados} ${gravadas}`.trim();
     atualizarNota();
     mapa.invalidateSize();
   }
@@ -299,26 +326,92 @@
     try { r = await api().ultima(); } catch (e) {}
     if (ultimo) return;  // uma busca terminou antes: ela é mais nova
     if (r && Array.isArray(r.focos)) mostrar(r, true);
-    else avisar("Nenhuma consulta guardada ainda. Clique em Buscar focos agora.");
+    else avisar(semConsulta());
+  }
+  // Sem o botão de buscar, os focos só chegam pela busca automática
+  function semConsulta() {
+    if (automatico.intervalo) return `Nenhuma consulta ainda. A busca automática traz os focos às ${automatico.proxima}.`;
+    return automatico.administrador ? "Nenhuma consulta ainda. Escolha um intervalo em Busca automática para o Merlin buscar os focos."
+      : "Nenhuma consulta ainda. A busca automática está desligada: peça ao administrador para ligá-la.";
   }
 
-  $("buscar").onclick = async () => {
-    $("buscar").disabled = true;
-    avisar("Consultando a NASA… pode levar até 1 minuto.");
-    try {
-      const r = await api().buscar();
-      if (r.erro) return avisar(r.erro, true);
-      avisar(r.ativos ? "" : "Nenhum foco ativo nesta consulta.");
-      mostrar(r);
-    } catch (e) {
-      avisar("Algo deu errado na consulta.", true);
-    } finally {
-      $("buscar").disabled = false;
+  // --- Busca automática: roda no Merlin mesmo com a Central fechada; a aba aberta mostra o resultado quando chega
+  let automatico = {}, versaoVista = 0;
+  const NOME_INTERVALO = m => !m ? "Desligada" : m < 60 ? `A cada ${m} min` : `A cada ${m / 60} h`;
+
+  function desenharAutomatico() {
+    const a = automatico, caixa = $("automatico");
+    $("aviso-teste").hidden = !a.modo_teste;
+    const proxima = () => elemento("span", { className: "proxima",
+      textContent: a.intervalo && a.proxima ? `próxima às ${a.proxima}` : "" });
+    if (!a.administrador) {
+      // O operador só fica sabendo que existe e quando roda; quem muda é o administrador
+      caixa.hidden = !a.intervalo;
+      caixa.replaceChildren(elemento("span", { className: "titulo", textContent: "Busca automática" }),
+        elemento("span", { textContent: NOME_INTERVALO(a.intervalo).toLowerCase() }), proxima());
+      return;
     }
-  };
+    const lista = elemento("select", { id: "intervalo", title: "De quanto em quanto tempo o Merlin consulta a NASA sozinho" },
+      ...a.intervalos.map(m => new Option(NOME_INTERVALO(m), m)));
+    lista.value = String(a.intervalo);
+    lista.setAttribute("aria-label", "Busca automática");
+    const teste = elemento("input", { type: "checkbox", id: "modo-teste", checked: a.modo_teste });
+    lista.onchange = teste.onchange = () => configurar(Number(lista.value), teste.checked);
+    caixa.replaceChildren(
+      elemento("span", { className: "titulo", textContent: "Busca automática" }), lista, proxima(),
+      elemento("span", { className: "separa" }),
+      elemento("label", { className: "chave", title: "Para testar o aviso várias vezes: antes de cada busca, apaga o CSV do robô e a última consulta" },
+        teste, "Modo teste", elemento("small", { textContent: "· cada busca começa do zero" })));
+    caixa.hidden = false;
+  }
+
+  async function configurar(intervalo, modoTeste) {
+    const eraTeste = automatico.modo_teste;
+    let r;
+    try { r = await api().configurar(intervalo, modoTeste); } catch (e) { r = { erro: "Não consegui salvar a configuração." }; }
+    if (r.erro) { avisar(r.erro, true); desenharAutomatico(); return; }
+    automatico = r;
+    desenharAutomatico();
+    if (r.modo_teste && !eraTeste) avisar("Modo teste ligado: cada busca apaga o CSV do robô e a última consulta antes de rodar.");
+    else if (!r.modo_teste && eraTeste) avisar("Modo teste desligado: o CSV volta a acumular as ocorrências.");
+    else avisar(r.intervalo ? `Busca automática ${NOME_INTERVALO(r.intervalo).toLowerCase()}, próxima às ${r.proxima}.` : "Busca automática desligada.");
+  }
+
+  async function verificarAutomatico() {
+    let a;
+    try { a = await api().estado_automatico(); } catch (e) { return; }
+    const primeira = !("versao" in automatico);
+    automatico = a;
+    // Na troca da configuração em outra tela, ou só para atualizar o horário da próxima
+    if (!document.activeElement || document.activeElement.id !== "intervalo") desenharAutomatico();
+    if (primeira) { versaoVista = a.versao; return; }  // o que já existia ao abrir a aba vem por carregarUltima
+    if (a.versao > versaoVista) {
+      const r = await api().mais_recente();
+      if (r && Array.isArray(r.focos)) {
+        mostrar(r);
+        const hora = r.consultado_em.split(" às ")[1] || r.consultado_em;
+        avisar(r.ativos ? `Busca automática das ${hora} chegou.` : `Busca automática das ${hora}: nenhum foco ativo.`);
+      }
+    } else if (!ultimo) {
+      avisar(semConsulta());  // o horário da próxima busca muda: a mensagem acompanha
+    }
+  }
   // A aba fica escondida até ser aberta: ao aparecer, o mapa precisa medir o espaço de novo
-  new ResizeObserver(() => { mapa.invalidateSize(); enquadrar(); }).observe($("mapa"));
-  window.addEventListener("pywebviewready", () => { escolherFundo(); carregarUltima(); });
+  // Aba na tela: os alertas foram vistos, então o alarme para e a bolinha volta à cor normal.
+  // (A Central monta todas as abas ao abrir: só conta quando o mapa tem tamanho, ou seja, quando aparece)
+  const naTela = () => $("mapa").offsetWidth > 0 && document.visibilityState === "visible";
+  function marcarVistos() {
+    if (naTela() && window.pywebview && window.pywebview.api) api().vistos().catch(() => {});
+  }
+  new ResizeObserver(() => { mapa.invalidateSize(); enquadrar(); marcarVistos(); }).observe($("mapa"));
+  document.addEventListener("visibilitychange", marcarVistos);
+  window.addEventListener("pywebviewready", async () => {
+    marcarVistos();
+    escolherFundo();
+    await verificarAutomatico();
+    carregarUltima();
+    setInterval(verificarAutomatico, 15000);
+  });
 </script>
 </body>
 </html>

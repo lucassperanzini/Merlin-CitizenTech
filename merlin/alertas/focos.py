@@ -68,8 +68,10 @@ def _configuracao(arquivo_env: Path, raiz: Path):
     return dataclasses.replace(configuracao, output_csv=_na_raiz(configuracao.output_csv, raiz))
 
 
-def consultar(arquivo_env: Path = ARQ_ENV, raiz: Path = PASTA_RAIZ, provedor=None) -> dict:
-    """provedor: só nos testes, no lugar da consulta à NASA."""
+def consultar(arquivo_env: Path = ARQ_ENV, raiz: Path = PASTA_RAIZ, provedor=None, do_zero=False) -> dict:
+    """provedor: só nos testes, no lugar da consulta à NASA.
+    do_zero=True (modo teste): apaga o CSV do robô antes de consultar, então todo foco ativo volta como novo
+    e todo foco do nível de alerta vira alerta. O CSV é gravado de novo no fim, só com esta consulta."""
     try:
         from firms_monitor import FireMonitorService
         from firms_monitor.bootstrap import build_query
@@ -91,6 +93,11 @@ def consultar(arquivo_env: Path = ARQ_ENV, raiz: Path = PASTA_RAIZ, provedor=Non
             raise ConsultaFalhou(str(erro)) from erro
     # A mesma montagem do build_fire_monitor do robô, com o provedor e o CSV embrulhados
     guardados = _ProvedorQueGuarda(provedor)
+    if do_zero:
+        try:
+            cfg.output_csv.unlink(missing_ok=True)
+        except OSError as erro:  # aberto no Excel, por exemplo
+            raise ConsultaFalhou(f"Modo teste: não consegui apagar o CSV do robô ({erro}). Feche o arquivo e tente de novo.") from erro
     csv = _RepositorioQueLembra(CsvOccurrenceRepository(cfg.output_csv, cfg.csv_delimiter))
     # Os filtros do próprio robô (confiança, FRP mínimo e, da versão 1.1, território): a aba nunca fica para trás
     try:

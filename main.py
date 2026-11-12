@@ -5,6 +5,8 @@ import threading
 from dataclasses import dataclass
 
 import merlin  # noqa: F401  (ativa o modo offline antes de importar as bibliotecas de modelos)
+from merlin.alertas.aviso import AvisoDeAlertas
+from merlin.voz.alarme import Alarme
 from merlin.audio.ouvinte import Ouvinte
 from merlin.audio.transcricao import Transcritor
 from merlin.config import ARQ_PREFERENCIAS, ARQ_ULTIMA_CONSULTA, DIAS_DE_REGISTRO, PASTA_REGISTROS
@@ -21,6 +23,8 @@ from merlin.interface.central import ApiCentral, JanelaCentral
 from merlin.interface.configuracoes import ApiConfiguracoes, ServicoConfiguracoes
 from merlin.interface.painel_alertas import ApiAlertas, ServicoAlertas
 from merlin.interface.painel_habilidades import ApiPainelHabilidades, ServicoPainelHabilidades
+from merlin.interface.perfil import so_administrador
+from merlin.interface.moldura import usar_botao_debug
 from merlin.interface.eventos import CanalInterface
 from merlin.interface.janela import JanelaMerlin
 from merlin.interface.janela_raciocinio import ApiRaciocinio
@@ -78,13 +82,24 @@ def construir_aplicacao() -> Aplicacao:
     raciocinio = Raciocinio(gravador=gravador)
     servico_configuracoes = ServicoConfiguracoes(preferencias, locutor, canal, memoria, cliente_ia, estado, transcritor)
     # Central: uma janela só, com abas, para configurar e investigar
+    # Perfil da máquina, lido ao abrir: o operador não vê nem consegue chamar os ajustes que mudam a IA
+    administrador = preferencias.administrador
+    logger.info("[PERFIL] %s.", "Administrador" if administrador else "Operador")
+    usar_botao_debug(administrador)  # o modo debug (raciocínio da IA) é só do administrador
+    # Alertas: a busca automática roda mesmo com a Central fechada (o intervalo fica no merlin_config.json)
+    # Foco novo em alerta: a bolinha fica vermelha, o alarme toca, o Merlin é ativado e fala quantos chegaram.
+    # O alarme para (e o vermelho sai) quando alguém abre os alertas: sino, atalho do cartão ou a aba na Central
+    aviso_alertas = AvisoDeAlertas(estado, sessao, locutor, canal, Alarme(estado))
+    servico_alertas = ServicoAlertas(arquivo_ultima=ARQ_ULTIMA_CONSULTA, preferencias=preferencias,
+                                     ao_alertar=aviso_alertas, ao_ver=aviso_alertas.visto)
+    servico_alertas.iniciar_agendamento()
     central = JanelaCentral(ApiCentral(
         ajustes=ApiConfiguracoes(servico_configuracoes),
-        assistentes=ApiAssistentes(
-            ServicoAssistentes(preferencias, canal, cliente_ia, servico_configuracoes.trocar_personalidade)),
-        habilidades=ApiPainelHabilidades(ServicoPainelHabilidades(cliente_ia)),
-        alertas=ApiAlertas(ServicoAlertas(arquivo_ultima=ARQ_ULTIMA_CONSULTA)),
-    ))
+        assistentes=so_administrador(ApiAssistentes(
+            ServicoAssistentes(preferencias, canal, cliente_ia, servico_configuracoes.trocar_personalidade)), administrador),
+        habilidades=so_administrador(ApiPainelHabilidades(ServicoPainelHabilidades(cliente_ia)), administrador),
+        alertas=ApiAlertas(servico_alertas),
+    ), administrador=administrador)
 
     processador = ProcessadorComandos(
         estado, sessao, canal, locutor,
@@ -109,7 +124,7 @@ def construir_aplicacao() -> Aplicacao:
         trabalhador=TrabalhadorComandos(estado, sessao, canal, processador),
         janela=JanelaMerlin(estado, canal, sessao, preferencias, central,
                             trocar_assistente=servico_configuracoes.trocar_personalidade,
-                            raciocinio=ApiRaciocinio(raciocinio, gravador.pasta)),
+                            raciocinio=ApiRaciocinio(raciocinio, gravador.pasta), ver_alertas=aviso_alertas.visto),
     )
 
 

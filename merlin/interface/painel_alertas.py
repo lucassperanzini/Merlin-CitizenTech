@@ -5,11 +5,18 @@ import math
 import os
 import re
 import threading
+import time
+from datetime import datetime
 
 from merlin.alertas import focos
 from merlin.config import ARQ_ENV
+from merlin.interface.perfil import AVISO_SO_ADMINISTRADOR
 
 logger = logging.getLogger(__name__)
+
+# De quantos em quantos minutos a busca automática pode rodar (0: desligada). Os dados da NASA (NRT) mudam
+# a cada passagem de satélite, então menos de 15 minutos só repetiria a mesma consulta.
+INTERVALOS = (0,1, 15, 30, 60, 180, 360, 720, 1440)
 
 
 _CHAVE_VALIDA = re.compile(r"^[A-Za-z0-9_-]{8,128}$")  # vai para dentro de um endereço: nada além disso
@@ -34,8 +41,17 @@ def _conferir_chave_maptiler(chave: str) -> bool | None:
 
 class ServicoAlertas:
     def __init__(self, consultar=focos.consultar, abrir_pagina=None, arquivo_env=ARQ_ENV, conferir_chave=None,
-                 arquivo_ultima=None):
+                 arquivo_ultima=None, preferencias=None, segundos_por_minuto=60, ao_alertar=None, ao_ver=None):
         self._consultar = consultar
+        self._ao_alertar = ao_alertar  # recebe cada busca bem-sucedida: avisa se chegou foco em alerta
+        self._ao_ver = ao_ver  # a aba Alertas apareceu na tela: o alarme para
+        self._preferencias = preferencias  # intervalo e modo teste (None: sem busca automática, como nos testes)
+        self._segundos_por_minuto = segundos_por_minuto  # só os testes encurtam o minuto
+        self._mais_recente = {}  # a última busca, guardada ou não: a página aberta a mostra quando ela chega sozinha
+        self._versao = 0  # sobe a cada busca bem-sucedida, para a página saber que há algo novo
+        self._proxima = None  # quando roda a próxima busca automática (time.time()), ou None
+        self._acordar = threading.Event()  # o intervalo mudou: o agendador recomeça a contar
+        self._parar = threading.Event()
         self._arquivo_ultima = arquivo_ultima  # onde fica a última consulta (None: não guarda, como nos testes)
         self._abrir_pagina = abrir_pagina
         self._arquivo_env = arquivo_env
@@ -65,13 +81,117 @@ class ServicoAlertas:
         self._fundo_escolhido = str(nome or "")[:30]
         return {}
 
-    def buscar(self) -> dict:
+    # --- Busca automática e modo teste (só o administrador muda)
+    @property
+    def _administrador(self) -> bool:
+        return self._preferencias is not None and self._preferencias.administrador
+
+    @property
+    def modo_teste(self) -> bool:
+        return self._preferencias is not None and self._preferencias.alertas_modo_teste
+
+    @property
+    def intervalo(self) -> int:
+        return self._preferencias.alertas_intervalo if self._preferencias is not None else 0
+
+    def estado_automatico(self) -> dict:
+        return {
+            "administrador": self._administrador,
+            "intervalos": list(INTERVALOS),
+            "intervalo": self.intervalo,
+            "modo_teste": self.modo_teste,
+            "proxima": datetime.fromtimestamp(self._proxima).strftime("%H:%M") if self._proxima else "",
+            "versao": self._versao,
+        }
+
+    def configurar(self, intervalo, modo_teste) -> dict:
+        if not self._administrador:
+            logger.warning("[PERFIL] Pedido recusado no perfil operador: configurar a busca automática.")
+            return {"erro": AVISO_SO_ADMINISTRADOR}
+        try:
+            minutos = int(intervalo)
+        except (TypeError, ValueError):
+            minutos = -1
+        if minutos not in INTERVALOS:
+            return {"erro": "Escolha um dos intervalos da lista."}
+        if minutos != self.intervalo:
+            self._preferencias.alertas_intervalo = minutos
+            logger.info("[ALERTAS] Busca automática: %s.", f"a cada {minutos} min" if minutos else "desligada")
+        if bool(modo_teste) != self.modo_teste:
+            self._preferencias.alertas_modo_teste = bool(modo_teste)
+            logger.info("[ALERTAS] Modo teste %s.", "ligado" if modo_teste else "desligado")
+        self._acordar.set()  # recomeça a contar com o intervalo novo
+        self._esperar_agendador()
+        return self.estado_automatico()
+
+    def _esperar_agendador(self, limite=0.5) -> None:
+        """Dá ao agendador um instante para recalcular a próxima busca, para a tela já mostrar o horário certo."""
+        fim = time.monotonic() + limite
+        while self._acordar.is_set() and self._rodando and time.monotonic() < fim:
+            time.sleep(0.01)
+
+    _rodando = False
+
+    def iniciar_agendamento(self) -> None:
+        if self._rodando or self._preferencias is None:
+            return
+        self._rodando = True
+        threading.Thread(target=self._agendar, name="alertas-agendamento", daemon=True).start()
+
+    def parar_agendamento(self) -> None:
+        self._parar.set()
+        self._acordar.set()
+
+    def _agendar(self) -> None:
+        while not self._parar.is_set():
+            minutos = self.intervalo
+            espera = minutos * self._segundos_por_minuto if minutos else None
+            self._proxima = time.time() + espera if espera else None
+            self._acordar.clear()
+            if self._acordar.wait(espera):  # o intervalo mudou (ou o Merlin está fechando): recomeça
+                continue
+            logger.info("[ALERTAS] Busca automática (a cada %d min).", minutos)
+            resultado = self.buscar(automatica=True)
+            if "erro" in resultado:
+                logger.warning("[ALERTAS] A busca automática falhou: %s", resultado["erro"])
+        self._proxima = None
+
+    def vistos(self) -> dict:
+        """A aba Alertas apareceu na tela: quem tinha de ver os alertas viu (o alarme para)."""
+        if self._ao_ver:
+            try:
+                self._ao_ver()
+            except Exception as erro:
+                logger.error("[ALERTAS] Não consegui desligar o alarme: %s", erro)
+        return {}
+
+    def mais_recente(self) -> dict:
+        """A última busca feita enquanto o Merlin está aberto (no modo teste também), ou {}."""
+        return self._mais_recente
+
+    def buscar(self, automatica=False) -> dict:
         if not self._ocupado.acquire(blocking=False):
             return {"erro": "Já estou consultando a NASA. Espere terminar."}
         try:
-            resultado = self._consultar()
-            self._guardar(resultado)
-            return resultado
+            teste = self.modo_teste
+            if teste:
+                # Modo teste: cada busca começa do zero (sem o CSV do robô e sem a última consulta), então todo
+                # foco do nível de alerta volta como novo e o Merlin avisa de novo
+                self._apagar_ultima()
+                consulta = self._consultar(do_zero=True)
+            else:
+                consulta = self._consultar()
+            self._guardar(consulta)  # sem as marcas abaixo: elas só valem para a tela aberta agora
+            if "erro" in consulta:
+                return consulta
+            self._versao += 1
+            self._mais_recente = {**consulta, "teste": teste, "automatica": bool(automatica), "versao": self._versao}
+            if self._ao_alertar:
+                try:
+                    self._ao_alertar(self._mais_recente)
+                except Exception as erro:  # o aviso falhar não pode estragar a busca
+                    logger.error("[ALERTAS] Não consegui avisar: %s", erro)
+            return self._mais_recente
         except focos.RoboAusente:
             return {"erro": "O robô FIRMS Monitor não está instalado no Python do Merlin."}
         except focos.ConsultaFalhou as erro:
@@ -94,6 +214,14 @@ class ServicoAlertas:
             os.replace(provisorio, destino)  # troca de uma vez: um arquivo pela metade nunca fica no lugar do bom
         except (OSError, TypeError, ValueError) as erro:
             logger.warning("[ALERTAS] Não consegui guardar a consulta: %s", erro)
+
+    def _apagar_ultima(self) -> None:
+        if not self._arquivo_ultima:
+            return
+        try:
+            self._arquivo_ultima.unlink(missing_ok=True)
+        except OSError as erro:
+            logger.warning("[ALERTAS] Modo teste: não consegui apagar a última consulta: %s", erro)
 
     def ultima(self) -> dict:
         """A última consulta guardada, ou {} se não houver (ou se o arquivo estiver estragado)."""
@@ -129,11 +257,20 @@ class ApiAlertas:
     def __init__(self, servico):
         self._servico = servico
 
-    def buscar(self):
-        return self._servico.buscar()
-
     def ultima(self):
         return self._servico.ultima()
+
+    def mais_recente(self):
+        return self._servico.mais_recente()
+
+    def vistos(self):
+        return self._servico.vistos()
+
+    def estado_automatico(self):
+        return self._servico.estado_automatico()
+
+    def configurar(self, intervalo, modo_teste):
+        return self._servico.configurar(intervalo, modo_teste)
 
     def fundos(self):
         return self._servico.fundos()

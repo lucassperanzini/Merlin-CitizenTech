@@ -186,6 +186,8 @@
     ouvindo:  { borda: 0x35d6ff, nucleo: 0x06305c, energia: 0.22, escala: 1.3, varredura: 0.18, giro: 0.18, halo: 0.9 },
     pensando: { borda: 0xffb648, nucleo: 0x3a1c00, energia: 0.75, escala: 2.2, varredura: 0.55, giro: 0.7,  halo: 1.1 },
     falando:  { borda: 0x8ff0ff, nucleo: 0x0a3f8f, energia: 0.45, escala: 1.5, varredura: 0.3,  giro: 0.3,  halo: 1.2 },
+    // Só as cores: com focos em alerta, valem para todos os estados (Esfera.alerta)
+    alerta:   { borda: 0xff3b3b, nucleo: 0x4a0505, energia: 0.4,  escala: 1.5, varredura: 0.35, giro: 0.3,  halo: 1.15 },
   };
   const RESOLUCAO_MAXIMA = 1.75; // limite de pixels por ponto: telas muito densas não precisam de mais
   const SUAVIDADE = 4.0;         // quão rápido os valores chegam à meta (por segundo)
@@ -193,7 +195,7 @@
 
   let renderizador, cena, camera, grupo, nucleo, halo, aneis, particulas;
   let tela, ativa = false, rodando = false, ultimo = 0, tempo = 0;
-  let estado = "ouvindo", volumeMicrofone = 0, envelope = null;
+  let estado = "ouvindo", volumeMicrofone = 0, envelope = null, emAlerta = false;
   const atual = { energia: 0.2, escala: 1.3, varredura: 0.2, giro: 0.2, halo: 0.9, volume: 0 };
   let corBorda, corNucleo, materialAnel;
   const METAS_DE_COR = {};  // criadas uma vez, para não gerar lixo de memória a cada quadro
@@ -313,7 +315,8 @@
     const volumeAlvo = estado === "falando" ? volumeDaFala(agora) : estado === "ouvindo" ? volumeMicrofone : 0;
     // Sobe rápido e desce devagar, como um medidor de áudio
     atual.volume += (volumeAlvo - atual.volume) * (volumeAlvo > atual.volume ? 0.45 : 0.12);
-    const cores = METAS_DE_COR[estado] || METAS_DE_COR.ouvindo;
+    // Com focos em alerta, a esfera fica vermelha em qualquer estado (o ritmo de cada estado continua)
+    const cores = emAlerta ? METAS_DE_COR.alerta : METAS_DE_COR[estado] || METAS_DE_COR.ouvindo;
     corBorda.lerp(cores.borda, k);
     corNucleo.lerp(cores.nucleo, k);
     materialAnel.color.copy(corBorda);  // o material guarda uma cópia da cor, não a referência
@@ -360,6 +363,7 @@
       if (novo !== "falando") envelope = null;
     },
     definirVolume(nivel) { volumeMicrofone = nivel; },
+    alerta(ligado) { emAlerta = !!ligado; },  // recursos/janela.html: definirAlerta
     falar(volumes, passo) { envelope = { volumes, passo, inicio: performance.now() }; },
   };
 })();

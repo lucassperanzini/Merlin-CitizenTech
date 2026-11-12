@@ -19,7 +19,7 @@
     --nivel: 0; /* volume da voz captada, de 0 a 1 */
     --mudo: #ff6b6b; /* microfone desligado pelo botão */
   }
-  /* Jarvis: destaque azul em vez de dourado */
+  /* Esfera: destaque azul em vez de dourado */
   html[data-visual="esfera"] { --ouro: #35d6ff; }
 
   /* Voz sendo captada */
@@ -227,6 +227,41 @@
   @media (prefers-reduced-motion: reduce) { html.compacto #palco::after { animation: none !important; } }
   html.compacto .icone:hover { background: #141a28; border-color: var(--ouro); }
   html.compacto.mudo #microfone { color: var(--mudo); border-color: var(--mudo); }
+  /* Alerta de focos de incêndio: a bolinha fica vermelha, pulsando, até a pessoa abrir os alertas (botão do sino).
+     Vale por cima do mudo e da IA fora: é o aviso mais importante */
+  :root { --alerta: #ff3b3b; }
+  /* No cartão também: o destaque e as cores de cada estado (ouvindo, pensando, falando) ficam vermelhos.
+     !important: vale até sobre a cor escolhida no configurador, que entra como estilo da página */
+  html.alerta, html.alerta[data-visual] { --ouro: var(--alerta) !important; }
+  html.alerta body, html.alerta body[class] {
+    --brilho: #ff5a4a; --fibra: #ffb3a8; --medio: #a8231a; --base: #7a1410;
+    --escuro: #3f0806; --aura: #ff4d3d; --aura2: #a81b1b;
+  }
+  html.alerta:not(.compacto) body { border-color: color-mix(in srgb, var(--alerta) 70%, transparent);
+                                     box-shadow: inset 0 0 40px color-mix(in srgb, var(--alerta) 18%, transparent); }
+  /* O atalho embaixo da fala do alerta, no cartão: logo abaixo do texto, e não no pé do cartão */
+  .troca:has(.atalho-alertas) .resposta { flex: 0 1 auto; }
+  .atalho-alertas {
+    flex: none; align-self: center; display: inline-flex; align-items: center; gap: 8px; margin-top: 2px;
+    padding: 8px 16px; border-radius: 999px; border: 1px solid var(--alerta); cursor: pointer;
+    background: color-mix(in srgb, var(--alerta) 16%, #0b0f18); color: #fff; font: 600 13px "Segoe UI", sans-serif;
+    animation: aparecer .4s ease-out both;
+  }
+  .atalho-alertas svg { width: 16px; height: 16px; color: var(--alerta); }
+  .atalho-alertas:hover { background: var(--alerta); }
+  .atalho-alertas:hover svg { color: #fff; }
+  .atalho-alertas:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  html:not(.compacto) #alerta { display: none; }  /* só na órbita da bolinha */
+  html.compacto.alerta { --anel: var(--alerta); }
+  html.compacto.alerta #palco::after {
+    box-shadow: inset 0 0 0 3px var(--alerta), inset 0 0 36px color-mix(in srgb, var(--alerta) 70%, transparent);
+    animation: alerta 1.1s ease-in-out infinite;
+  }
+  html.compacto.alerta #nome-compacto { color: #fff; background: var(--alerta); border-color: var(--alerta); }
+  html.compacto.alerta #alerta { color: #fff; background: var(--alerta); border-color: var(--alerta); }
+  html.compacto.alerta #alerta svg { animation: sacudir 1.1s ease-in-out infinite; transform-origin: 50% 15%; }
+  @keyframes sacudir { 0%, 60%, 100% { transform: none; } 15% { transform: rotate(14deg); } 30% { transform: rotate(-12deg); } 45% { transform: rotate(6deg); } }
+  @media (prefers-reduced-motion: reduce) { html.compacto.alerta #alerta svg { animation: none; } }
   /* O nome da bolinha abre a lista de assistentes */
   html.compacto #nome-compacto { cursor: pointer; }
   html.compacto.com-botoes #nome-compacto::after { content: " ▾"; }
@@ -294,6 +329,12 @@
       <path class="risco" d="M4 4l16 16"/>
     </svg>
   </button>
+  <button id="alerta" class="icone" type="button" title="Alertas de focos de incêndio" aria-label="Abrir os alertas de focos de incêndio">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+  </button>
   <button id="engrenagem" class="icone" type="button" title="Configurações" aria-label="Abrir configurações">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="3"/>
@@ -329,6 +370,40 @@
 
   document.getElementById("engrenagem").addEventListener("click", () => window.pywebview.api.abrir_configuracoes());
   document.getElementById("recolher").addEventListener("click", () => window.pywebview.api.recolher());
+
+  // Alerta de focos de incêndio (merlin/alertas/aviso.py): vermelho até a pessoa abrir os alertas pelo sino
+  const botaoAlerta = document.getElementById("alerta");
+  // Na bolinha e no cartão: as cores viram vermelho (CSS html.alerta) e a esfera também (recursos/esfera.js)
+  function definirAlerta(alerta) {
+    document.documentElement.classList.toggle("alerta", !!alerta);
+    window.Esfera.alerta(!!alerta);
+    if (!alerta) document.querySelectorAll(".atalho-alertas").forEach(a => a.remove());
+    const texto = alerta ? `${alerta.texto} Clique para ver no mapa.` : "Alertas de focos de incêndio";
+    botaoAlerta.title = texto;
+    botaoAlerta.setAttribute("aria-label", alerta ? texto : "Abrir os alertas de focos de incêndio");
+    palco.title = alerta ? alerta.texto : "";
+  }
+  function irParaAlertas() {
+    definirAlerta(null);  // visto: a bolinha e o cartão voltam ao normal
+    window.pywebview.api.abrir_alertas();
+  }
+  botaoAlerta.addEventListener("click", irParaAlertas);
+  // A fala do alerta avisa logo antes de começar: o atalho entra embaixo dessa resposta (e só dela)
+  let atalhoPendente = false;
+  function prepararAtalhoAlertas() { atalhoPendente = true; }
+  function colocarAtalhoAlertas() {
+    atalhoPendente = false;
+    if (!trocaAtual || !document.documentElement.classList.contains("alerta")) return;
+    const atalho = document.createElement("button");
+    atalho.type = "button";
+    atalho.className = "atalho-alertas";
+    atalho.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+      'stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/>' +
+      '<circle cx="12" cy="10" r="2.5"/></svg><span>Ver os focos no mapa</span><span aria-hidden="true">→</span>';
+    atalho.title = "Abre a aba Alertas da Central";
+    atalho.addEventListener("click", irParaAlertas);
+    trocaAtual.append(atalho);
+  }
 
   // Modo debug (botão da órbita): com ele ligado, o cartão mostra a aba do raciocínio da IA
   const botaoDebug = document.getElementById("debug");
@@ -632,6 +707,7 @@
     if (trocaAtual && trocaAtual.querySelector(".palavra")) novaTroca();
     tirarDigitando();
     respostaAtual = areaDaResposta();
+    if (atalhoPendente) colocarAtalhoAlertas();
   }
   function escrever(palavra) {
     if (!respostaAtual) return;
