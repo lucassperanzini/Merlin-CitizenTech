@@ -63,13 +63,44 @@ class Preferencias:
         self._salvar()
 
     @property
+    def administrador(self) -> bool:
+        """Perfil da máquina (merlin/interface/perfil.py). Só "administrador", escrito à mão no arquivo, libera os
+        ajustes da IA; sem o campo, a máquina é de operador. Não há tela para mudar: é de propósito."""
+        return self._dados.get("perfil") == "administrador"
+
+    @property
     def modo_debug(self) -> bool:
-        """Botão da órbita: mostra a aba do raciocínio da IA no cartão."""
-        return bool(self._dados.get("modo_debug", False))
+        """Botão da órbita: mostra a aba do raciocínio da IA no cartão. Só para o administrador."""
+        return self.administrador and bool(self._dados.get("modo_debug", False))
 
     @modo_debug.setter
     def modo_debug(self, ligado: bool) -> None:
+        if not self.administrador:
+            return
         self._dados["modo_debug"] = bool(ligado)
+        self._salvar()
+
+    @property
+    def alertas_intervalo(self) -> int:
+        """De quantos em quantos minutos a aba Alertas busca os focos sozinha. 0: só quando alguém clica."""
+        valor = self._dados.get("alertas_intervalo", 0)
+        return valor if isinstance(valor, int) and not isinstance(valor, bool) and valor > 0 else 0
+
+    @alertas_intervalo.setter
+    def alertas_intervalo(self, minutos: int) -> None:
+        self._dados["alertas_intervalo"] = int(minutos)
+        self._salvar()
+
+    @property
+    def alertas_modo_teste(self) -> bool:
+        """Consultas que aparecem no mapa e não ficam guardadas, para repetir o teste. Só para o administrador."""
+        return self.administrador and bool(self._dados.get("alertas_modo_teste", False))
+
+    @alertas_modo_teste.setter
+    def alertas_modo_teste(self, ligado: bool) -> None:
+        if not self.administrador:
+            return
+        self._dados["alertas_modo_teste"] = bool(ligado)
         self._salvar()
 
     def _migrar_formato_antigo(self) -> None:

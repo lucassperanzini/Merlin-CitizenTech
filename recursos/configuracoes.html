@@ -47,7 +47,41 @@
   .titulo { display: grid; line-height: 1.2; }
   .titulo strong { font-size: 15px; font-weight: 600; letter-spacing: .32em; }
   .titulo span { font: 11px var(--mono); letter-spacing: .2em; color: var(--cor); }
-  #relogio { margin-left: auto; font: 13px var(--mono); letter-spacing: .12em; color: var(--suave); }
+  #relogio { font: 13px var(--mono); letter-spacing: .12em; color: var(--suave); }
+  /* Perfil: o administrador pode ver a Central como o operador vê (só a tela muda; nada é salvo) */
+  :root { --previa: #ffd23f; }
+  #perfil { margin-left: auto; display: flex; align-items: center; gap: 10px;
+            font: 10px var(--mono); letter-spacing: .22em; color: var(--apagado); }
+  .segmentos { display: flex; border: 1px solid var(--linha); background: var(--campo); padding: 2px; gap: 2px; }
+  .segmentos button {
+    display: flex; align-items: center; gap: 7px; padding: 6px 12px; border: 0; cursor: pointer;
+    background: transparent; color: var(--suave); font: 600 11px "Segoe UI", sans-serif; letter-spacing: .14em;
+    text-transform: uppercase; transition: background .15s, color .15s;
+  }
+  .segmentos button svg { width: 14px; height: 14px; flex: none; }
+  .segmentos button:hover:not([aria-pressed="true"]) { color: var(--texto); background: var(--fraco); }
+  .segmentos button[aria-pressed="true"] { cursor: default; color: var(--fundo); background: var(--cor); }
+  .segmentos button[data-perfil="operador"][aria-pressed="true"] { background: var(--previa); }
+  html.visao-operador .segmentos { border-color: color-mix(in srgb, var(--previa) 60%, transparent); }
+
+  /* Faixa da prévia: fica à vista o tempo todo, para ninguém esquecer que está numa simulação */
+  #faixa-previa { display: none; }
+  html.visao-operador body { grid-template-rows: auto auto 1fr auto auto; }
+  html.visao-operador #faixa-previa {
+    display: flex; align-items: center; gap: 12px; padding: 8px 22px;
+    border-bottom: 1px solid color-mix(in srgb, var(--previa) 45%, transparent);
+    background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--previa) 10%, transparent) 0 10px,
+                                          color-mix(in srgb, var(--previa) 4%, transparent) 10px 20px);
+    color: var(--texto); font-size: 12.5px;
+  }
+  #faixa-previa svg { width: 18px; height: 18px; flex: none; color: var(--previa); }
+  #faixa-previa b { font: 600 11px var(--mono); letter-spacing: .2em; color: var(--previa); white-space: nowrap; }
+  #faixa-previa span { flex: 1; color: var(--suave); }
+  #faixa-previa kbd { font: 10.5px var(--mono); padding: 1px 5px; border: 1px solid var(--linha); color: var(--suave); }
+  #faixa-previa .botao { border-color: var(--previa); color: var(--previa); background: color-mix(in srgb, var(--previa) 10%, transparent); }
+  #faixa-previa .botao:hover { background: color-mix(in srgb, var(--previa) 22%, transparent);
+                               box-shadow: inset 0 0 14px color-mix(in srgb, var(--previa) 40%, transparent); }
+  html.visao-operador [data-so-admin] { display: none !important; }
 
   /* Menu lateral + módulo aberto */
   main { display: grid; grid-template-columns: 186px 1fr; min-height: 0; }
@@ -173,18 +207,37 @@
       <strong>CENTRAL</strong>
       <span id="subtitulo">SISTEMA</span>
     </div>
+    <div id="perfil" role="group" aria-label="Ver a Central como">
+      <span aria-hidden="true">VER COMO</span>
+      <div class="segmentos">
+        <button type="button" data-perfil="administrador" aria-pressed="true" title="A Central completa, como esta máquina está agora.">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 1.5l5.5 2v4c0 3.2-2.3 5.8-5.5 7-3.2-1.2-5.5-3.8-5.5-7v-4z"/><path d="M5.5 8l1.8 1.8L10.8 6.3"/></svg>
+          Administrador
+        </button>
+        <button type="button" data-perfil="operador" aria-pressed="false" title="Prévia do que o agente vê. Nada muda nesta máquina.">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="5" r="2.8"/><path d="M2.5 14.5c.6-3 2.8-4.6 5.5-4.6s4.9 1.6 5.5 4.6"/></svg>
+          Operador
+        </button>
+      </div>
+    </div>
     <div id="relogio" aria-hidden="true"></div>
   </header>
+  <div id="faixa-previa" role="status">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6z"/><circle cx="10" cy="10" r="2.6"/></svg>
+    <b>PRÉVIA DO OPERADOR</b>
+    <span id="faixa-texto">É assim que o agente vê a Central. Nada mudou nesta máquina.</span>
+    <button type="button" class="botao" id="sair-previa">Voltar para administrador <kbd>Esc</kbd></button>
+  </div>
 
   <main>
     <nav role="tablist" aria-label="Módulos" aria-orientation="vertical">
       <span class="grupo" aria-hidden="true">AJUSTES</span>
       <button role="tab" id="aba-assistente" data-aba="assistente" aria-controls="mod-assistente" aria-selected="true"><small>01</small>ASSISTENTE</button>
-      <button role="tab" id="aba-inteligencia" data-aba="inteligencia" aria-controls="mod-inteligencia" aria-selected="false" tabindex="-1"><small>02</small>INTELIGÊNCIA</button>
+      <button role="tab" data-so-admin id="aba-inteligencia" data-aba="inteligencia" aria-controls="mod-inteligencia" aria-selected="false" tabindex="-1"><small>02</small>INTELIGÊNCIA</button>
       <button role="tab" id="aba-pastas" data-aba="pastas" aria-controls="mod-pastas" aria-selected="false" tabindex="-1"><small>03</small>PASTAS</button>
-      <span class="grupo" aria-hidden="true">FERRAMENTAS</span>
-      <button role="tab" id="aba-assistentes" data-aba="assistentes" aria-controls="mod-assistentes" aria-selected="false" tabindex="-1"><small>04</small>EDITOR</button>
-      <button role="tab" id="aba-habilidades" data-aba="habilidades" aria-controls="mod-habilidades" aria-selected="false" tabindex="-1"><small>05</small>SKILLS</button>
+      <span class="grupo" data-so-admin aria-hidden="true">FERRAMENTAS</span>
+      <button role="tab" data-so-admin id="aba-assistentes" data-aba="assistentes" aria-controls="mod-assistentes" aria-selected="false" tabindex="-1"><small>04</small>EDITOR</button>
+      <button role="tab" data-so-admin id="aba-habilidades" data-aba="habilidades" aria-controls="mod-habilidades" aria-selected="false" tabindex="-1"><small>05</small>SKILLS</button>
       <span class="grupo" aria-hidden="true">MONITORAMENTO</span>
       <button role="tab" id="aba-alertas" data-aba="alertas" aria-controls="mod-alertas" aria-selected="false" tabindex="-1"><small>06</small>ALERTAS</button>
     </nav>
@@ -202,8 +255,8 @@
             <label for="voz">VOZ</label>
             <select id="voz"></select>
           </div>
-          <hr>
-          <div class="linha">
+          <hr data-so-admin>
+          <div class="linha" data-so-admin>
             <button class="botao" id="gerenciar-assistentes" type="button">Criar e editar assistentes</button>
           </div>
         </div>
@@ -267,6 +320,11 @@
   </footer>
 
 <script>
+  // Perfil operador (merlin/interface/perfil.py): some o que muda a IA, antes de as abas serem montadas
+  if (window.MODO_OPERADOR) {
+    // O operador não tem como sair daqui pela tela: o perfil só muda no arquivo
+    document.querySelectorAll("[data-so-admin], #perfil, #faixa-previa").forEach(e => e.remove());
+  }
   const assistente = document.getElementById("assistente");
   const voz = document.getElementById("voz");
   const modelo = document.getElementById("modelo");
@@ -307,22 +365,51 @@
     // Ao voltar para os ajustes (por exemplo, depois de criar um assistente no editor), as listas se atualizam
     if (!painel.classList.contains("painel-quadro") && window.pywebview && prontos === null) carregar();
   }
+  // Na visão do operador, as abas do administrador ficam escondidas (não saem da página)
+  const vendoComoOperador = () => document.documentElement.classList.contains("visao-operador");
+  const abasVisiveis = () => abas.filter(a => !(vendoComoOperador() && a.hasAttribute("data-so-admin")));
+  const numerarAbas = () => abasVisiveis().forEach((a, i) => a.querySelector("small").textContent = String(i + 1).padStart(2, "0"));
+  numerarAbas();
   // Chamada pelo Python (merlin/interface/central.py) para abrir uma aba pelo nome
   function abrirAba(nome) {
-    const aba = abas.find(a => a.dataset.aba === nome);
+    const aba = abasVisiveis().find(a => a.dataset.aba === nome);
     if (aba) selecionar(aba);
   }
-  abas.forEach((aba, i) => {
+  abas.forEach(aba => {
     aba.addEventListener("click", () => selecionar(aba));
     aba.addEventListener("keydown", e => {
       const passo = { ArrowDown: 1, ArrowUp: -1 }[e.key];
       if (!passo) return;
       e.preventDefault();
-      const proxima = abas[(i + passo + abas.length) % abas.length];
+      const lista = abasVisiveis(), i = lista.indexOf(aba);
+      const proxima = lista[(i + passo + lista.length) % lista.length];
       selecionar(proxima);
       proxima.focus();
     });
   });
+
+  // Ver como operador: só a tela muda, para o administrador conferir o que o agente vê
+  // A faixa diz o que some, tirado das próprias abas (assim não desatualiza quando surgir uma aba nova)
+  const escondidas = abas.filter(a => a.hasAttribute("data-so-admin"))
+    .map(a => a.lastChild.textContent.trim().toLowerCase().replace(/^./, c => c.toUpperCase()));
+  const juntar = l => l.length > 1 ? `${l.slice(0, -1).join(", ")} e ${l.at(-1)}` : l.join("");
+  const faixaTexto = document.getElementById("faixa-texto");
+  if (faixaTexto && escondidas.length)
+    faixaTexto.textContent = `É assim que o agente vê a Central: sem ${juntar(escondidas)}. Nada mudou nesta máquina.`;
+
+  function verComoOperador(ligado) {
+    if (ligado === vendoComoOperador()) return;
+    document.documentElement.classList.toggle("visao-operador", ligado);
+    document.querySelectorAll(".segmentos button").forEach(b =>
+      b.setAttribute("aria-pressed", String((b.dataset.perfil === "operador") === ligado)));
+    numerarAbas();
+    const atual = abas.find(a => a.getAttribute("aria-selected") === "true");
+    if (!abasVisiveis().includes(atual)) abrirAba("assistente");
+  }
+  document.querySelectorAll(".segmentos button").forEach(b =>
+    b.addEventListener("click", () => verComoOperador(b.dataset.perfil === "operador")));
+  document.getElementById("sair-previa")?.addEventListener("click", () => verComoOperador(false));
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && vendoComoOperador()) verComoOperador(false); });
 
   // Relógio do cabeçalho
   const relogio = document.getElementById("relogio");
@@ -385,7 +472,7 @@
     else { avisar(`Modelo: ${escolhido}. A primeira resposta pode demorar um pouco mais.`); atualizarSistema(); }
   });
   document.getElementById("atualizar").addEventListener("click", carregar);
-  document.getElementById("gerenciar-assistentes").addEventListener("click", () => abrirAba("assistentes"));
+  document.getElementById("gerenciar-assistentes")?.addEventListener("click", () => abrirAba("assistentes"));
   document.getElementById("ver-habilidades").addEventListener("click", () => abrirAba("habilidades"));
   // Ao voltar para esta janela (por exemplo, depois de criar um assistente), as listas são atualizadas
   window.addEventListener("focus", () => { if (window.pywebview) carregar(); });

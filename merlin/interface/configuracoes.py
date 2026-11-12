@@ -7,6 +7,7 @@ import webview
 
 from merlin.acoes.assistentes import trocar_personalidade
 from merlin.ia.cliente import listar_modelos
+from merlin.interface.perfil import AVISO_SO_ADMINISTRADOR
 from merlin.personalidades import PERSONALIDADES
 from merlin.voz.catalogo import todas_as_vozes
 
@@ -100,7 +101,7 @@ class ServicoConfiguracoes:
         return self.pastas_estado()
 
     def trocar_personalidade(self, identificador: str) -> dict:
-        # A mesma troca do pedido por voz ("troca para o Jarvis"): merlin/acoes/assistentes.py
+        # A mesma troca do pedido por voz ("troca para a Ana"): merlin/acoes/assistentes.py
         if trocar_personalidade(self._preferencias, self._memoria, self._canal, identificador):
             self._falar(self._preferencias.personalidade.apresentacao)
         return self.estado_atual()  # a voz mostrada muda junto: cada personalidade tem a sua
@@ -114,6 +115,8 @@ class ServicoConfiguracoes:
 
     def trocar_modelo(self, modelo: str) -> str:
         """Retorna uma mensagem de erro, ou "" se deu certo."""
+        if not self._preferencias.administrador:
+            return AVISO_SO_ADMINISTRADOR
         try:
             instalados = [m.nome for m in listar_modelos()]
         except Exception:

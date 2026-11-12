@@ -9,7 +9,7 @@ from merlin.ia.cliente import ModeloInstalado
 from merlin.interface.configuracoes import ServicoConfiguracoes
 from merlin.nucleo.memoria_conversa import MemoriaConversa
 from merlin.preferencias import Preferencias
-from tests.falsos import LocutorFalso
+from tests.falsos import LocutorFalso, com_segundo_assistente
 
 INSTALADOS = [ModeloInstalado("llama3.2:latest", 2.0, "3.2B"), ModeloInstalado("qwen3:8b", 5.2, "8.2B")]
 
@@ -35,6 +35,7 @@ class TestConfiguracoes(unittest.TestCase):
         pasta = tempfile.TemporaryDirectory()
         self.addCleanup(pasta.cleanup)
         self.arquivo = Path(pasta.name) / "config.json"
+        self.arquivo.write_text(json.dumps({"perfil": "administrador"}), encoding="utf-8")  # trocar o modelo é do administrador
         self.preferencias = Preferencias(self.arquivo)
         self.canal, self.cliente, self.memoria = CanalFalso(), ClienteFalso(), MemoriaConversa()
         self.servico = ServicoConfiguracoes(self.preferencias, LocutorFalso(), self.canal, self.memoria, self.cliente)
@@ -73,11 +74,13 @@ class TestConfiguracoes(unittest.TestCase):
 
     def test_trocar_assistente_avisa_a_janela_limpa_a_memoria_e_mostra_a_voz_dele(self):
         self.memoria.registrar("oi", "olá")
-        dados = self.servico.trocar_personalidade("jarvis")
-        self.assertEqual(self.preferencias.personalidade.id, "jarvis")
+        com_segundo_assistente(self)
+        self.preferencias.personalidade = "sexta_feira"
+        dados = self.servico.trocar_personalidade("merlin")
+        self.assertEqual(self.preferencias.personalidade.id, "merlin")
         self.assertEqual(self.canal.avisos, 1)
         self.assertEqual(self.memoria.como_mensagens(), [])
-        self.assertEqual(dados["voz"], "Jarvis (digital)")
+        self.assertEqual(dados["voz"], "Merlin (digital)")
 
     def test_mesmo_assistente_nao_faz_nada(self):
         self.servico.trocar_personalidade("merlin")

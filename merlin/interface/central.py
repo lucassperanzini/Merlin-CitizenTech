@@ -15,6 +15,10 @@ LARGURA, ALTURA = 1080, 740
 ABA_INICIAL = "assistente"
 # Páginas que entram em quadros: o nome é a aba e também o nome da API delas dentro da ApiCentral
 QUADROS = {"assistentes": ARQ_ASSISTENTES, "habilidades": ARQ_HABILIDADES, "alertas": ARQ_ALERTAS}
+# Mudam como a IA decide e age: no perfil operador, nem entram na página (merlin/interface/perfil.py)
+QUADROS_SO_ADMINISTRADOR = {"assistentes", "habilidades"}
+# Na página, o que tem data-so-admin é tirado antes de as abas serem montadas
+MODO_OPERADOR = "<script>window.MODO_OPERADOR = true;</script>"
 
 # Vai no começo de cada página de quadro: a API dela é a parte correspondente da API da Central, e o aviso de
 # "pronto" do pywebview é repassado quando a página termina de carregar (ela escuta esse aviso no fim do corpo)
@@ -52,14 +56,18 @@ def quadro(aba: str, arquivo, api: str | None = None) -> str:
     return f'<iframe class="quadro" id="quadro-{aba}" title="{aba}" srcdoc="{html.escape(conteudo, quote=True)}"></iframe>'
 
 
-def montar_pagina() -> str:
-    """A página de configurações com as outras páginas embutidas nos quadros (srcdoc: tudo offline, sem arquivos)."""
+def montar_pagina(administrador: bool = True) -> str:
+    """A página de configurações com as outras páginas embutidas nos quadros (srcdoc: tudo offline, sem arquivos).
+    Para o operador, sem os quadros e as abas que mudam a IA."""
     pagina = ARQ_CONFIGURACOES.read_text(encoding="utf-8")
     for aba, arquivo in QUADROS.items():
         marcador = f"<!--QUADRO:{aba}-->"
         if marcador not in pagina:
             raise ValueError(f"a página de configurações não tem o lugar do quadro {aba}")
-        pagina = pagina.replace(marcador, quadro(aba, arquivo))
+        liberado = administrador or aba not in QUADROS_SO_ADMINISTRADOR
+        pagina = pagina.replace(marcador, quadro(aba, arquivo) if liberado else "")
+    if not administrador:
+        pagina = pagina.replace("<head>", "<head>" + MODO_OPERADOR, 1)
     return pagina
 
 
@@ -85,12 +93,13 @@ class ApiCentral:
 
 
 class JanelaCentral(JanelaAuxiliar):
-    def __init__(self, api: ApiCentral):
+    def __init__(self, api: ApiCentral, administrador: bool = True):
         super().__init__("Central", ARQ_CONFIGURACOES, api, LARGURA, ALTURA,
                          redimensionavel=True, sempre_na_frente=False)
+        self._administrador = administrador
 
     def _html(self) -> str:
-        return montar_pagina()
+        return montar_pagina(self._administrador)
 
     def abrir_aba(self, aba: str = ABA_INICIAL) -> None:
         """Abre a Central já na aba pedida (ou só troca de aba, se ela já estiver aberta)."""
