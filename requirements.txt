@@ -31,4 +31,4 @@ psutil==7.2.2
 
 # Robô FIRMS Monitor (focos de calor da NASA), usado pela aba Alertas. Vem pronto na pasta vendor/;
 # o caminho é relativo à pasta do projeto, então rode o pip a partir dela.
-./vendor/firms_monitor-1.1.0-py3-none-any.whl
+./vendor/firms_monitor-1.2.0-py3-none-any.whl
