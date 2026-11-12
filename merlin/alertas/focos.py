@@ -142,7 +142,9 @@ def consultar(arquivo_env: Path = ARQ_ENV, raiz: Path = PASTA_RAIZ, provedor=Non
         "consultado_em": datetime.now().strftime("%d/%m às %H:%M"),
         "fonte": cfg.source, "dias": cfg.day_range, "alerta_a_partir_de": cfg.alert_min_level.label,
         "coletados": relatorio.fetched, "ativos": len(classificados), "novos": relatorio.new_occurrences,
+        # alertas: os que o robô avisou agora, só os focos novos. em_alerta: todos os ativos do nível de alerta para cima
         "alertas": relatorio.alerts_sent,
+        "em_alerta": sum(1 for nivel, _, _ in classificados if nivel >= cfg.alert_min_level),
         "por_nivel": [{"nivel": n.label, "quantidade": por_nivel.get(n.label, 0)} for n in sorted(type(cfg.alert_min_level), reverse=True)],
         "descartados": len(descartados),
         "por_motivo": [{"motivo": m, "quantidade": q} for m, q in sorted(por_motivo.items(), key=lambda par: -par[1])],

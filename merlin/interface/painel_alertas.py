@@ -1,6 +1,8 @@
 """Aba Alertas da Central: busca os focos de calor pelo robô FIRMS Monitor e mostra na tela."""
+import json
 import logging
 import math
+import os
 import re
 import threading
 
@@ -31,8 +33,10 @@ def _conferir_chave_maptiler(chave: str) -> bool | None:
 
 
 class ServicoAlertas:
-    def __init__(self, consultar=focos.consultar, abrir_pagina=None, arquivo_env=ARQ_ENV, conferir_chave=None):
+    def __init__(self, consultar=focos.consultar, abrir_pagina=None, arquivo_env=ARQ_ENV, conferir_chave=None,
+                 arquivo_ultima=None):
         self._consultar = consultar
+        self._arquivo_ultima = arquivo_ultima  # onde fica a última consulta (None: não guarda, como nos testes)
         self._abrir_pagina = abrir_pagina
         self._arquivo_env = arquivo_env
         self._conferir_chave = conferir_chave or _conferir_chave_maptiler
@@ -65,7 +69,9 @@ class ServicoAlertas:
         if not self._ocupado.acquire(blocking=False):
             return {"erro": "Já estou consultando a NASA. Espere terminar."}
         try:
-            return self._consultar()
+            resultado = self._consultar()
+            self._guardar(resultado)
+            return resultado
         except focos.RoboAusente:
             return {"erro": "O robô FIRMS Monitor não está instalado no Python do Merlin."}
         except focos.ConsultaFalhou as erro:
@@ -75,6 +81,32 @@ class ServicoAlertas:
             return {"erro": f"O robô falhou: {erro}"}
         finally:
             self._ocupado.release()
+
+    def _guardar(self, resultado: dict) -> None:
+        """Grava a consulta para ela voltar ao mapa quando a aba for aberta de novo. Uma falha aqui não estraga a busca."""
+        if not self._arquivo_ultima or "erro" in resultado:
+            return
+        destino = self._arquivo_ultima
+        provisorio = destino.with_suffix(".tmp")
+        try:
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            provisorio.write_text(json.dumps(resultado, ensure_ascii=False), encoding="utf-8")
+            os.replace(provisorio, destino)  # troca de uma vez: um arquivo pela metade nunca fica no lugar do bom
+        except (OSError, TypeError, ValueError) as erro:
+            logger.warning("[ALERTAS] Não consegui guardar a consulta: %s", erro)
+
+    def ultima(self) -> dict:
+        """A última consulta guardada, ou {} se não houver (ou se o arquivo estiver estragado)."""
+        if not self._arquivo_ultima:
+            return {}
+        try:
+            dados = json.loads(self._arquivo_ultima.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return {}
+        except (OSError, ValueError) as erro:
+            logger.warning("[ALERTAS] Não consegui ler a última consulta: %s", erro)
+            return {}
+        return dados if isinstance(dados, dict) and isinstance(dados.get("focos"), list) else {}
 
     def abrir_mapa(self, latitude, longitude) -> dict:
         try:
@@ -99,6 +131,9 @@ class ApiAlertas:
 
     def buscar(self):
         return self._servico.buscar()
+
+    def ultima(self):
+        return self._servico.ultima()
 
     def fundos(self):
         return self._servico.fundos()

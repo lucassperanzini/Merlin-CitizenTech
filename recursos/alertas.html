@@ -18,6 +18,10 @@
   h1 { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
   p { margin: 0 0 10px; color: var(--suave); font-size: 13px; }
   .topo { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .quando { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--painel);
+            border: 1px solid var(--borda); font-size: 12px; color: var(--suave); white-space: nowrap; }
+  .quando::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--baixo); }
+  .quando.antiga::before { background: var(--medio); }
   button { font: inherit; color: var(--texto); padding: 7px 14px; border-radius: 7px; border: 1px solid var(--borda); background: var(--campo); cursor: pointer; white-space: nowrap; }
   button:hover { border-color: var(--destaque); }
   button:disabled { opacity: .6; cursor: progress; }
@@ -25,10 +29,30 @@
   button:focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
   #mensagem { flex: 1; min-width: 200px; font-size: 13px; color: var(--suave); overflow-wrap: anywhere; }
   #mensagem.erro { color: var(--nao); }
-  .numeros { flex: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 10px; }
-  .numero { flex: 1 1 100px; padding: 8px 12px; background: var(--painel); border-radius: 10px; }
-  .numero b { display: block; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .numero span { font-size: 12px; color: var(--suave); }
+  .numeros { flex: none; display: grid; grid-template-columns: minmax(240px, 2fr) repeat(3, minmax(120px, 1fr)); gap: 8px; margin: 12px 0 8px; }
+  @media (max-width: 760px) { .numeros { grid-template-columns: repeat(2, 1fr); } .numeros .principal { grid-column: 1 / -1; } }
+  .numero { padding: 10px 14px; background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; min-width: 0; }
+  .numero .rotulo { display: block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); }
+  .numero b { display: block; margin: 2px 0; font-size: 26px; line-height: 1.15; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .numero small { display: block; font-size: 12px; color: var(--suave); }
+  .numero.alerta.tem { border-color: color-mix(in srgb, var(--critico) 55%, var(--borda)); background: color-mix(in srgb, var(--critico) 10%, var(--painel)); }
+  .numero.alerta.tem b { color: var(--critico); }
+  .numero.novos.tem b { color: var(--destaque); }
+  .faixa { display: flex; height: 8px; margin: 8px 0 6px; border-radius: 4px; overflow: hidden; background: var(--campo); }
+  .faixa span { min-width: 3px; }
+  .faixa-legenda { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 12px; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .faixa-legenda span { display: inline-flex; align-items: center; gap: 5px; }
+  .faixa-legenda i, .chip i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .filtros { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-bottom: 8px; }
+  .filtros .titulo { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); margin-right: 2px; }
+  .filtros .separa { width: 1px; height: 22px; background: var(--borda); margin: 0 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .chip[aria-pressed="false"] { color: var(--suave); background: transparent; }
+  .chip[aria-pressed="false"] i { background: transparent !important; box-shadow: inset 0 0 0 1.5px var(--cor); }
+  .chip[aria-pressed="true"] { background: color-mix(in srgb, var(--cor) 16%, var(--campo)); border-color: color-mix(in srgb, var(--cor) 60%, var(--borda)); }
+  .chip .qtd { color: var(--suave); }
+  .chave { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; user-select: none; }
+  .chave input { accent-color: var(--destaque); width: 15px; height: 15px; margin: 0; cursor: pointer; }
   #mapa { flex: 1; min-height: 360px; border-radius: 10px; background: #0a0f18; }
   .nota { flex: none; margin-top: 6px; font-size: 12px; color: var(--suave); overflow-wrap: anywhere; }
   /* Leaflet no tema escuro da Central */
@@ -45,25 +69,28 @@
   .legenda { padding: 8px 10px; background: rgba(11, 16, 25, .92); border: 1px solid var(--borda); border-radius: 8px; color: var(--texto); }
   .legenda b { display: block; margin-bottom: 4px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); }
   .legenda label { display: flex; align-items: center; gap: 6px; padding: 1px 0; cursor: pointer; font-variant-numeric: tabular-nums; }
+  .legenda label.desligado { color: var(--suave); }
   .legenda i { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .5); }
+  .legenda .qtd { margin-left: auto; padding-left: 10px; color: var(--suave); }
   .popup b { font-size: 14px; }
   .popup dl { display: grid; grid-template-columns: auto auto; gap: 1px 10px; margin: 6px 0 8px; }
   .popup dt { color: var(--suave); }
   .popup dd { margin: 0; font-variant-numeric: tabular-nums; }
   .popup .novo { color: var(--destaque); font-weight: 600; }
   .popup .filtrado { margin-top: 4px; color: var(--medio); font-size: 12px; }
-  .legenda b.segundo { margin-top: 8px; }
   .popup button { padding: 3px 10px; font-size: 12px; }
 </style>
 </head>
 <body>
   <h1>Alertas · focos de calor</h1>
-  <p>Consulta a NASA (FIRMS) pelo robô FIRMS Monitor e mostra no mapa os focos ativos, coloridos pelo risco. Clique num ponto para ver os detalhes.</p>
+  <p>Focos de calor da NASA (FIRMS), trazidos pelo robô FIRMS Monitor e coloridos pelo risco. Clique num ponto para ver os detalhes.</p>
   <div class="topo">
     <button id="buscar" class="principal" type="button">Buscar focos agora</button>
+    <span class="quando" id="quando" hidden></span>
     <div id="mensagem" role="status" aria-live="polite"></div>
   </div>
   <div class="numeros" id="numeros" hidden></div>
+  <div class="filtros" id="filtros" role="group" aria-label="Filtros do mapa" hidden></div>
   <div id="mapa" role="region" aria-label="Mapa dos focos de calor"></div>
   <div class="nota" id="nota"></div>
 
@@ -151,7 +178,7 @@
 
   // --- Focos e legenda (com filtro por nível)
   const camadas = { 1: L.layerGroup(), 2: L.layerGroup(), 3: L.layerGroup(), 4: L.layerGroup() };
-  Object.values(camadas).forEach(c => c.addTo(mapa));
+  [3, 4].forEach(g => camadas[g].addTo(mapa));  // Baixo e Médio começam escondidos
   let sóNovos = false, comFiltro = true, ultimo = null;
   // Os focos que aparecem agora: com filtro, só os ativos; sem filtro, também os que os filtros do robô tiraram
   const visiveis = r => r.focos.filter(f => (comFiltro ? !f.filtrado : true) && (!sóNovos || f.novo));
@@ -183,45 +210,96 @@
     });
   }
 
+  const GRAU = { "Crítico": 4, "Alto": 3, "Médio": 2, "Baixo": 1 };
+  const NOME = { 4: "Crítico", 3: "Alto", 2: "Médio", 1: "Baixo" };
+  const redesenhar = () => { desenharFocos(ultimo); desenharFiltros(ultimo); };
+
+  // A legenda de risco, dentro do mapa: cada nível liga e desliga a sua camada. Aparece já ao abrir a aba.
   const legenda = L.control({ position: "bottomright" });
-  legenda.onAdd = () => elemento("div", { className: "legenda", id: "legenda" });
+  legenda.onAdd = () => {
+    const caixa = elemento("div", { className: "legenda", id: "legenda" });
+    L.DomEvent.disableClickPropagation(caixa);
+    L.DomEvent.disableScrollPropagation(caixa);
+    return caixa;
+  };
   legenda.addTo(mapa);
   function desenharLegenda(r) {
-    const caixa = $("legenda");
-    L.DomEvent.disableClickPropagation(caixa);
-    const grau = { "Crítico": 4, "Alto": 3, "Médio": 2, "Baixo": 1 };
-    // As quantidades contam o que está no mapa agora (com ou sem filtro, só novos ou não)
+    // As quantidades contam o que está no mapa agora (com ou sem descartados, só novos ou não)
     const conta = {};
-    visiveis(r).forEach(f => { conta[f.grau] = (conta[f.grau] || 0) + 1; });
-    const redesenhar = () => { desenharFocos(ultimo); desenharLegenda(ultimo); };
-    const filtro = elemento("label", { title: r.descartados ? `Sem o filtro, aparecem também ${r.descartados} foco(s) que o robô descarta, com contorno tracejado.` : "" },
-      elemento("input", { type: "checkbox", checked: comFiltro, onchange: e => { comFiltro = e.target.checked; redesenhar(); } }),
-      `Aplicar filtros do robô${r.descartados ? ` (−${r.descartados})` : ""}`);
-    caixa.replaceChildren(elemento("b", { textContent: "Risco (FRP)" }), ...r.por_nivel.map(n => {
-      const g = grau[n.nivel];
-      const marcar = elemento("input", { type: "checkbox", checked: mapa.hasLayer(camadas[g]), onchange: e => e.target.checked ? camadas[g].addTo(mapa) : mapa.removeLayer(camadas[g]) });
-      return elemento("label", {}, marcar, elemento("i", { style: `background:${CORES[g]}` }), `${n.nivel} · ${conta[g] || 0}`);
-    }), elemento("b", { className: "segundo", textContent: "Mostrar" }), filtro,
-       elemento("label", {}, elemento("input", { type: "checkbox", checked: sóNovos, onchange: e => { sóNovos = e.target.checked; redesenhar(); } }), "Só os novos"));
+    if (r) visiveis(r).forEach(f => { conta[f.grau] = (conta[f.grau] || 0) + 1; });
+    $("legenda").replaceChildren(elemento("b", { textContent: "Risco (FRP)" }), ...[4, 3, 2, 1].map(g => {
+      const ligado = mapa.hasLayer(camadas[g]);
+      const marcar = elemento("input", { type: "checkbox", checked: ligado,
+        onchange: e => { e.target.checked ? camadas[g].addTo(mapa) : mapa.removeLayer(camadas[g]); desenharLegenda(ultimo); } });
+      return elemento("label", { className: ligado ? "" : "desligado", title: ligado ? `Esconder os focos ${NOME[g]}` : `Mostrar os focos ${NOME[g]}` },
+        marcar, elemento("i", { style: `background:${CORES[g]}` }), NOME[g], elemento("span", { className: "qtd", textContent: r ? conta[g] || 0 : "–" }));
+    }));
+  }
+  desenharLegenda(null);
+
+  // A barra acima do mapa: as chaves de "novos" e "descartados"
+  function desenharFiltros(r) {
+    desenharLegenda(r);
+    const chave = (texto, marcado, mudar, dica = "") => elemento("label", { className: "chave", title: dica },
+      elemento("input", { type: "checkbox", checked: marcado, onchange: e => { mudar(e.target.checked); redesenhar(); } }), texto);
+    const extras = [chave("Só os novos", sóNovos, v => { sóNovos = v; })];
+    if (r.descartados) extras.push(chave(`Mostrar descartados pelo robô (${r.descartados})`, !comFiltro, v => { comFiltro = !v; },
+      "Focos que os filtros do robô tiram (baixa confiança, FRP baixo, fora do território). Aparecem com contorno tracejado."));
+    $("filtros").replaceChildren(elemento("span", { className: "titulo", textContent: "Mostrar" }), ...extras);
+    $("filtros").hidden = false;
   }
 
-  const numero = (valor, rotulo) => elemento("div", { className: "numero" }, elemento("b", { textContent: valor }), elemento("span", { textContent: rotulo }));
+  function numero(rotulo, valor, detalhe, classe = "") {
+    return elemento("div", { className: `numero ${classe}` }, elemento("span", { className: "rotulo", textContent: rotulo }),
+      elemento("b", { textContent: Number(valor).toLocaleString("pt-BR") }), detalhe);
+  }
+  // Os ativos, divididos por risco numa faixa colorida
+  function cartaoAtivos(r) {
+    const niveis = r.por_nivel.map(n => ({ ...n, grau: GRAU[n.nivel] })).filter(n => n.grau);
+    const faixa = elemento("div", { className: "faixa", title: niveis.map(n => `${n.nivel}: ${n.quantidade}`).join(" · ") },
+      ...niveis.filter(n => n.quantidade).map(n => elemento("span", { style: `flex:${n.quantidade};background:${CORES[n.grau]}` })));
+    const legenda = elemento("div", { className: "faixa-legenda" },
+      ...niveis.map(n => elemento("span", {}, elemento("i", { style: `background:${CORES[n.grau]}` }), `${n.nivel} ${n.quantidade}`)));
+    return numero("Focos ativos", r.ativos, elemento("div", {}, r.ativos ? faixa : "", legenda), "principal");
+  }
+
   function atualizarNota() {
     const partes = [$("nota").dataset.consulta, $("nota").dataset.fundo].filter(Boolean);
     $("nota").textContent = partes.join(" ");
   }
-  function mostrar(r) {
+  // guardada: veio do arquivo da última busca, e não de uma busca feita agora
+  function mostrar(r, guardada = false) {
     ultimo = r;
-    $("numeros").replaceChildren(numero(r.coletados, "coletados pela NASA"), numero(r.ativos, "ativos após os filtros"),
-      numero(r.novos, "novos desde a última consulta"), numero(r.alertas, `em alerta (${r.alerta_a_partir_de} ou mais)`));
+    const pequeno = texto => elemento("small", { textContent: texto });
+    const emAlerta = r.em_alerta ?? r.focos.filter(f => f.alerta).length;
+    $("numeros").replaceChildren(
+      cartaoAtivos(r),
+      // Consultas guardadas antes de existir em_alerta: conta pelos focos do mapa
+      numero("Em alerta", emAlerta, pequeno(`${r.alerta_a_partir_de} ou mais · ${r.alertas ? `${r.alertas} novo(s) avisado(s)` : "nenhum novo"}`),
+             `alerta ${emAlerta ? "tem" : ""}`),
+      numero("Novos", r.novos, pequeno(guardada ? "naquela consulta" : "desde a consulta anterior"), `novos ${r.novos ? "tem" : ""}`),
+      numero("Coletados", r.coletados, pequeno(r.descartados ? `pela NASA · ${r.descartados} tirados pelos filtros` : "pela NASA")));
     $("numeros").hidden = false;
+    $("quando").textContent = `${guardada ? "Última consulta" : "Consultado"}: ${r.consultado_em} · ${r.fonte} · ${r.dias * 24} h`;
+    $("quando").classList.toggle("antiga", guardada);
+    $("quando").title = guardada ? "Dados guardados da última busca. Clique em Buscar focos agora para atualizar." : "";
+    $("quando").hidden = false;
     desenharFocos(r);
-    desenharLegenda(r);
+    desenharFiltros(r);
     const cortados = r.ativos + r.descartados > r.focos.length ? ` No mapa, os ${r.focos.length} mais fortes (ativos primeiro).` : "";
-    const motivos = r.por_motivo.length ? ` Tirados pelos filtros: ${r.por_motivo.map(m => `${m.quantidade} por ${m.motivo}`).join(", ")}.` : "";
-    $("nota").dataset.consulta = `Consulta de ${r.consultado_em} · ${r.fonte} · últimas ${r.dias * 24} h.${motivos}${cortados} Ocorrências registradas pelo robô em ${r.csv}.`;
+    const motivos = r.por_motivo.length ? `Tirados pelos filtros: ${r.por_motivo.map(m => `${m.quantidade} por ${m.motivo}`).join(", ")}.` : "";
+    $("nota").dataset.consulta = `${motivos}${cortados} Ocorrências gravadas pelo robô em ${r.csv}.`.trim();
     atualizarNota();
     mapa.invalidateSize();
+  }
+
+  // Ao abrir a aba: a última consulta guardada volta ao mapa, sem consultar a NASA de novo
+  async function carregarUltima() {
+    let r = {};
+    try { r = await api().ultima(); } catch (e) {}
+    if (ultimo) return;  // uma busca terminou antes: ela é mais nova
+    if (r && Array.isArray(r.focos)) mostrar(r, true);
+    else avisar("Nenhuma consulta guardada ainda. Clique em Buscar focos agora.");
   }
 
   $("buscar").onclick = async () => {
@@ -240,7 +318,7 @@
   };
   // A aba fica escondida até ser aberta: ao aparecer, o mapa precisa medir o espaço de novo
   new ResizeObserver(() => { mapa.invalidateSize(); enquadrar(); }).observe($("mapa"));
-  window.addEventListener("pywebviewready", escolherFundo);
+  window.addEventListener("pywebviewready", () => { escolherFundo(); carregarUltima(); });
 </script>
 </body>
 </html>

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import merlin  # noqa: F401  (ativa o modo offline antes de importar as bibliotecas de modelos)
 from merlin.audio.ouvinte import Ouvinte
 from merlin.audio.transcricao import Transcritor
-from merlin.config import ARQ_PREFERENCIAS, DIAS_DE_REGISTRO, PASTA_REGISTROS
+from merlin.config import ARQ_PREFERENCIAS, ARQ_ULTIMA_CONSULTA, DIAS_DE_REGISTRO, PASTA_REGISTROS
 from merlin.estado import EstadoAssistente
 from merlin.habilidades import HABILIDADES
 from merlin.habilidades.base import Recursos
@@ -83,7 +83,7 @@ def construir_aplicacao() -> Aplicacao:
         assistentes=ApiAssistentes(
             ServicoAssistentes(preferencias, canal, cliente_ia, servico_configuracoes.trocar_personalidade)),
         habilidades=ApiPainelHabilidades(ServicoPainelHabilidades(cliente_ia)),
-        alertas=ApiAlertas(ServicoAlertas()),
+        alertas=ApiAlertas(ServicoAlertas(arquivo_ultima=ARQ_ULTIMA_CONSULTA)),
     ))
 
     processador = ProcessadorComandos(

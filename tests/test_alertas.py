@@ -50,6 +50,12 @@ class Consulta(Base):
         self.assertEqual((r["coletados"], r["ativos"], r["novos"], r["alertas"]), (5, 4, 4, 2))
         self.assertEqual([f["alerta"] for f in self.ativos(r)], [True, True, False, False])
         self.assertEqual({n["nivel"]: n["quantidade"] for n in r["por_nivel"]}, {"Crítico": 1, "Alto": 1, "Médio": 1, "Baixo": 1})
+        self.assertEqual(r["em_alerta"], 2)
+
+    def test_repetir_a_consulta_continua_em_alerta(self):
+        self.consultar()
+        r = self.consultar()  # os mesmos focos: o robô não avisa de novo, mas eles continuam em alerta
+        self.assertEqual((r["novos"], r["alertas"], r["em_alerta"]), (0, 0, 2))
 
     def test_descartados_vem_depois_com_o_motivo(self):
         self.provedor.lista.append(foco(70, lat=40.0))  # fora do Brasil: o filtro de território do robô tira
@@ -114,6 +120,28 @@ class Painel(Base):
         self.assertIn("Já estou", servico.buscar()["erro"])
         servico._ocupado.release()
         self.assertEqual(servico.buscar(), {"ok": True})
+
+    def test_guarda_a_ultima_consulta(self):
+        arquivo = self.raiz / "dados" / "alertas" / "ultima.json"
+        servico = ServicoAlertas(lambda: self.consultar(), arquivo_ultima=arquivo)
+        self.assertEqual(servico.ultima(), {})  # nada consultado ainda
+        r = servico.buscar()
+        # Outra Central (outro ServicoAlertas) lê a mesma consulta, como ao reabrir o Merlin
+        self.assertEqual(ServicoAlertas(arquivo_ultima=arquivo).ultima(), r)
+
+    def test_erro_nao_apaga_a_consulta_guardada(self):
+        arquivo = self.raiz / "ultima.json"
+        ServicoAlertas(lambda: {"focos": [], "ativos": 0}, arquivo_ultima=arquivo).buscar()
+        ServicoAlertas(lambda: {"erro": "sem internet"}, arquivo_ultima=arquivo).buscar()
+        self.assertEqual(ServicoAlertas(arquivo_ultima=arquivo).ultima(), {"focos": [], "ativos": 0})
+
+    def test_arquivo_estragado_e_ignorado(self):
+        arquivo = self.raiz / "ultima.json"
+        for conteudo in ("{pela metade", "[1, 2]", '{"sem": "focos"}'):
+            with self.subTest(conteudo):
+                arquivo.write_text(conteudo, encoding="utf-8")
+                with self.assertNoLogs("merlin.interface.painel_alertas", "ERROR"):
+                    self.assertEqual(ServicoAlertas(arquivo_ultima=arquivo).ultima(), {})
 
     def servico_com_chave(self, valor, resposta=True):
         self.conferidas = []

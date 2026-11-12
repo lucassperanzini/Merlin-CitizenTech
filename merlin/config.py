@@ -33,6 +33,7 @@ ARQ_ALERTAS = PASTA_RAIZ / "recursos" / "alertas.html"
 PASTA_LEAFLET = PASTA_RAIZ / "recursos" / "vendor" / "leaflet"  # biblioteca do mapa, guardada aqui para funcionar offline
 ARQ_CONTORNO_BRASIL = PASTA_RAIZ / "recursos" / "mapas" / "brasil_uf.geojson"  # estados do Brasil (IBGE)
 ARQ_ENV = PASTA_RAIZ / ".env"  # configuração do robô FIRMS Monitor, com a chave da NASA (fora do Git)
+ARQ_ULTIMA_CONSULTA = PASTA_RAIZ / "dados" / "alertas" / "ultima_consulta.json"  # volta ao mapa ao abrir a aba Alertas
 PASTA_SKILLS = PASTA_RAIZ / "skills"  # ajustes das skills feitos na Central (um .json por skill ajustada)
 PASTA_ASSISTENTES = PASTA_RAIZ / "assistentes_citizentech"  # assistentes criados ou ajustados no configurador (um .json cada)
 # Os originais (Merlin e Jarvis): o padrão para "Restaurar original". Não podem ser excluídos pela interface.
