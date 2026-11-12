@@ -15,9 +15,9 @@
   body { display: flex; flex-direction: column; overflow: hidden; padding: 18px 22px 16px; background: var(--fundo); color: var(--texto);
          font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
   [hidden] { display: none !important; }
-  h1 { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
+  h1 { margin: 0; font-size: 18px; font-weight: 600; white-space: nowrap; }
   p { margin: 0 0 10px; color: var(--suave); font-size: 13px; }
-  .topo { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .topo { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
   .quando { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--painel);
             border: 1px solid var(--borda); font-size: 12px; color: var(--suave); white-space: nowrap; }
   .quando::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--baixo); }
@@ -28,7 +28,7 @@
   button.principal { background: var(--destaque); border-color: var(--destaque); color: #05070c; font-weight: 600; }
   button:focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
   /* Busca automática e modo teste: o administrador configura; o operador só vê quando roda */
-  .automatico { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; padding: 8px 12px;
+  .automatico { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-left: auto; padding: 5px 10px;
                 background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; font-size: 13px; color: var(--suave); }
   .automatico .titulo { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
   .automatico select { font: inherit; color: var(--texto); padding: 5px 8px; border-radius: 7px; border: 1px solid var(--borda); background: var(--campo); cursor: pointer; }
@@ -38,14 +38,25 @@
   .automatico .chave { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; color: var(--texto); }
   .automatico .chave input { accent-color: var(--medio); width: 15px; height: 15px; margin: 0; cursor: pointer; }
   .automatico .chave small { color: var(--suave); }
-  .aviso-teste { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; padding: 7px 12px; border-radius: 10px; font-size: 13px;
+  .aviso-teste { display: flex; align-items: center; gap: 10px; margin: 8px 0 0; padding: 7px 12px; border-radius: 10px; font-size: 13px;
                  border: 1px solid color-mix(in srgb, var(--medio) 50%, var(--borda)); color: var(--texto);
                  background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--medio) 12%, var(--painel)) 0 10px, var(--painel) 10px 20px); }
   .aviso-teste b { color: var(--medio); letter-spacing: .08em; white-space: nowrap; }
   .quando.teste::before { background: var(--medio); }
-  #mensagem { flex: 1; min-width: 200px; font-size: 13px; color: var(--suave); overflow-wrap: anywhere; }
+  #mensagem { flex: none; margin-top: 6px; font-size: 13px; color: var(--suave); overflow-wrap: anywhere; }
+  #mensagem:empty { display: none; }
   #mensagem.erro { color: var(--nao); }
-  .numeros { flex: none; display: grid; grid-template-columns: minmax(240px, 2fr) repeat(3, minmax(120px, 1fr)); gap: 8px; margin: 12px 0 8px; }
+  .numeros { flex: none; display: grid; grid-template-columns: minmax(240px, 2fr) repeat(4, minmax(110px, 1fr)); gap: 8px; margin: 10px 0 8px; }
+  /* Cartão do maior incêndio: um clique leva o mapa até ele */
+  .numero.maior { cursor: pointer; }
+  .numero.maior:hover { border-color: var(--destaque); }
+  .numero.maior b small { display: inline; font-size: 14px; color: var(--suave); }
+  /* Rótulo das maiores manchas de incêndio, no mapa */
+  .rotulo-mancha { padding: 2px 7px; border-radius: 6px; background: rgba(5, 7, 12, .82); border: 1px solid var(--cor);
+                   color: #fff; font: 600 12px/1.25 "Segoe UI", sans-serif; white-space: nowrap; font-variant-numeric: tabular-nums;
+                   transform: translate(-50%, -135%); width: max-content; cursor: pointer; }
+  .rotulo-mancha small { display: block; font-weight: 400; font-size: 11px; color: var(--suave); }
+  .popup .aviso { margin: 0 0 6px; color: var(--suave); font-size: 11.5px; max-width: 230px; }
   @media (max-width: 760px) { .numeros { grid-template-columns: repeat(2, 1fr); } .numeros .principal { grid-column: 1 / -1; } }
   .numero { padding: 10px 14px; background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; min-width: 0; }
   .numero .rotulo { display: block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); }
@@ -69,8 +80,30 @@
   .chip .qtd { color: var(--suave); }
   .chave { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; user-select: none; }
   .chave input { accent-color: var(--destaque); width: 15px; height: 15px; margin: 0; cursor: pointer; }
-  #mapa { flex: 1; min-height: 360px; border-radius: 10px; background: #0a0f18; }
+  /* O mapa e, ao lado, a lista dos incêndios do mais grave ao menos grave */
+  .conteudo { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 290px; gap: 8px; }
+  .conteudo:not(:has(.lista:not([hidden]))) { grid-template-columns: 1fr; }
+  #mapa { min-height: 320px; border-radius: 10px; background: #0a0f18; }
+  .lista { display: flex; flex-direction: column; min-height: 0; background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; }
+  .lista-topo { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--borda); }
+  .lista-topo b { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); font-weight: 600; }
+  .lista-topo span { font-size: 12px; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .lista ol { flex: 1; margin: 0; padding: 4px; list-style: none; overflow-y: auto; }
+  .lista li button { display: grid; grid-template-columns: 4px 1fr auto; gap: 2px 10px; width: 100%; padding: 7px 8px; text-align: left;
+                     background: transparent; border: 1px solid transparent; border-radius: 7px; }
+  .lista li button:hover { background: var(--campo); border-color: var(--borda); }
+  .lista li button.ativo { background: color-mix(in srgb, var(--cor) 12%, var(--campo)); border-color: color-mix(in srgb, var(--cor) 55%, var(--borda)); }
+  .lista li .barra { grid-row: 1 / 3; border-radius: 2px; background: var(--cor); }
+  .lista li .area { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .lista li .nivel { justify-self: end; font-size: 12px; color: var(--cor); font-weight: 600; }
+  .lista li .onde { grid-column: 2 / 4; font-size: 12px; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .lista li .onde .novo { color: var(--destaque); font-weight: 600; }
+  .lista-fim { padding: 6px 12px 8px; font-size: 12px; color: var(--suave); border-top: 1px solid var(--borda); }
+  .lista-fim:empty { display: none; }
+  .lista .vazio { padding: 14px 10px; font-size: 13px; color: var(--suave); }
+  @media (max-width: 900px) { .conteudo { grid-template-columns: 1fr; grid-template-rows: 1fr 190px; } }
   .nota { flex: none; margin-top: 6px; font-size: 12px; color: var(--suave); overflow-wrap: anywhere; }
+  .nota:empty { display: none; }
   /* Leaflet no tema escuro da Central */
   .leaflet-container { font: 13px/1.4 "Segoe UI", system-ui, sans-serif; }
   /* O OpenStreetMap é claro: escurecido só no fundo, sem mexer nas cores dos focos e do contorno */
@@ -98,13 +131,12 @@
 </style>
 </head>
 <body>
-  <h1>Alertas · focos de calor</h1>
-  <p>Focos de calor da NASA (FIRMS), trazidos pelo robô FIRMS Monitor e coloridos pelo risco. Clique num ponto para ver os detalhes.</p>
   <div class="topo">
+    <h1 title="Focos de calor da NASA (FIRMS), trazidos pelo robô FIRMS Monitor e coloridos pelo risco">Alertas · focos de calor</h1>
     <span class="quando" id="quando" hidden></span>
-    <div id="mensagem" role="status" aria-live="polite"></div>
+    <div class="automatico" id="automatico" hidden></div>
   </div>
-  <div class="automatico" id="automatico" hidden></div>
+  <div id="mensagem" role="status" aria-live="polite"></div>
   <div class="aviso-teste" id="aviso-teste" role="note" hidden>
     <b>MODO TESTE</b>
     <span>Antes de cada busca, o CSV do robô e a última consulta são apagados: todos os focos voltam como novos,
@@ -112,7 +144,14 @@
   </div>
   <div class="numeros" id="numeros" hidden></div>
   <div class="filtros" id="filtros" role="group" aria-label="Filtros do mapa" hidden></div>
-  <div id="mapa" role="region" aria-label="Mapa dos focos de calor"></div>
+  <div class="conteudo">
+    <div id="mapa" role="region" aria-label="Mapa dos focos de calor"></div>
+    <aside class="lista" id="lista" aria-label="Incêndios, do mais grave ao menos grave" hidden>
+      <div class="lista-topo"><b>Incêndios</b><span id="lista-qtd"></span></div>
+      <ol id="lista-itens"></ol>
+      <div class="lista-fim" id="lista-fim"></div>
+    </aside>
+  </div>
   <div class="nota" id="nota"></div>
 
 <script>
@@ -231,9 +270,113 @@
     });
   }
 
+  // --- Manchas de incêndio (merlin/alertas/manchas.py): os pixels do satélite de cada incêndio, no tamanho real,
+  // embaixo dos pontos. Uma mancha aparece se o nível mais grave dela estiver ligado na legenda.
+  mapa.createPane("manchas").style.zIndex = 390;  // abaixo dos pontos (400)
+  const pincelManchas = L.canvas({ pane: "manchas" });
+  const camadaManchas = L.layerGroup().addTo(mapa);
+  const camadaRotulos = L.layerGroup().addTo(mapa);
+  let comManchas = true;
+  // Só as maiores ganham rótulo fixo (as outras mostram os números ao passar o mouse): poucas com o Brasil
+  // inteiro na tela, mais ao aproximar, e nunca um rótulo em cima do outro
+  const rotulosNoZoom = () => mapa.getZoom() < 6 ? 3 : mapa.getZoom() < 8 ? 6 : 12;
+  const DISTANCIA_ROTULOS = 70;  // pixels da tela entre um rótulo e outro
+  const km2 = a => `${a < 1 ? a.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : a.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km²`;
+  const km = d => `${d.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km`;
+
+  function pixel(f) {  // o retângulo do pixel no chão: scan de largura e track de altura, em km
+    const dLat = f.track / 2 / 110.57, dLon = f.scan / 2 / (111.32 * Math.cos(f.latitude * Math.PI / 180));
+    return [[f.latitude - dLat, f.longitude - dLon], [f.latitude + dLat, f.longitude + dLon]];
+  }
+  function detalheMancha(m) {
+    const linhas = [["Área em chamas", `~${km2(m.area_km2)}`], ["Extensão", km(m.extensao_km)],
+                    // os focos são os pixels do satélite que formam o incêndio: só aparecem aqui, no detalhe
+                    ["Focos", `${m.focos.toLocaleString("pt-BR")}${m.novos ? ` (${m.novos} novos)` : ""}`],
+                    ["FRP somado", `${m.frp.toLocaleString("pt-BR")} MW`]];
+    const lista = elemento("dl", {}, ...linhas.flatMap(([a, b]) => [elemento("dt", { textContent: a }), elemento("dd", { textContent: b })]));
+    const botao = elemento("button", { type: "button", textContent: "Aproximar", onclick: () => irParaMancha(m) });
+    return elemento("div", { className: "popup" }, elemento("b", { textContent: `Incêndio · risco ${m.nivel}` }), lista,
+      elemento("p", { className: "aviso", textContent: "Cada foco é um pixel de ~0,4 km em que o satélite viu fogo. Estimativa do fogo ativo, não da área queimada." }), botao);
+  }
+  // --- A lista ao lado do mapa: os incêndios dos níveis ligados na legenda, do mais grave ao menos grave e,
+  // no mesmo risco, do maior ao menor. Um clique leva o mapa até ele.
+  const MAX_NA_LISTA = 100;
+  let manchaEscolhida = null;
+  const grau = (v, pos, neg) => `${Math.abs(v).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}° ${v < 0 ? neg : pos}`;
+  function desenharLista(r) {
+    const caixa = $("lista");
+    caixa.hidden = !r || !Array.isArray(r.manchas);
+    if (caixa.hidden) return;
+    const escolhidas = r.manchas.filter(m => mapa.hasLayer(camadas[m.grau]) && (!sóNovos || m.novos))
+      .sort((a, b) => b.grau - a.grau || b.area_km2 - a.area_km2);
+    $("lista-qtd").textContent = escolhidas.length.toLocaleString("pt-BR");
+    const itens = escolhidas.slice(0, MAX_NA_LISTA).map(m => {
+      const botao = elemento("button", { type: "button", className: m.id === manchaEscolhida ? "ativo" : "",
+          title: `Incêndio de risco ${m.nivel}: ~${km2(m.area_km2)} em chamas, ${km(m.extensao_km)} de extensão. Clique para ver no mapa.`,
+          onclick: () => irParaMancha(m) },
+        elemento("span", { className: "barra" }),
+        elemento("span", { className: "area", textContent: `~${km2(m.area_km2)} · ${km(m.extensao_km)}` }),
+        elemento("span", { className: "nivel", textContent: m.nivel }),
+        elemento("span", { className: "onde" }, `${grau(m.latitude, "N", "S")} · ${grau(m.longitude, "L", "O")}`,
+          m.novos ? elemento("span", { className: "novo", textContent: " · novo" }) : ""));
+      return elemento("li", { style: `--cor:${CORES[m.grau]}` }, botao);
+    });
+    $("lista-itens").replaceChildren(...(itens.length ? itens
+      : [elemento("li", { className: "vazio", textContent: "Nenhum incêndio nos níveis ligados na legenda." })]));
+    const resto = escolhidas.length - itens.length;
+    const desligados = [2, 1].filter(g => !mapa.hasLayer(camadas[g])).map(g => NOME[g]);
+    $("lista-fim").textContent = resto > 0 ? `E mais ${resto.toLocaleString("pt-BR")} menores, no mapa.`
+      : desligados.length ? `${desligados.join(" e ")}: ligue na legenda para listar.` : "";
+  }
+  function irParaMancha(m) {
+    manchaEscolhida = m.id;
+    // O nível dela pode estar desligado na legenda (Baixo e Médio começam assim): liga, para ela aparecer
+    if (!mapa.hasLayer(camadas[m.grau])) { camadas[m.grau].addTo(mapa); desenharLegenda(ultimo); desenharFocos(ultimo); }
+    if (!comManchas) { comManchas = true; desenharFiltros(ultimo); }
+    desenharManchas(ultimo);
+    const pixels = (porMancha[m.id] || []).flatMap(pixel);
+    if (pixels.length) mapa.flyToBounds(L.latLngBounds(pixels).pad(0.6), { maxZoom: 13, duration: 0.8 });
+  }
+  let porMancha = {};
+  function desenharManchas(r) {
+    camadaManchas.clearLayers();
+    camadaRotulos.clearLayers();
+    porMancha = {};
+    if (!r || !Array.isArray(r.manchas)) return;  // consulta guardada antes das manchas
+    r.focos.forEach(f => { if (f.mancha != null && f.scan) (porMancha[f.mancha] ||= []).push(f); });
+    desenharLista(r);
+    if (!comManchas) return;
+    for (const m of r.manchas) {  // já vêm da maior para a menor
+      if (!mapa.hasLayer(camadas[m.grau]) || !porMancha[m.id]) continue;
+      const cor = CORES[m.grau], resumo = `Incêndio · ~${km2(m.area_km2)} · ${km(m.extensao_km)} de extensão`;
+      for (const f of porMancha[m.id]) {
+        L.rectangle(pixel(f), { renderer: pincelManchas, color: cor, weight: .6, opacity: .7, fillColor: cor, fillOpacity: .3 })
+          .bindTooltip(resumo, { sticky: true }).bindPopup(() => detalheMancha(m)).addTo(camadaManchas);
+      }
+    }
+    desenharRotulos(r);
+  }
+  function desenharRotulos(r) {
+    camadaRotulos.clearLayers();
+    if (!comManchas || !r || !Array.isArray(r.manchas)) return;
+    const limite = rotulosNoZoom(), postos = [], area = mapa.getBounds();
+    for (const m of r.manchas) {
+      if (postos.length >= limite) break;
+      if (m.focos < 2 || !mapa.hasLayer(camadas[m.grau]) || !area.contains([m.latitude, m.longitude])) continue;
+      const ponto = mapa.latLngToContainerPoint([m.latitude, m.longitude]);
+      // um maior já está ali perto (o rótulo é largo: precisa de mais folga para os lados que para cima)
+      if (postos.some(p => Math.abs(p.x - ponto.x) < DISTANCIA_ROTULOS * 1.9 && Math.abs(p.y - ponto.y) < DISTANCIA_ROTULOS * .7)) continue;
+      postos.push(ponto);
+      const html = `<div class="rotulo-mancha" style="--cor:${CORES[m.grau]}">~${km2(m.area_km2)}<small>${km(m.extensao_km)} de extensão</small></div>`;
+      L.marker([m.latitude, m.longitude], { icon: L.divIcon({ className: "", html, iconSize: null }), keyboard: false })
+        .bindPopup(() => detalheMancha(m)).addTo(camadaRotulos);
+    }
+  }
+  mapa.on("zoomend moveend", () => desenharRotulos(ultimo));
+
   const GRAU = { "Crítico": 4, "Alto": 3, "Médio": 2, "Baixo": 1 };
   const NOME = { 4: "Crítico", 3: "Alto", 2: "Médio", 1: "Baixo" };
-  const redesenhar = () => { desenharFocos(ultimo); desenharFiltros(ultimo); };
+  const redesenhar = () => { desenharFocos(ultimo); desenharManchas(ultimo); desenharFiltros(ultimo); };
 
   // A legenda de risco, dentro do mapa: cada nível liga e desliga a sua camada. Aparece já ao abrir a aba.
   const legenda = L.control({ position: "bottomright" });
@@ -251,7 +394,7 @@
     $("legenda").replaceChildren(elemento("b", { textContent: "Risco (FRP)" }), ...[4, 3, 2, 1].map(g => {
       const ligado = mapa.hasLayer(camadas[g]);
       const marcar = elemento("input", { type: "checkbox", checked: ligado,
-        onchange: e => { e.target.checked ? camadas[g].addTo(mapa) : mapa.removeLayer(camadas[g]); desenharLegenda(ultimo); } });
+        onchange: e => { e.target.checked ? camadas[g].addTo(mapa) : mapa.removeLayer(camadas[g]); desenharLegenda(ultimo); desenharManchas(ultimo); } });
       return elemento("label", { className: ligado ? "" : "desligado", title: ligado ? `Esconder os focos ${NOME[g]}` : `Mostrar os focos ${NOME[g]}` },
         marcar, elemento("i", { style: `background:${CORES[g]}` }), NOME[g], elemento("span", { className: "qtd", textContent: r ? conta[g] || 0 : "–" }));
     }));
@@ -264,6 +407,8 @@
     const chave = (texto, marcado, mudar, dica = "") => elemento("label", { className: "chave", title: dica },
       elemento("input", { type: "checkbox", checked: marcado, onchange: e => { mudar(e.target.checked); redesenhar(); } }), texto);
     const extras = [chave("Só os novos", sóNovos, v => { sóNovos = v; })];
+    if (Array.isArray(r.manchas)) extras.unshift(chave("Área dos incêndios", comManchas, v => { comManchas = v; },
+      "Os pixels do satélite no tamanho real, com a área em chamas e a extensão de cada incêndio estimadas."));
     if (r.descartados) extras.push(chave(`Mostrar descartados pelo robô (${r.descartados})`, !comFiltro, v => { comFiltro = !v; },
       "Focos que os filtros do robô tiram (baixa confiança, FRP baixo, fora do território). Aparecem com contorno tracejado."));
     $("filtros").replaceChildren(elemento("span", { className: "titulo", textContent: "Mostrar" }), ...extras);
@@ -272,7 +417,17 @@
 
   function numero(rotulo, valor, detalhe, classe = "") {
     return elemento("div", { className: `numero ${classe}` }, elemento("span", { className: "rotulo", textContent: rotulo }),
-      elemento("b", { textContent: Number(valor).toLocaleString("pt-BR") }), detalhe);
+      typeof valor === "string" ? elemento("b", { innerHTML: valor }) : elemento("b", { textContent: Number(valor).toLocaleString("pt-BR") }), detalhe);
+  }
+  // O maior incêndio da consulta: um clique leva o mapa até ele
+  function cartaoMaior(r) {
+    const m = (r.manchas || [])[0];
+    if (!m) return numero("Maior incêndio", "–", elemento("small", { textContent: r.manchas ? "nenhum foco ativo" : "busque de novo para medir" }));
+    const cartao = numero("Maior incêndio", `~${km2(m.area_km2)}`,
+      elemento("small", { textContent: `${km(m.extensao_km)} · risco ${m.nivel}` }), "maior");
+    cartao.title = "Área em chamas estimada pelos pixels do satélite. Clique para ver no mapa.";
+    cartao.onclick = () => irParaMancha(m);
+    return cartao;
   }
   // Os ativos, divididos por risco numa faixa colorida
   function cartaoAtivos(r) {
@@ -296,10 +451,11 @@
     $("numeros").replaceChildren(
       cartaoAtivos(r),
       // Consultas guardadas antes de existir em_alerta: conta pelos focos do mapa
-      numero("Em alerta", emAlerta, pequeno(`${r.alerta_a_partir_de} ou mais · ${r.alertas ? `${r.alertas} novo(s) avisado(s)` : "nenhum novo"}`),
+      numero("Em alerta", emAlerta, pequeno(`risco ${r.alerta_a_partir_de} ou mais · ${r.alertas ? `${r.alertas.toLocaleString("pt-BR")} avisados` : "nenhum novo"}`),
              `alerta ${emAlerta ? "tem" : ""}`),
       numero("Novos", r.novos, pequeno(guardada ? "naquela consulta" : "desde a consulta anterior"), `novos ${r.novos ? "tem" : ""}`),
-      numero("Coletados", r.coletados, pequeno(r.descartados ? `pela NASA · ${r.descartados} tirados pelos filtros` : "pela NASA")));
+      cartaoMaior(r),
+      numero("Coletados", r.coletados, pequeno(r.descartados ? `pela NASA · ${r.descartados.toLocaleString("pt-BR")} filtrados` : "pela NASA")));
     $("numeros").hidden = false;
     const origem = guardada ? "Última consulta" : r.teste ? "Teste (começou do zero)" : r.automatica ? "Busca automática" : "Consultado";
     $("quando").textContent = `${origem}: ${r.consultado_em} · ${r.fonte} · ${r.dias * 24} h`;
@@ -310,12 +466,16 @@
     if (r.versao) versaoVista = Math.max(versaoVista, r.versao);
     $("quando").hidden = false;
     desenharFocos(r);
+    desenharManchas(r);
     desenharFiltros(r);
     const cortados = r.ativos + r.descartados > r.focos.length ? ` No mapa, os ${r.focos.length} mais fortes (ativos primeiro).` : "";
     const motivos = r.por_motivo.length ? `Tirados pelos filtros: ${r.por_motivo.map(m => `${m.quantidade} por ${m.motivo}`).join(", ")}.` : "";
     const gravadas = r.teste ? `Modo teste: o CSV do robô (${r.csv}) foi apagado e gravado de novo só com esta busca.`
       : `Ocorrências gravadas pelo robô em ${r.csv}.`;
-    $("nota").dataset.consulta = `${motivos}${cortados} ${gravadas}`.trim();
+    const sobreManchas = Array.isArray(r.manchas) ? " Incêndios: estimativa do fogo ativo nas passagens do satélite (pixels de 0,3 a 0,8 km), não da área queimada." : "";
+    // Na tela, só o que ajuda a ler o mapa; o caminho do CSV e a ressalva das manchas ficam na dica
+    $("nota").dataset.consulta = `${motivos}${cortados}`.trim();
+    $("nota").title = `${gravadas}${sobreManchas}`;
     atualizarNota();
     mapa.invalidateSize();
   }

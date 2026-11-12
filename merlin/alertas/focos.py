@@ -5,9 +5,11 @@ marcando quais ainda não estavam no CSV. O robô sozinho só mostra os novos.
 """
 import dataclasses
 import os
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
+from merlin.alertas import manchas
 from merlin.config import ARQ_ENV, PASTA_RAIZ
 
 MAX_FOCOS_NO_MAPA = 10000  # vários dias do Brasil inteiro podem passar disso; ficam os mais fortes
@@ -145,6 +147,7 @@ def consultar(arquivo_env: Path = ARQ_ENV, raiz: Path = PASTA_RAIZ, provedor=Non
         por_motivo[m] = por_motivo.get(m, 0) + 1
     # Os ativos vêm primeiro: se passar do limite, quem fica de fora são os descartados
     no_mapa = (classificados + descartados)[:MAX_FOCOS_NO_MAPA]
+    lista_manchas, mancha_do_foco = _manchas(classificados, csv.conhecidos, cfg.alert_min_level)
     return {
         "consultado_em": datetime.now().strftime("%d/%m às %H:%M"),
         "fonte": cfg.source, "dias": cfg.day_range, "alerta_a_partir_de": cfg.alert_min_level.label,
@@ -159,7 +162,43 @@ def consultar(arquivo_env: Path = ARQ_ENV, raiz: Path = PASTA_RAIZ, provedor=Non
                    "quando": h.acquired_at.strftime("%d/%m %H:%M"), "latitude": h.latitude, "longitude": h.longitude,
                    "satelite": h.satellite, "confianca": h.confidence, "filtrado": m,
                    # um foco descartado nunca entra no CSV do robô, então "novo" e "alerta" só valem para os ativos
-                   "novo": not m and h.hotspot_id not in csv.conhecidos, "alerta": not m and nivel >= cfg.alert_min_level}
+                   "novo": not m and h.hotspot_id not in csv.conhecidos, "alerta": not m and nivel >= cfg.alert_min_level,
+                   # o pixel do satélite (km) e a mancha de incêndio do foco (só os ativos entram em manchas)
+                   "scan": round(manchas.tamanho_do_pixel(h)[0], 3), "track": round(manchas.tamanho_do_pixel(h)[1], 3),
+                   "mancha": mancha_do_foco.get(h.hotspot_id)}
                   for nivel, h, m in no_mapa],
+        "manchas": lista_manchas,
         "csv": str(cfg.output_csv),
     }
+
+
+def _manchas(classificados, conhecidos, nivel_de_alerta) -> tuple[list[dict], dict]:
+    """As manchas de incêndio dos focos ativos, da maior para a menor, e o número da mancha de cada foco."""
+    pontos = [(h.latitude, h.longitude, *manchas.tamanho_do_pixel(h)) for _, h, _ in classificados]
+    grupos = defaultdict(list)
+    for indice, grupo in enumerate(manchas.agrupar(pontos)):
+        grupos[grupo].append(indice)
+    resultado = []
+    for membros in grupos.values():
+        area, extensao = manchas.medir([pontos[i] for i in membros])
+        niveis = [classificados[i][0] for i in membros]
+        focos_da_mancha = [classificados[i][1] for i in membros]
+        pesos = [pontos[i][2] * pontos[i][3] for i in membros]
+        mais_grave = max(niveis)
+        resultado.append({
+            "focos": len(membros), "area_km2": round(area, 2), "extensao_km": round(extensao, 2),
+            "frp": round(sum(h.frp for h in focos_da_mancha), 1), "grau": int(mais_grave), "nivel": mais_grave.label,
+            # o centro, pesado pela área de cada pixel: é onde o rótulo da mancha fica no mapa
+            "latitude": sum(h.latitude * p for h, p in zip(focos_da_mancha, pesos)) / sum(pesos),
+            "longitude": sum(h.longitude * p for h, p in zip(focos_da_mancha, pesos)) / sum(pesos),
+            "novos": sum(1 for h in focos_da_mancha if h.hotspot_id not in conhecidos),
+            "em_alerta": sum(1 for n in niveis if n >= nivel_de_alerta),
+            "_ids": [h.hotspot_id for h in focos_da_mancha],
+        })
+    resultado.sort(key=lambda m: (-m["area_km2"], -m["grau"]))
+    mancha_do_foco = {}
+    for numero, mancha in enumerate(resultado):
+        mancha["id"] = numero
+        for identificador in mancha.pop("_ids"):
+            mancha_do_foco[identificador] = numero
+    return resultado, mancha_do_foco

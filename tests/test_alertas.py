@@ -76,6 +76,27 @@ class Consulta(Base):
         r = self.consultar()
         self.assertEqual([f["frp"] for f in r["focos"] if f["novo"]], [80])
 
+    def test_manchas_juntam_os_vizinhos_e_vem_da_maior_para_a_menor(self):
+        import dataclasses
+        # Três pixels encostados (0,4 km) perto do foco de 150 MW: um incêndio só
+        vizinhos = [dataclasses.replace(foco(30 + i, lat=-2.0, minuto=10 + i), longitude=-50.0 + 0.0036 * (i + 1),
+                                        scan=0.4, track=0.4) for i in range(3)]
+        self.provedor.lista.extend(vizinhos)
+        self.provedor.lista[1] = dataclasses.replace(self.provedor.lista[1], scan=0.4, track=0.4)
+        r = self.consultar()
+        maior = r["manchas"][0]
+        self.assertEqual((maior["focos"], maior["nivel"], maior["id"]), (4, "Crítico", 0))
+        self.assertAlmostEqual(maior["area_km2"], 0.64, delta=0.05)
+        self.assertGreater(maior["extensao_km"], 1.6)
+        self.assertEqual(len(r["manchas"]), 4)  # e os outros três ativos, sozinhos
+        self.assertTrue(all(m["focos"] == 1 for m in r["manchas"][1:]))
+        o_de_150 = next(f for f in r["focos"] if f["frp"] == 150)
+        self.assertEqual(o_de_150["mancha"], 0)
+        self.assertEqual((o_de_150["scan"], o_de_150["track"]), (0.4, 0.4))
+        descartado = next(f for f in r["focos"] if f["filtrado"])
+        self.assertIsNone(descartado["mancha"])  # foco tirado pelo filtro não entra em mancha
+        self.assertEqual(descartado["scan"], 0.375)  # sem tamanho do robô: o pixel padrão
+
     def test_csv_fica_na_pasta_do_projeto(self):
         r = self.consultar()
         self.assertTrue((self.raiz / "dados" / "incendio" / "ocorrencias.csv").is_file())
