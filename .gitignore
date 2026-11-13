@@ -18,3 +18,21 @@ merlin_config.json
 !.env.example
 # CSV e log que o robô grava
 dados/
+# Terraform: o estado guarda os segredos em texto puro (variáveis sensíveis entram nele), e os .tfvars
+# têm as chaves. Nenhum vai para o Git. O .terraform.lock.hcl vai (fixa a versão do provider).
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+*.tfplan
+tfplan

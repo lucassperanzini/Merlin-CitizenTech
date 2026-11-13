@@ -1,0 +1,22 @@
+# Modelo do terraform.tfvars (copie para terraform.tfvars e preencha). O terraform.tfvars fica fora do Git.
+# Alternativa sem arquivo: variáveis de ambiente TF_VAR_firms_map_key, TF_VAR_grafana_admin_password, etc.
+# (é assim que a esteira passa os segredos, a partir dos GitHub Secrets).
+
+# Windows (Docker Desktop). No Linux/macOS, apague esta linha (o padrão é unix:///var/run/docker.sock).
+docker_host = "npipe:////./pipe/docker_engine"
+
+# Segredos
+firms_map_key          = ""
+maptiler_key           = ""
+grafana_admin_password = ""
+
+# Opcionais (estes são os padrões)
+# grafana_admin_user  = "admin"
+# painel_perfil       = "operador"
+# alertas_intervalo   = 60
+# endereco_publicacao = "127.0.0.1"
+# portas = {
+#   painel     = 8080
+#   prometheus = 9090
+#   grafana    = 3001
+# }
