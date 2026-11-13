@@ -1,0 +1,217 @@
+# Esteira DevSecOps do Merlin CitizenTech
+#
+#   1. Gitleaks  ─┐
+#   2. Semgrep   ─┼─> 4. Deploy (Terraform), só se os três passarem, só num push na main
+#   3. Trivy     ─┘
+#
+# As três verificações rodam em paralelo; qualquer falha barra o deploy. Num pull request para a main,
+# rodam as verificações (é assim que a demonstração do Gitleaks, scripts/demo_gitleaks_falha.sh, mostra o
+# bloqueio), mas não há deploy.
+#
+# Ferramentas em imagens Docker com versão fixa, e as GitHub Actions fixadas pelo hash do commit (uma tag
+# pode ser trocada por quem invadir o repositório da action; o hash, não).
+#
+# Segredos (Settings > Secrets and variables > Actions > Repository secrets):
+#   FIRMS_MAP_KEY            chave da API FIRMS da NASA (obrigatória)
+#   GRAFANA_ADMIN_PASSWORD   senha do admin do Grafana, 12+ caracteres (obrigatória)
+#   MAPTILER_KEY             chave do MapTiler (opcional)
+# Aprovação manual do deploy (opcional): Settings > Environments > producao > Required reviewers.
+
+name: DevSecOps
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Mínimo privilégio: o token da esteira só lê o código
+permissions:
+  contents: read
+
+concurrency:
+  group: devsecops-${{ github.ref }}
+  cancel-in-progress: false # um deploy pela metade é pior do que esperar
+
+env:
+  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.28.0
+  SEMGREP_IMAGE: semgrep/semgrep:1.140.0
+  TRIVY_IMAGE: aquasec/trivy:0.67.2
+  TERRAFORM_VERSION: 1.12.2
+  IMAGEM_PAINEL: merlin-painel-alertas:${{ github.sha }}
+
+jobs:
+  # ---------------------------------------------------------------------------------------------------------
+  gitleaks:
+    name: 1. Secret scanning (Gitleaks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Baixar o código com o histórico inteiro
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0 # um segredo apagado num commit novo continua nos antigos
+          persist-credentials: false
+
+      - name: Procurar segredos em todos os commits
+        run: |
+          # safe.directory: no executor, a pasta montada é de outro usuário e o git a recusaria
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
+            "$GITLEAKS_IMAGE" git /repo --redact --no-banner --verbose --exit-code 1
+
+  # ---------------------------------------------------------------------------------------------------------
+  semgrep:
+    name: 2. SAST (Semgrep)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Análise estática (Python, Dockerfile, Terraform e GitHub Actions)
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/src \
+            "$SEMGREP_IMAGE" \
+            semgrep scan \
+              --config p/python \
+              --config p/security-audit \
+              --config p/dockerfile \
+              --config p/terraform \
+              --config p/github-actions \
+              --exclude recursos/vendor \
+              --exclude terraform/.terraform \
+              --metrics=off \
+              --error
+
+  # ---------------------------------------------------------------------------------------------------------
+  imagem:
+    name: 3. Build e scan da imagem (Trivy)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Construir a imagem do painel
+        run: docker build --pull -t "$IMAGEM_PAINEL" .
+
+      - name: Exportar a imagem (o deploy usa exatamente esta, a que passou no scan)
+        run: docker save "$IMAGEM_PAINEL" -o painel.tar
+
+      - name: Procurar vulnerabilidades CRITICAL e HIGH (falha se houver)
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/scan" "$TRIVY_IMAGE" image \
+            --input /scan/painel.tar \
+            --scanners vuln,secret \
+            --severity CRITICAL,HIGH \
+            --exit-code 1 \
+            --no-progress \
+            --skip-version-check
+
+      - name: Guardar a imagem aprovada para o deploy
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: imagem-painel
+          path: painel.tar
+          retention-days: 1
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------------------------------------
+  deploy:
+    name: 4. Deploy (Terraform)
+    needs: [gitleaks, semgrep, imagem]
+    # Só a main recebe deploy, e nunca a partir de um pull request
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: producao
+    # O Terraform provisiona no Docker deste executor (provider Docker, infraestrutura local), e o teste de
+    # fumaça confere os serviços. Os segredos vêm dos GitHub Secrets, direto para as variáveis do Terraform.
+    env:
+      TF_IN_AUTOMATION: "1"
+      TF_INPUT: "0"
+      TF_VAR_imagem_painel: merlin-painel-alertas:${{ github.sha }}
+      TF_VAR_firms_map_key: ${{ secrets.FIRMS_MAP_KEY }}
+      TF_VAR_maptiler_key: ${{ secrets.MAPTILER_KEY }}
+      TF_VAR_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Conferir se os segredos estão cadastrados
+        run: |
+          faltando=""
+          [ -n "$TF_VAR_firms_map_key" ] || faltando="$faltando FIRMS_MAP_KEY"
+          [ -n "$TF_VAR_grafana_admin_password" ] || faltando="$faltando GRAFANA_ADMIN_PASSWORD"
+          if [ -n "$faltando" ]; then
+            echo "::error::Cadastre em Settings > Secrets and variables > Actions:$faltando"
+            exit 1
+          fi
+
+      - name: Trazer a imagem aprovada pelo Trivy
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: imagem-painel
+          path: ${{ runner.temp }}
+
+      - name: Carregar a imagem no Docker
+        run: docker load -i "$RUNNER_TEMP/painel.tar"
+
+      - name: Instalar o Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: terraform init (provider conferido pelo .terraform.lock.hcl)
+        run: terraform init -lockfile=readonly
+
+      - name: terraform fmt e validate
+        run: |
+          terraform fmt -check -recursive
+          terraform validate
+
+      - name: terraform plan (barra 0.0.0.0/0 e portas de administração)
+        run: terraform plan -out=tfplan
+
+      - name: terraform apply
+        run: terraform apply -auto-approve tfplan
+
+      - name: Teste de fumaça (painel, Prometheus e Grafana respondendo)
+        run: |
+          esperar() {
+            for _ in $(seq 1 30); do
+              if curl -fsS -o /dev/null "$2"; then echo "OK  $1"; return 0; fi
+              sleep 3
+            done
+            echo "::error::$1 não respondeu em $2"; return 1
+          }
+          esperar painel     "$(terraform output -raw painel_url)/healthz"
+          esperar prometheus "$(terraform output -raw prometheus_url)/-/ready"
+          esperar grafana    "$(terraform output -raw grafana_url)/api/health"
+
+      - name: Resumo do deploy
+        if: always()
+        run: |
+          {
+            echo "## Deploy (Terraform)"
+            echo
+            echo "Imagem: \`$TF_VAR_imagem_painel\`"
+            echo
+            echo '```'
+            terraform output -no-color portas_publicadas || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

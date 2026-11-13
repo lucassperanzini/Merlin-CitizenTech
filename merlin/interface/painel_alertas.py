@@ -31,7 +31,9 @@ def _conferir_chave_maptiler(chave: str) -> bool | None:
     import urllib.request
     pedido = urllib.request.Request(_BLOCO_DE_TESTE.format(chave), headers={"User-Agent": "Merlin"})
     try:
-        with urllib.request.urlopen(pedido, timeout=8):
+        # O endereço é fixo (https, api.maptiler.com) e a chave só chega aqui depois de passar por _CHAVE_VALIDA:
+        # não dá para trocar o servidor nem o esquema (file://, por exemplo)
+        with urllib.request.urlopen(pedido, timeout=8):  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
             return True
     except urllib.error.HTTPError as erro:
         return False if erro.code in (401, 403) else None
