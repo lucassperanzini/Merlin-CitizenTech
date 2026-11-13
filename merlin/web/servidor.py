@@ -3,6 +3,9 @@
 A página não muda: ela continua chamando window.pywebview.api.<função>(...). Aqui, uma ponte no começo da página
 troca o pywebview por chamadas HTTP (POST /api/<função>) ao mesmo ServicoAlertas que a Central usa.
 
+Rotas: / (a página), /api/<função> (a ponte), /healthz (saúde, para o Docker) e /metrics (latência, tráfego e
+erros no formato do Prometheus; ver merlin/web/metricas.py).
+
 Só a biblioteca padrão do Python, para a imagem do contêiner ficar pequena. Sem login: o painel fica no perfil
 operador (só lê) a não ser que PAINEL_PERFIL=administrador, e o docker-compose.yml só o publica em 127.0.0.1.
 
@@ -13,17 +16,21 @@ Variáveis de ambiente (nenhuma é segredo, a não ser as chaves do robô):
   ALERTAS_BUSCAR_AO_INICIAR       1 (padrão): faz uma busca logo ao subir; 0: espera o intervalo
   FIRMS_MAP_KEY, MAPTILER_KEY...  as do robô FIRMS Monitor (as mesmas do .env)
 """
+import functools
 import json
 import logging
 import os
 import signal
 import threading
+import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from merlin.alertas import focos
 from merlin.config import ARQ_ALERTAS, ARQ_ULTIMA_CONSULTA
 from merlin.interface.mapa import com_mapa
 from merlin.interface.painel_alertas import INTERVALOS, ApiAlertas, ServicoAlertas
+from merlin.web.metricas import Metricas, consultar_medido, normalizar_rota
 
 logger = logging.getLogger(__name__)
 
@@ -100,12 +107,34 @@ def montar_pagina() -> bytes:
     return pagina.replace("<head>", "<head>" + PONTE, 1).encode("utf-8")
 
 
-def criar_servidor(host: str, porta: int, api: ApiAlertas, pagina: bytes | None = None) -> ThreadingHTTPServer:
+def _medido(atender):
+    """Mede o pedido para as métricas de ouro: tempo de resposta, rota e status (o 500 de uma falha inesperada
+    também conta)."""
+    @functools.wraps(atender)
+    def medido(self):
+        inicio = time.perf_counter()
+        self._status = HTTPStatus.INTERNAL_SERVER_ERROR
+        try:
+            return atender(self)
+        finally:
+            self.metricas.pedido(self.command, normalizar_rota(self.path, METODOS), self._status,
+                                 time.perf_counter() - inicio)
+    return medido
+
+
+def criar_servidor(host: str, porta: int, api: ApiAlertas, pagina: bytes | None = None,
+                   metricas: Metricas | None = None) -> ThreadingHTTPServer:
     pagina = montar_pagina() if pagina is None else pagina
+    metricas_do_servidor = Metricas() if metricas is None else metricas
 
     class Pedido(BaseHTTPRequestHandler):
         server_version = "MerlinPainel"
         sys_version = ""  # não conta a versão do Python a quem pergunta
+        metricas = metricas_do_servidor
+
+        def send_response(self, code, message=None):
+            self._status = int(code)
+            super().send_response(code, message)
 
         def _responder(self, status: HTTPStatus, corpo: bytes, tipo: str) -> None:
             self.send_response(status)
@@ -120,17 +149,21 @@ def criar_servidor(host: str, porta: int, api: ApiAlertas, pagina: bytes | None 
         def _json(self, status: HTTPStatus, dados) -> None:
             self._responder(status, json.dumps(dados, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
 
+        @_medido
         def do_GET(self):
             caminho = self.path.split("?", 1)[0]
             if caminho in ("/", "/index.html"):
                 self._responder(HTTPStatus.OK, pagina, "text/html; charset=utf-8")
             elif caminho == "/healthz":
                 self._json(HTTPStatus.OK, {"status": "ok"})
+            elif caminho == "/metrics":  # o Prometheus coleta pela rede interna do Docker
+                self._responder(HTTPStatus.OK, self.metricas.texto().encode("utf-8"), "text/plain; version=0.0.4; charset=utf-8")
             else:
                 self._json(HTTPStatus.NOT_FOUND, {"erro": "Não encontrado."})
 
         do_HEAD = do_GET
 
+        @_medido
         def do_POST(self):
             caminho = self.path.split("?", 1)[0]
             nome = caminho.removeprefix("/api/") if caminho.startswith("/api/") else ""
@@ -171,12 +204,14 @@ def main() -> None:
     host = os.environ.get("PAINEL_HOST", "127.0.0.1")
     porta = int(os.environ.get("PAINEL_PORTA", "8080"))
     preferencias = PreferenciasDoPainel()
+    metricas = Metricas()
     # abrir_pagina: no servidor não há navegador (a ponte abre o Google Maps no navegador de quem vê o painel)
-    servico = ServicoAlertas(arquivo_ultima=ARQ_ULTIMA_CONSULTA, preferencias=preferencias, abrir_pagina=lambda url: None)
+    servico = ServicoAlertas(consultar=consultar_medido(focos.consultar, metricas), arquivo_ultima=ARQ_ULTIMA_CONSULTA,
+                             preferencias=preferencias, abrir_pagina=lambda url: None)
     servico.iniciar_agendamento()
     if os.environ.get("ALERTAS_BUSCAR_AO_INICIAR", "1").strip() == "1":
         threading.Thread(target=servico.buscar, kwargs={"automatica": True}, name="alertas-primeira-busca", daemon=True).start()
-    servidor = criar_servidor(host, porta, ApiAlertas(servico))
+    servidor = criar_servidor(host, porta, ApiAlertas(servico), metricas=metricas)
 
     def encerrar(*_):  # docker stop manda SIGTERM: fecha sem esperar o tempo limite
         logger.info("[PAINEL] Encerrando.")

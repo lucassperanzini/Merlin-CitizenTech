@@ -1,0 +1,17 @@
+# Painéis do Grafana carregados ao subir: os .json desta pasta, na pasta "Merlin CitizenTech".
+# allowUiUpdates: false -> o painel é código (muda aqui, no Git), e não só na tela.
+apiVersion: 1
+
+providers:
+  - name: merlin-citizentech
+    orgId: 1
+    # Pela pasta com este nome (a mesma das regras de alerta). Sem folderUid: com ele, o Grafana criaria uma
+    # segunda pasta com o mesmo nome quando as regras de alerta são carregadas primeiro.
+    folder: Merlin CitizenTech
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 60
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

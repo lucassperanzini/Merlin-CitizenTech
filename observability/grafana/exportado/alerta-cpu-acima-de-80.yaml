@@ -1,0 +1,64 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: saturacao
+      folder: ""
+      interval: 30s
+      rules:
+        - uid: merlin-cpu-acima-de-80
+          title: CPU acima de 80%
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 300
+                to: 0
+              datasourceUid: prometheus
+              model:
+                datasource:
+                    type: prometheus
+                    uid: prometheus
+                expr: 100 * sum by (servico) (rate(container_cpu_usage_seconds_total{servico!=""}[1m]))
+                instant: true
+                intervalMs: 1000
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                settings:
+                    mode: dropNN
+                type: reduce
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 80
+                        type: gt
+                expression: B
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: merlin-metricas-de-ouro
+          panelId: 11
+          noDataState: OK
+          execErrState: Error
+          for: 1m
+          annotations:
+            __dashboardUid__: merlin-metricas-de-ouro
+            __panelId__: "11"
+            description: O contêiner {{ $labels.servico }} está usando {{ printf "%.1f" $values.B.Value }}% de um núcleo há mais de 1 minuto. Veja o dashboard Métricas de Ouro.
+            summary: CPU do serviço {{ $labels.servico }} acima de 80%
+          labels:
+            severidade: alta
+            time: sre
+          isPaused: false

@@ -1,0 +1,65 @@
+# Regra de alerta ativo do Grafana: CPU de um contêiner acima de 80% por 1 minuto.
+# Formato de provisionamento, o mesmo da exportação do Grafana (Alerting > Alert rules > Export).
+# A cópia exportada pelo próprio Grafana fica em observability/grafana/exportado/.
+#
+# CPU em % de um núcleo: no painel, o limite do contêiner é 1 núcleo (docker-compose.yml), então 80% de um
+# núcleo é 80% do que ele pode usar. Uma instância de alerta por serviço (painel, prometheus, grafana, cadvisor).
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: saturacao
+    folder: Merlin CitizenTech
+    interval: 30s
+    rules:
+      - uid: merlin-cpu-acima-de-80
+        title: CPU acima de 80%
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              datasource:
+                type: prometheus
+                uid: prometheus
+              expr: 100 * sum by (servico) (rate(container_cpu_usage_seconds_total{servico!=""}[1m]))
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              settings:
+                mode: dropNN
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params:
+                      - 80
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        isPaused: false
+        labels:
+          severidade: alta
+          time: sre
+        annotations:
+          summary: "CPU do serviço {{ $labels.servico }} acima de 80%"
+          description: "O contêiner {{ $labels.servico }} está usando {{ printf \"%.1f\" $values.B.Value }}% de um núcleo há mais de 1 minuto. Veja o dashboard Métricas de Ouro."
+          __dashboardUid__: merlin-metricas-de-ouro
+          __panelId__: "11"

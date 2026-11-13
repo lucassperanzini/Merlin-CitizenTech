@@ -10,6 +10,13 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
+  # Latência, tráfego e erros do painel (as métricas de ouro do lado da aplicação), em /metrics
+  - job_name: painel
+    static_configs:
+      - targets: ["painel:8080"]
+        labels:
+          servico: painel
+
   # CPU, memória e rede de cada contêiner (saturação)
   - job_name: cadvisor
     scrape_interval: 10s
