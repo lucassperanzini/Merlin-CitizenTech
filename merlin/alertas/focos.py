@@ -60,9 +60,14 @@ def _configuracao(arquivo_env: Path, raiz: Path):
     from firms_monitor import Settings
     from firms_monitor.config import ConfigurationError
 
-    if not arquivo_env.is_file():
-        raise ConsultaFalhou(f"Não encontrei o arquivo de configuração do robô ({arquivo_env.name}).")
-    lidas = {chave: valor for chave, valor in dotenv_values(arquivo_env).items() if valor is not None}
+    # Sem o arquivo (no contêiner, por exemplo), a configuração vem só das variáveis de ambiente
+    if arquivo_env.is_file():
+        lidas = {chave: valor for chave, valor in dotenv_values(arquivo_env).items() if valor is not None}
+    elif os.environ.get("FIRMS_MAP_KEY", "").strip():
+        lidas = {}
+    else:
+        raise ConsultaFalhou(f"Não encontrei o arquivo de configuração do robô ({arquivo_env.name}) "
+                             "nem a variável de ambiente FIRMS_MAP_KEY.")
     try:
         configuracao = Settings.from_env(env={**os.environ, **lidas})
     except ConfigurationError as erro:

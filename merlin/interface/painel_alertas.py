@@ -65,7 +65,9 @@ class ServicoAlertas:
         OpenStreetMap, que não pede chave. A página precisa dela porque é ela que pede as imagens do mapa."""
         try:
             from dotenv import dotenv_values
-            chave = (dotenv_values(self._arquivo_env).get("MAPTILER_KEY") or "").strip()
+            # Sem o arquivo (no contêiner, por exemplo), a chave vem das variáveis de ambiente
+            valores = dotenv_values(self._arquivo_env) if os.path.isfile(self._arquivo_env) else os.environ
+            chave = (valores.get("MAPTILER_KEY") or "").strip()
         except (ImportError, OSError):
             chave = ""
         if not _CHAVE_VALIDA.match(chave):

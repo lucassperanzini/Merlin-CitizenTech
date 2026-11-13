@@ -8,8 +8,9 @@ como se fosse pywebview.api, e assim por diante."""
 import html
 import threading
 
-from merlin.config import ARQ_ALERTAS, ARQ_ASSISTENTES, ARQ_CONFIGURACOES, ARQ_CONTORNO_BRASIL, ARQ_HABILIDADES, PASTA_LEAFLET
+from merlin.config import ARQ_ALERTAS, ARQ_ASSISTENTES, ARQ_CONFIGURACOES, ARQ_HABILIDADES
 from merlin.interface.janela_auxiliar import JanelaAuxiliar
+from merlin.interface.mapa import com_mapa
 
 LARGURA, ALTURA = 1080, 740
 ABA_INICIAL = "assistente"
@@ -37,22 +38,9 @@ PONTE = """<script>
 """
 
 
-MARCADOR_MAPA = "<!--MAPA-->"
-
-
-def _mapa() -> str:
-    """O Leaflet e o contorno do Brasil, dentro da própria página: o mapa abre mesmo sem internet."""
-    css = (PASTA_LEAFLET / "leaflet.css").read_text(encoding="utf-8")
-    js = (PASTA_LEAFLET / "leaflet.js").read_text(encoding="utf-8")
-    contorno = ARQ_CONTORNO_BRASIL.read_text(encoding="utf-8").replace("</", "<\\/")  # um "</script>" no meio fecharia o script
-    return f"<style>{css}</style><script>{js}</script><script>window.CONTORNO_BRASIL = {contorno};</script>"
-
-
 def quadro(aba: str, arquivo, api: str | None = None) -> str:
     """Um iframe com a página embutida (srcdoc) e a ponte para pywebview.api.<api> da janela onde ele está."""
-    conteudo = arquivo.read_text(encoding="utf-8").replace("<head>", "<head>" + PONTE % {"aba": api or aba}, 1)
-    if MARCADOR_MAPA in conteudo:
-        conteudo = conteudo.replace(MARCADOR_MAPA, _mapa(), 1)
+    conteudo = com_mapa(arquivo.read_text(encoding="utf-8").replace("<head>", "<head>" + PONTE % {"aba": api or aba}, 1))
     return f'<iframe class="quadro" id="quadro-{aba}" title="{aba}" srcdoc="{html.escape(conteudo, quote=True)}"></iframe>'
 
 
