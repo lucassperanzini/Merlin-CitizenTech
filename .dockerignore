@@ -1,0 +1,28 @@
+# Só entra no contexto do build o que o Dockerfile copia. Tudo o mais fica de fora,
+# a começar pelos segredos e pelos dados pessoais.
+*
+
+# Dependências do painel
+!requirements-painel.txt
+!vendor/firms_monitor-1.2.0-py3-none-any.whl
+
+# Código do painel web de alertas
+!merlin/__init__.py
+!merlin/config.py
+!merlin/alertas/__init__.py
+!merlin/alertas/focos.py
+!merlin/alertas/manchas.py
+!merlin/interface/__init__.py
+!merlin/interface/mapa.py
+!merlin/interface/painel_alertas.py
+!merlin/interface/perfil.py
+!merlin/web/
+
+# A página e o mapa embutido
+!recursos/alertas.html
+!recursos/mapas/brasil_uf.geojson
+!recursos/vendor/leaflet/
+
+# Mesmo dentro das pastas liberadas: nunca o cache do Python
+**/__pycache__
+**/*.pyc

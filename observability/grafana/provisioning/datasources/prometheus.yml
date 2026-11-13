@@ -1,0 +1,13 @@
+# Fonte de dados do Grafana, criada sozinha ao subir: o Prometheus da rede interna do Docker Compose.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 15s

@@ -1,0 +1,12 @@
+# Dependências do painel web de alertas (merlin/web), o que roda no contêiner (Dockerfile).
+# O resto do Merlin (voz, janela, Windows) não entra: está em requirements.txt.
+# O servidor usa só a biblioteca padrão do Python; estas são as do robô FIRMS Monitor, com versões fixas.
+python-dotenv==1.2.4
+requests==2.34.2
+charset-normalizer==3.5.2
+idna==3.20
+urllib3==2.8.0
+certifi==2026.10.23
+
+# Robô FIRMS Monitor (vem pronto na pasta vendor/; caminho relativo à pasta do projeto)
+./vendor/firms_monitor-1.2.0-py3-none-any.whl

@@ -1,0 +1,166 @@
+# Painel web de alertas do Merlin + observabilidade (cAdvisor, Prometheus e Grafana), com um único comando:
+#
+#   docker compose up -d --build
+#
+# Segredos: nenhum fica neste arquivo. O Docker Compose lê o .env da pasta do projeto (fora do Git) e
+# preenche as variáveis ${...}; as obrigatórias param a subida com uma mensagem se faltarem. Modelo: .env.example.
+#
+# Portas: todas publicadas só em 127.0.0.1 (nada fica aberto para a rede). O cAdvisor nem é publicado:
+# só o Prometheus, pela rede interna, fala com ele.
+
+name: merlin-citizentech
+
+x-endurecimento: &endurecimento
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  painel:
+    <<: *endurecimento
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: merlin-painel-alertas:local
+    environment:
+      # Robô FIRMS Monitor: as mesmas variáveis do .env do Merlin
+      FIRMS_MAP_KEY: ${FIRMS_MAP_KEY:?Defina FIRMS_MAP_KEY no .env (veja .env.example)}
+      MAPTILER_KEY: ${MAPTILER_KEY:-}
+      FIRMS_SOURCE: ${FIRMS_SOURCE:-VIIRS_NOAA20_NRT}
+      FIRMS_QUERY_MODE: ${FIRMS_QUERY_MODE:-area}
+      FIRMS_COUNTRY: ${FIRMS_COUNTRY:-BRA}
+      FIRMS_BBOX: ${FIRMS_BBOX:-}
+      FIRMS_DAY_RANGE: ${FIRMS_DAY_RANGE:-1}
+      FIRMS_TIMEOUT_SECONDS: ${FIRMS_TIMEOUT_SECONDS:-60}
+      FIRMS_MAX_RETRIES: ${FIRMS_MAX_RETRIES:-3}
+      RISK_MEDIO_FRP: ${RISK_MEDIO_FRP:-10}
+      RISK_ALTO_FRP: ${RISK_ALTO_FRP:-50}
+      RISK_CRITICO_FRP: ${RISK_CRITICO_FRP:-100}
+      ALERT_MIN_LEVEL: ${ALERT_MIN_LEVEL:-CRITICO}
+      MIN_NUMERIC_CONFIDENCE: ${MIN_NUMERIC_CONFIDENCE:-30}
+      MIN_FRP: ${MIN_FRP:-0}
+      TERRITORY_FILTER: ${TERRITORY_FILTER:-BR}
+      CSV_DELIMITER: ${CSV_DELIMITER:-,}
+      # No contêiner, o CSV do robô fica no volume de dados (o caminho do .env do desktop não vale aqui)
+      OUTPUT_CSV: dados/incendio/ocorrencias.csv
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # Painel: operador só vê; administrador também muda a busca automática pela tela
+      PAINEL_PERFIL: ${PAINEL_PERFIL:-operador}
+      ALERTAS_INTERVALO: ${ALERTAS_INTERVALO:-60}
+      ALERTAS_BUSCAR_AO_INICIAR: ${ALERTAS_BUSCAR_AO_INICIAR:-1}
+    ports:
+      - "127.0.0.1:${PAINEL_PORTA_HOST:-8080}:8080"
+    volumes:
+      - painel-dados:/app/dados
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    networks:
+      - monitoramento
+
+  cadvisor:
+    <<: *endurecimento
+    image: ghcr.io/google/cadvisor:v0.53.0
+    # Os contêineres são lidos pelo containerd (namespace "moby", o do Docker): funciona também no Docker Desktop
+    # com o "containerd image store", em que o leitor de Docker do cAdvisor não acha as camadas das imagens
+    command:
+      - --docker=unix:///run/docker-desligado.sock
+      - --containerd=/run/containerd/containerd.sock
+      - --containerd-namespace=moby
+      - --docker_only=true
+      - --housekeeping_interval=10s
+      - --store_container_labels=false
+      - --disable_metrics=advtcp,cpu_topology,cpuset,hugetlb,memory_numa,percpu,process,referenced_memory,resctrl,sched,tcp,udp
+    # Só leitura do que o cAdvisor precisa medir: os contêineres (containerd) e o uso de CPU e memória (cgroups)
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    networks:
+      - monitoramento
+
+  prometheus:
+    <<: *endurecimento
+    image: prom/prometheus:v3.5.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-dados:/prometheus
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORTA_HOST:-9090}:9090"
+    read_only: true
+    cap_drop:
+      - ALL
+    depends_on:
+      - cadvisor
+      - painel
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    networks:
+      - monitoramento
+
+  grafana:
+    <<: *endurecimento
+    image: grafana/grafana:12.1.1
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Defina GRAFANA_ADMIN_PASSWORD no .env (veja .env.example)}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+      GF_SECURITY_COOKIE_SAMESITE: strict
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_PLUGINS_PLUGIN_ADMIN_ENABLED: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-dados:/var/lib/grafana
+    ports:
+      # 3001 no computador: a 3000 costuma estar com o Open WebUI
+      - "127.0.0.1:${GRAFANA_PORTA_HOST:-3001}:3000"
+    cap_drop:
+      - ALL
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    networks:
+      - monitoramento
+
+volumes:
+  painel-dados:
+  prometheus-dados:
+  grafana-dados:
+
+networks:
+  monitoramento:
+    driver: bridge

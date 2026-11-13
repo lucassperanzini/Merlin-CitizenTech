@@ -1,0 +1,28 @@
+# Prometheus do Merlin CitizenTech: coleta as métricas dos contêineres pelo cAdvisor.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    projeto: merlin-citizentech
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # CPU, memória e rede de cada contêiner (saturação)
+  - job_name: cadvisor
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["cadvisor:8080"]
+    # O cAdvisor identifica o contêiner pelo ID e pela imagem. O rótulo "servico" dá um nome legível a cada um
+    # (o mesmo do docker-compose.yml), para os painéis e alertas do Grafana filtrarem por ele.
+    metric_relabel_configs:
+      - source_labels: [image]
+        regex: ".*/(prometheus|grafana|cadvisor):.*"
+        target_label: servico
+        replacement: "$1"
+      - source_labels: [image]
+        regex: ".*/merlin-painel-alertas:.*"
+        target_label: servico
+        replacement: painel
