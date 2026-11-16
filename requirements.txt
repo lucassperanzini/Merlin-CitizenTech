@@ -23,9 +23,8 @@ ollama==0.6.3
 # Janelas (pywebview usa o WebView2 do Windows)
 pywebview==6.2.1
 
-# Controle do Windows: janelas, botões, programas
+# Controle do Windows: janelas e programas
 pywin32==312
-uiautomation==2.0.29
 AppOpener==1.7
 psutil==7.2.2
 

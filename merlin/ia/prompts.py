@@ -3,14 +3,6 @@
 O prompt de intenções é montado a partir das habilidades (merlin/habilidades/), e os textos de cada
 personalidade ficam no arquivo dela (merlin/personalidades/)."""
 
-PROMPT_ESCOLHA_BOTAO = """A pessoa pediu a um assistente de voz para clicar em um botão, dizendo o nome do jeito dela. A fala pode ter erros de transcrição.
-
-Botões que existem na janela:
-{botoes}
-
-Escolha o botão que ela mais provavelmente quis, pelo sentido e por sinônimos (por exemplo: gravar é salvar, X é fechar, voltar é anterior).
-Se nenhum botão servir para o que ela pediu, responda nenhum. Não escolha um botão só por ter letras parecidas."""
-
 PROMPT_DIVISAO = """Separe a frase dita a um assistente de voz nas tarefas independentes que ela pede, na ordem em que devem ser feitas.
 
 Regras:

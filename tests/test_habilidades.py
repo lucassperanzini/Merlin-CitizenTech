@@ -74,13 +74,13 @@ print(intencao.tipo.value, intencao.campos["artista"], acoes[intencao.tipo](inte
 class TestRegistro(unittest.TestCase):
     def test_encontra_todas_as_habilidades_com_conversar_por_ultimo(self):
         nomes = [h.nome for h in HABILIDADES]
-        self.assertEqual(set(nomes), {"dispensar", "abrir_configuracoes", "abrir_pasta", "texto_selecionado", "trocar_assistente", "fechar_programa",
-                                      "abrir_programa", "pesquisar_web", "clicar_botao", "conversar"})
+        self.assertEqual(set(nomes), {"dispensar", "abrir_configuracoes", "abrir_pasta", "fechar_programa",
+                                      "abrir_programa", "conversar"})
         self.assertEqual(nomes[-1], NOME_CONVERSAR)
 
     def test_tipo_intencao_e_gerado_das_habilidades(self):
         self.assertEqual([t.value for t in TipoIntencao], [h.nome for h in HABILIDADES])
-        self.assertEqual(TipoIntencao.CLICAR_BOTAO, "clicar_botao")
+        self.assertEqual(TipoIntencao.ABRIR_PROGRAMA, "abrir_programa")
 
     def test_validacao_aponta_erros_de_montagem(self):
         conversar = [h for h in HABILIDADES if h.nome == NOME_CONVERSAR]
@@ -112,16 +112,14 @@ class TestPrompt(unittest.TestCase):
             self.assertIn(f"- {h.nome}: {h.descricao}", prompt)
             for exemplo in h.exemplos:
                 self.assertIn(f'"{exemplo.frase}" -> ', prompt)
-        self.assertIn("busca: somente em pesquisar_web", prompt)
-        self.assertIn("local: somente em clicar_botao", prompt)
 
     def test_contraexemplo_aparece_com_a_intencao_certa(self):
         prompt = prompt_intencao.montar_prompt(HABILIDADES)
-        self.assertIn('"o que acontece se eu clicar em formatar" -> {"alvo": "formatar", "intencao": "conversar"', prompt)
+        self.assertIn('"como saio do excel" -> {"alvo": "excel", "intencao": "conversar"', prompt)
 
     def test_esquema_tem_os_campos_de_todas(self):
         esquema = prompt_intencao.montar_esquema(HABILIDADES)
-        self.assertEqual(esquema["required"], ["alvo", "intencao", "busca", "local"])
+        self.assertEqual(esquema["required"], ["alvo", "intencao"])  # nenhuma habilidade de hoje declara campos extras
         self.assertEqual(esquema["properties"]["intencao"]["enum"], [h.nome for h in HABILIDADES])
 
 
@@ -164,12 +162,6 @@ class TestRegras(unittest.TestCase):
         self.assertIn("verbo de abrir", intencao.motivo_regra)
         self.assertIn("não o próprio assistente", intencao.motivo_regra)
 
-    def test_clique_sem_dizer_qual_botao_fica_sem_alvo(self):
-        intencao, _ = self._classificar([{"alvo": "merlin", "intencao": "clicar_botao", "busca": "", "local": ""}],
-                                        "clica num botão")
-        self.assertEqual((intencao.tipo, intencao.alvo), (TipoIntencao.CLICAR_BOTAO, ""))
-        self.assertIn("sem dizer qual botão", intencao.motivo_regra)
-
     def test_campo_de_outra_habilidade_nao_sobra(self):
         resposta = {"alvo": "chrome", "intencao": "abrir_programa", "busca": "", "local": "word"}
         intencao, _ = self._classificar([resposta], "abre o chrome")
@@ -183,17 +175,16 @@ class TestRegras(unittest.TestCase):
 
 class TestDuasEtapas(unittest.TestCase):
     def test_escolhe_o_grupo_e_depois_so_entre_as_habilidades_dele(self):
-        cliente = ClienteRoteirizado({"grupo": "tela"},
-                                     {"alvo": "salvar", "intencao": "clicar_botao", "local": "word"})
-        intencao = ClassificadorIntencao(cliente, duas_etapas=True).classificar("clica em salvar no word")
-        self.assertEqual((intencao.tipo, intencao.alvo, intencao.local), (TipoIntencao.CLICAR_BOTAO, "salvar", "word"))
-        self.assertEqual(intencao.resposta_modelo["grupo"], "tela")
+        cliente = ClienteRoteirizado({"grupo": "programas"}, {"alvo": "word", "intencao": "fechar_programa"})
+        intencao = ClassificadorIntencao(cliente, duas_etapas=True).classificar("fecha o word")
+        self.assertEqual((intencao.tipo, intencao.alvo), (TipoIntencao.FECHAR_PROGRAMA, "word"))
+        self.assertEqual(intencao.resposta_modelo["grupo"], "programas")
         prompt_grupos, esquema_grupos = cliente.chamadas[0]
-        self.assertIn("- programas:", prompt_grupos)
+        self.assertIn("- assistente:", prompt_grupos)
         prompt, esquema = cliente.chamadas[1]
-        self.assertEqual(esquema["properties"]["intencao"]["enum"], ["clicar_botao", "conversar"])
-        self.assertNotIn("abrir_programa", prompt)  # a segunda pergunta é curta: só o que importa
-        self.assertNotIn("busca", esquema["properties"])
+        self.assertEqual(esquema["properties"]["intencao"]["enum"],
+                         ["fechar_programa", "abrir_programa", "abrir_pasta", "conversar"])
+        self.assertNotIn("dispensar", prompt)  # a segunda pergunta é curta: só o que importa
 
     def test_grupo_conversa_responde_com_uma_pergunta_so(self):
         cliente = ClienteRoteirizado({"grupo": "conversa"})
@@ -202,8 +193,8 @@ class TestDuasEtapas(unittest.TestCase):
         self.assertEqual(len(cliente.chamadas), 1)
 
     def test_regras_valem_nas_duas_etapas(self):
-        cliente = ClienteRoteirizado({"grupo": "tela"}, {"alvo": "formatar", "intencao": "clicar_botao", "local": ""})
-        intencao = ClassificadorIntencao(cliente, duas_etapas=True).classificar("o que faz o formatar")
+        cliente = ClienteRoteirizado({"grupo": "programas"}, {"alvo": "merlin", "intencao": "abrir_programa"})
+        intencao = ClassificadorIntencao(cliente, duas_etapas=True).classificar("abre o merlin")
         self.assertIs(intencao.tipo, TipoIntencao.CONVERSAR)
 
     def test_grupo_invalido_vira_conversa(self):
@@ -211,13 +202,13 @@ class TestDuasEtapas(unittest.TestCase):
         self.assertIs(ClassificadorIntencao(cliente, duas_etapas=True).classificar("x").tipo, TipoIntencao.CONVERSAR)
 
     def test_decide_sozinho_pelo_numero_de_habilidades(self):
-        self.assertFalse(ClassificadorIntencao(None).duas_etapas)  # 10 habilidades hoje
+        self.assertFalse(ClassificadorIntencao(None).duas_etapas)  # 6 habilidades hoje
         muitas = (*[habilidade_nova(nome=f"extra_{i}") for i in range(10)], *HABILIDADES)
         self.assertTrue(ClassificadorIntencao(None, muitas).duas_etapas)
 
     def test_todo_grupo_tem_descricao_no_prompt_dos_grupos(self):
         prompt = prompt_intencao.montar_prompt_grupos(HABILIDADES)
-        for g in (grupos.ASSISTENTE, grupos.PROGRAMAS, grupos.TELA, grupos.INTERNET, grupos.CONVERSA):
+        for g in (grupos.ASSISTENTE, grupos.PROGRAMAS, grupos.CONVERSA):
             self.assertIn(f"- {g.nome}: {g.descricao}", prompt)
 
 

@@ -1,8 +1,8 @@
 # Merlin
 
-Assistente pessoal por voz para Windows, **100% local**: ouve, entende e responde em voz alta e executa tarefas no computador (abrir e fechar programas, pesquisar na internet, clicar em botões). Nada do que você fala sai do seu PC.
+Assistente pessoal por voz para Windows, **100% local**: ouve, entende e responde em voz alta e executa tarefas no computador (abrir e fechar programas, abrir pastas). Nada do que você fala sai do seu PC.
 
-Vem com um assistente pronto, o **Merlin** (um mordomo digital, com uma esfera 3D), e você pode criar outros pela própria interface.
+Vem com um assistente pronto, o **Merlin**.
 
 O projeto também tem um **painel de alertas de focos de calor** (dados da NASA FIRMS para a Defesa Civil), que roda em contêiner com esteira DevSecOps, infraestrutura como código e observabilidade.
 
@@ -19,7 +19,7 @@ O projeto também tem um **painel de alertas de focos de calor** (dados da NASA 
 
 - **Ativação por voz:** diga o nome do assistente ("Merlin, abre o chrome").
 - **Modo discreto:** um pedido rápido junto com o nome ("Merlin, abre o spotify") é resolvido sem abrir o cartão: a resposta aparece num balão ao lado da bolinha e ele volta a esperar. Conversas, perguntas de confirmação, erros e respostas longas abrem o cartão.
-- **Tarefas no computador:** abrir e fechar programas, pesquisar na internet, clicar em botões de qualquer janela ("dá play", "salva", "clica em cancelar no word"). Antes de clicar em algo perigoso (excluir, pagar, enviar), ele pergunta.
+- **Tarefas no computador:** abrir e fechar programas e abrir pastas ("abre o spotify", "fecha o word", "abre a pasta downloads"). Se o programa pedido não estiver instalado, ele avisa e pesquisa o nome no navegador.
 - **Várias tarefas numa frase:** "abre o chrome e fecha o telegram" vira uma resposta só ("Abri o chrome e fechei o telegram").
 - **Conversa:** responde perguntas no jeito da personalidade e lembra o que foi dito na conversa atual.
 - **Interrupção:** fale por cima e ele para de falar.
@@ -130,8 +130,8 @@ Ao abrir, ele calibra o microfone (2 s), carrega os modelos e fica em espera: um
 |---|---|
 | "**Merlin**" (ou o nome do assistente escolhido) | ativa e cumprimenta |
 | "Merlin, abre o spotify" | ativa e abre o programa |
-| "fecha o chrome e pesquisa receita de bolo" | faz as duas tarefas |
-| "dá play" / "clica em salvar no word" | clica no botão |
+| "fecha o chrome e abre o spotify" | faz as duas tarefas |
+| "abre a pasta downloads" | abre a pasta |
 | "qual a capital da França?" | responde |
 | "abre as suas configurações" | abre a Central |
 | "valeu, pode ir" / "pode desligar" | volta para a espera (a bolinha) |
@@ -152,7 +152,7 @@ microfone
   → tem o nome do assistente?         se não tiver e ele estiver em espera, a frase é descartada
   → IA (Ollama): divide as tarefas    "abre o chrome e fecha o telegram" → duas tarefas
   → IA (Ollama): entende cada uma     qual habilidade e qual alvo; regras do código corrigem a IA
-  → habilidades executam              abrir programa, clicar, pesquisar, conversar...
+  → habilidades executam              abrir e fechar programa, abrir pasta, conversar...
   → resposta única                    "Abri o chrome e fechei o telegram"
   → voz (Piper)                       toca enquanto o texto aparece na janela
 ```
@@ -164,7 +164,7 @@ microfone
 | `merlin/audio/` | microfone, detector de voz, segmentação das frases, transcrição (Whisper) |
 | `merlin/ia/` | conversa com o Ollama: intenções, divisão de tarefas, confirmações, conversa, sugestão de assistentes |
 | `merlin/habilidades/` | **uma habilidade por arquivo**: descrição e exemplos para a IA, regras, e qual ação executar |
-| `merlin/acoes/` | o que é feito no Windows: janelas, botões, programas, navegador |
+| `merlin/acoes/` | o que é feito no Windows: janelas, programas, pastas, navegador |
 | `merlin/personalidades/` | carrega os assistentes (todos em .json): os originais de `recursos/assistentes_padrao/` e os da pasta `assistentes_citizentech/` |
 | `merlin/voz/` | síntese (Piper), efeitos, reprodução e interrupção |
 | `merlin/nucleo/` | o fluxo de cada pedido, sessão, memória da conversa, raciocínio |
@@ -182,7 +182,7 @@ microfone
 
 ## Privacidade
 
-- **Tudo roda no seu PC:** reconhecimento de voz, IA e síntese de voz. O assistente só usa a internet para **baixar** modelos e bibliotecas e para o que você pedir, como pesquisar ou abrir um site.
+- **Tudo roda no seu PC:** reconhecimento de voz, IA e síntese de voz. O assistente só usa a internet para **baixar** modelos e bibliotecas e quando um programa pedido não está instalado (aí ele pesquisa o nome no navegador).
 - **Em espera, o microfone fica aberto:** ele transcreve o que é falado perto apenas para procurar o nome do assistente, e o que não tem o nome é descartado.
 - **O que fica salvo no disco:**
   - `registros/`: o raciocínio de cada pedido, apagado após 30 dias;

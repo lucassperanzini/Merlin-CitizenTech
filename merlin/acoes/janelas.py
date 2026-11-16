@@ -50,40 +50,6 @@ def listar_janelas() -> list[JanelaAberta]:
     return janelas
 
 
-# Palavras que não são nome de programa: "clica em salvar aqui" vai para a janela em uso
-ALVOS_GENERICOS = {"", "merlin", "aqui", "botoes", "botao", "tela", "janela", "essajanela", "estatela", "programa",
-                   "app", "aplicativo"}
-
-
-def citou_programa(alvo: str) -> bool:
-    return normalizar(alvo) not in ALVOS_GENERICOS
-
-
-def janela_em_uso() -> JanelaAberta | None:
-    """A janela em que a pessoa está: a que tem o foco. Se o foco estiver no próprio Merlin, a primeira janela atrás
-    dele (o Windows lista da frente para trás), sem contar as "sempre na frente", como um widget ou uma agenda: elas
-    ficam no topo da lista mesmo sem a pessoa estar usando."""
-    frente = _janela_com_foco()
-    if frente:
-        return frente
-    abertas = [j for j in listar_janelas() if not win32gui.IsIconic(j.hwnd)]
-    return next((j for j in abertas if not _sempre_na_frente(j.hwnd)), abertas[0] if abertas else None)
-
-
-def _janela_com_foco() -> JanelaAberta | None:
-    hwnd = win32gui.GetForegroundWindow()
-    if not hwnd:
-        return None
-    try:
-        return _ler_janela(hwnd)  # None para as janelas do Merlin e as da área de trabalho
-    except win32gui.error:
-        return None
-
-
-def _sempre_na_frente(hwnd) -> bool:
-    return bool(win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE) & win32con.WS_EX_TOPMOST)
-
-
 def escolher_janelas(nome: str, janelas: list[JanelaAberta]) -> tuple[list[JanelaAberta], bool]:
     """Retorna (janelas encontradas, se foi pelo título). Prefere o nome do programa ao título da janela."""
     alvo = normalizar(nome)

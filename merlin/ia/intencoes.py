@@ -4,7 +4,7 @@ Tudo o que é específico de um pedido (descrição, exemplos, regras) fica no a
 merlin/habilidades/. Aqui só há o mecanismo, que funciona igual para qualquer número de habilidades.
 
 Com poucas habilidades, a IA escolhe entre todas de uma vez. Com muitas (ver LIMITE_UMA_ETAPA no config), escolhe
-em duas etapas: primeiro o grupo (programas, tela, internet…) e depois a intenção dentro dele. Assim cada pergunta
+em duas etapas: primeiro o grupo (assistente, programas…) e depois a intenção dentro dele. Assim cada pergunta
 à IA continua curta e com poucas opções parecidas, mesmo que o assistente aprenda muitas coisas.
 """
 import json
@@ -29,9 +29,9 @@ MAX_CORRECOES = 4  # uma regra pode levar a outra habilidade, que tem as própri
 @dataclass(frozen=True)
 class Intencao:
     tipo: TipoIntencao
-    alvo: str  # em PESQUISAR_WEB, é o termo a pesquisar
+    alvo: str  # o programa, a pasta... (depende da habilidade)
     comando: str  # a frase original, já sem o nome do assistente
-    local: str = ""  # em CLICAR_BOTAO, o programa onde clicar; vazio = a janela em uso
+    local: str = ""  # o campo "local" de uma habilidade que o declare (hoje nenhuma); vazio se não houver
     # Para a janela de raciocínio: o que o modelo respondeu e, se uma regra do código mudou a decisão, por quê
     resposta_modelo: dict = field(default_factory=dict, compare=False)
     motivo_regra: str = field(default="", compare=False)

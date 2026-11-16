@@ -157,8 +157,9 @@ class TestAbrirPrograma(unittest.TestCase):
 class TestWeb(unittest.TestCase):
     def test_fala_no_passado(self):
         with mock.patch("merlin.acoes.web.os.startfile"):
-            self.assertEqual(PesquisarWeb()(Intencao(TipoIntencao.PESQUISAR_WEB, "gatos", "x")).fala, "pesquisei por gatos")
-            self.assertEqual(PesquisarWeb()(Intencao(TipoIntencao.PESQUISAR_WEB, "github.com", "x")).fala, "abri o site github.com")
+            # Hoje só o abrir programa usa a pesquisa (quando o programa não está instalado)
+            self.assertEqual(PesquisarWeb()(Intencao(TipoIntencao.ABRIR_PROGRAMA, "gatos", "x")).fala, "pesquisei por gatos")
+            self.assertEqual(PesquisarWeb()(Intencao(TipoIntencao.ABRIR_PROGRAMA, "github.com", "x")).fala, "abri o site github.com")
 
     def test_urls(self):
         casos = [("gatos", "https://www.google.com/search?q=gatos"),

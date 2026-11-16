@@ -16,21 +16,19 @@ class TestPainelHabilidades(unittest.TestCase):
         self.assertEqual(sorted(nomes), sorted(h.nome for h in HABILIDADES))
         self.assertEqual(dados["total"], len(HABILIDADES))
         self.assertIn("uma etapa", dados["modo"])
-        clicar = next(h for g in dados["grupos"] for h in g["habilidades"] if h["nome"] == "clicar_botao")
-        self.assertEqual(clicar["titulo"], "Clicar em botão")
-        self.assertTrue(clicar["mexe_no_computador"])
-        self.assertTrue(clicar["regras"])
+        fechar = next(h for g in dados["grupos"] for h in g["habilidades"] if h["nome"] == "fechar_programa")
+        self.assertEqual(fechar["titulo"], "Fechar programa")
+        self.assertTrue(fechar["mexe_no_computador"])
+        self.assertTrue(fechar["regras"])
         onde_age = {h["nome"]: h["age"] for g in dados["grupos"] for h in g["habilidades"]}
-        self.assertEqual((onde_age["clicar_botao"], onde_age["abrir_configuracoes"], onde_age["conversar"]),
+        self.assertEqual((onde_age["fechar_programa"], onde_age["abrir_configuracoes"], onde_age["conversar"]),
                          ("computador", "assistente", "fala"))
 
     def test_separa_exemplos_e_contraexemplos(self):
         dados = self._servico().listar()
-        clicar = next(h for g in dados["grupos"] for h in g["habilidades"] if h["nome"] == "clicar_botao")
-        self.assertIn({"frase": "pausa a música no spotify", "alvo": "pausar", "campos": {"local": "spotify"}},
-                      clicar["exemplos"])
-        self.assertIn({"frase": "o que acontece se eu clicar em formatar", "vira": "Conversar"},
-                      clicar["contraexemplos"])
+        fechar = next(h for g in dados["grupos"] for h in g["habilidades"] if h["nome"] == "fechar_programa")
+        self.assertIn({"frase": "feche o word", "alvo": "word", "campos": {}}, fechar["exemplos"])
+        self.assertIn({"frase": "como saio do excel", "vira": "Conversar"}, fechar["contraexemplos"])
 
     def test_toda_habilidade_tem_titulo_e_regras_explicadas(self):
         for h in HABILIDADES:

@@ -26,42 +26,12 @@ FRASES = [
     ("executa o bloco de notas", "abrir_programa", "bloco de notas"),
     ("liga o teams", "abrir_programa", "teams"),
     ("abre as configurações do windows", "abrir_programa", None),
-    # pesquisar_web
-    ("pesquisa o preço do dólar hoje", "pesquisar_web", "preço do dólar hoje"),
-    ("procura no google como fazer pão de queijo", "pesquisar_web", None),
-    ("abre o site do youtube", "pesquisar_web", None),
-    ("busca notícias sobre futebol", "pesquisar_web", None),
-    # clicar_botao
-    ("clica em salvar", "clicar_botao", "salvar"),
-    ("aperta o ok", "clicar_botao", "ok"),
-    ("dá play no spotify", "clicar_botao", "play"),
-    ("pausa", "clicar_botao", None),
-    ("pula essa música", "clicar_botao", None),
-    ("confirma", "clicar_botao", None),
-    ("clica em cancelar no word", "clicar_botao", "cancelar"),
-    ("seleciona a opção lembrar de mim", "clicar_botao", None),
-    # trocar_assistente
-    ("muda pra ana", "trocar_assistente", "ana"),
-    ("coloca o merlin no lugar", "trocar_assistente", "merlin"),
-    ("troca de assistente para a ana", "trocar_assistente", "ana"),
-    ("quais assistentes você tem", "conversar", None),
     # abrir_pasta
     ("abre a pasta de downloads", "abrir_pasta", "downloads"),
     ("mostra minhas imagens", "abrir_pasta", None),
     ("abre a pasta notas fiscais", "abrir_pasta", "notas fiscais"),
     ("abre o explorador de arquivos", "abrir_programa", None),
     ("onde ficam os meus downloads", "conversar", None),
-    # texto_selecionado
-    ("corrige esse texto", "texto_selecionado", None),
-    ("traduz isso para espanhol", "texto_selecionado", None),
-    ("faz um resumo disso", "texto_selecionado", None),
-    ("melhora esse parágrafo", "texto_selecionado", None),
-    ("responde essa mensagem dizendo que chego às oito", "texto_selecionado", None),
-    ("responde a mensagem que acabei de copiar dizendo que chego tarde", "texto_selecionado", None),
-    ("responde essa mensagem a seguir dizendo que vou na festa", "texto_selecionado", None),
-    ("lê esse trecho em voz alta", "texto_selecionado", None),
-    ("resume o livro dom casmurro", "conversar", None),
-    ("como se diz obrigado em francês", "conversar", None),
     # abrir_configuracoes
     ("abre suas configurações", "abrir_configuracoes", None),
     ("quero mudar seus ajustes", "abrir_configuracoes", None),
@@ -82,6 +52,9 @@ FRASES = [
     ("apaga o arquivo relatório", "conversar", None),
     ("cria uma pasta chamada fotos", "conversar", None),
     ("toca uma música animada", "conversar", None),
-    ("quais botões tem nessa tela", "conversar", None),  # perguntas sobre botões não clicam
+    ("quais botões tem nessa tela", "conversar", None),
     ("o que dá pra clicar no spotify", "conversar", None),
+    ("quais assistentes você tem", "conversar", None),
+    ("resume o livro dom casmurro", "conversar", None),
+    ("como se diz obrigado em francês", "conversar", None),
 ]

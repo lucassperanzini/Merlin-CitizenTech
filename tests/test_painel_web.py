@@ -1,5 +1,6 @@
 import json
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -126,7 +127,12 @@ class TestMetricas(_ComServidor):
         self.base = f"http://127.0.0.1:{servidor.server_address[1]}"
         with self.assertLogs("merlin.web.servidor", "ERROR"):
             self.assertEqual(self.chamar("ultima")[0], 500)
-        self.assertIn('rota="/api/ultima",status="500"} 1', metricas.texto())
+        # O pedido é contado logo depois de a resposta sair: espera o servidor terminar de contar
+        esperado = 'rota="/api/ultima",status="500"} 1'
+        fim = time.monotonic() + 2
+        while esperado not in metricas.texto() and time.monotonic() < fim:
+            time.sleep(0.01)
+        self.assertIn(esperado, metricas.texto())
 
     def test_buscas_na_nasa(self):
         metricas = painel.Metricas()

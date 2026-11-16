@@ -37,17 +37,6 @@ class TestRegrasDeIntencao(unittest.TestCase):
         self.assertIs(classificar("merlin", "abrir_programa").tipo, TipoIntencao.CONVERSAR)
         self.assertIs(classificar("", "abrir_programa").tipo, TipoIntencao.CONVERSAR)
 
-    def test_clique_aceita_verbos_de_acao_e_pedidos_educados(self):
-        for frase in ("clica em salvar", "dá play", "da play no spotify", "pausa a música", "salva", "pula pra próxima",
-                      "avança", "confirma", "envia", "pode clicar em enviar", "você pode apertar ok",
-                      "quero que você clique em cancelar", "por favor, seleciona a opção dois"):
-            self.assertIs(classificar("x", "clicar_botao", comando=frase).tipo, TipoIntencao.CLICAR_BOTAO, frase)
-
-    def test_pergunta_sobre_botao_nao_clica(self):
-        for frase in ("o que acontece se eu clicar em formatar", "vale a pena salvar em pdf",
-                      "como faço para pausar o spotify", "playlist boa para estudar"):
-            self.assertIs(classificar("x", "clicar_botao", comando=frase).tipo, TipoIntencao.CONVERSAR, frase)
-
     def test_configuracoes_do_assistente(self):
         for frase in ("abre as configurações", "abre suas configurações", "abre as configurações do merlin",
                       "quero mexer nos seus ajustes"):
@@ -59,12 +48,6 @@ class TestRegrasDeIntencao(unittest.TestCase):
         self.assertEqual((windows.tipo, windows.alvo), (TipoIntencao.ABRIR_PROGRAMA, "configurações"))
         for frase in ("como abro as configurações do celular", "abre as configurações do spotify"):
             self.assertIs(classificar("merlin", "abrir_configuracoes", comando=frase).tipo, TipoIntencao.CONVERSAR, frase)
-
-    def test_pesquisa_usa_o_termo_completo(self):
-        self.assertEqual(classificar("vim", "pesquisar_web", "como sair do vim").alvo, "como sair do vim")
-
-    def test_pesquisa_sem_termo_usa_a_frase(self):
-        self.assertEqual(classificar("x", "pesquisar_web", "", comando="procura gatos").alvo, "procura gatos")
 
     def test_resposta_invalida_vira_conversa(self):
         for resposta in ("não é json", "[1, 2]", '{"intencao": "inventada", "alvo": "x", "busca": ""}', ""):

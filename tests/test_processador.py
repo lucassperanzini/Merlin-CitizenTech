@@ -1,5 +1,6 @@
 import time
 import unittest
+from unittest import mock
 
 from merlin.estado import EstadoAssistente
 from merlin.ia.confirmacao import RespostaConfirmacao
@@ -371,11 +372,11 @@ class TestModoDiscreto(Base):
     def test_pergunta_de_confirmacao_abre_o_cartao(self):
         def pede_confirmacao(intencao):
             self.sessao.aguardar_confirmacao(self._pendencia())
-            return Resultado("Posso clicar em excluir?", frase_completa=True, finaliza=True)
+            return Resultado("Posso fechar o word sem salvar?", frase_completa=True, finaliza=True)
 
-        self.classificador.intencao = Intencao(TipoIntencao.CLICAR_BOTAO, "excluir", "x")
-        self.processador._acoes[TipoIntencao.CLICAR_BOTAO] = pede_confirmacao
-        self.processador.processar("merlin, clica em excluir")
+        self.classificador.intencao = Intencao(TipoIntencao.FECHAR_PROGRAMA, "word", "x")
+        self.processador._acoes[TipoIntencao.FECHAR_PROGRAMA] = pede_confirmacao
+        self.processador.processar("merlin, fecha o word")
         self.assertIn("mostrar", self.canal.eventos)
         self.assertTrue(self.sessao.tem_pendencia())
 
@@ -393,10 +394,11 @@ class TestModoDiscreto(Base):
 
 class TestFraseInteira(Base):
     def test_o_que_vem_depois_de_dizendo_que_nao_vira_outra_tarefa(self):
+        # Nenhuma habilidade de hoje usa frase_inteira; o mecanismo continua valendo para as que vierem
         self.sessao.ativar()
-        self.divisor.tarefas = ["responde a mensagem selecionada dizendo que vou", "pede uma pizza"]
-        self.classificador.intencao = Intencao(TipoIntencao("texto_selecionado"), "texto", "x")
-        self.processador.processar("responde a mensagem selecionada dizendo que vou e pede uma pizza")
-        self.assertEqual(self.executadas, [TipoIntencao("texto_selecionado")])  # uma ação só
-        self.assertEqual(self.classificador.comandos[-1],
-                         "responde a mensagem selecionada dizendo que vou e pede uma pizza")
+        self.divisor.tarefas = ["escreve um bilhete dizendo que vou", "pede uma pizza"]
+        self.classificador.intencao = Intencao(TipoIntencao.CONVERSAR, "bilhete", "x")
+        with mock.patch("merlin.nucleo.processador.PEDIDOS_DE_FRASE_INTEIRA", frozenset({TipoIntencao.CONVERSAR})):
+            self.processador.processar("escreve um bilhete dizendo que vou e pede uma pizza")
+        self.assertEqual(self.executadas, [TipoIntencao.CONVERSAR])  # uma ação só
+        self.assertEqual(self.classificador.comandos[-1], "escreve um bilhete dizendo que vou e pede uma pizza")

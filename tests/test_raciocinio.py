@@ -54,7 +54,6 @@ class TestMotivoDasRegras(unittest.TestCase):
 
     def test_regra_explica_a_mudanca(self):
         self.assertIn("verbo de abrir", self._classificar("fechar_programa", "chrome", "abre o chrome").motivo_regra)
-        self.assertIn("pergunta", self._classificar("clicar_botao", "salvar", "o que faz o salvar").motivo_regra)
         self.assertIn("discord", self._classificar("dispensar", "discord", "encerra o discord").motivo_regra)
 
     def test_motivo_nao_muda_a_igualdade(self):

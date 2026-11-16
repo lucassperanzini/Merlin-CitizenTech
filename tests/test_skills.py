@@ -45,12 +45,12 @@ class TestSkillsEditaveis(unittest.TestCase):
         self.assertEqual(registro.por_nome("abrir_programa"), original)
         self.assertFalse(self._skill("abrir_programa")["ajustada"])
 
-    def test_contraexemplo_e_dados_extras_sao_guardados(self):
-        self.servico.salvar("pesquisar_web", self._dados(exemplos=[
-            {"frase": "procura gatos", "alvo": "gatos", "campos": {"busca": "gatos"}},
-            {"frase": "fala sobre gatos", "alvo": "gatos", "intencao": "conversar"}]))
-        exemplos = registro.por_nome("pesquisar_web").exemplos
-        self.assertEqual(exemplos[0].campos, {"busca": "gatos"})
+    def test_exemplo_e_contraexemplo_sao_guardados(self):
+        self.servico.salvar("abrir_programa", self._dados(exemplos=[
+            {"frase": "abre o paint", "alvo": "paint"},
+            {"frase": "fala sobre o paint", "alvo": "paint", "intencao": "conversar"}]))
+        exemplos = registro.por_nome("abrir_programa").exemplos
+        self.assertEqual(exemplos[0].alvo, "paint")
         self.assertEqual(exemplos[1].intencao, "conversar")
 
     def test_recusa_o_que_estragaria_a_skill(self):
