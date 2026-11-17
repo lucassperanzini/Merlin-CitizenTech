@@ -35,7 +35,7 @@ class TrabalhadorComandos:
         except Exception as erro:
             logger.error("[ERRO] %s", erro)
         finally:
-            # Garante que o olho não fique preso em "pensando" se nada foi falado
+            # Garante que a janela não fique presa em "pensando" se nada foi falado
             if self._estado.ativo.is_set() and not self._estado.falando.is_set():
                 self._canal.estado(EstadoVisual.OUVINDO)
 

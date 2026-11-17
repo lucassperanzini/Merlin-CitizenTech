@@ -34,8 +34,7 @@ class ServicoAssistentes:
                  "atual": p.id == atual} for p in PERSONALIDADES.values()]
 
     def opcoes(self) -> dict:
-        return {"vozes": [{"rotulo": r, "id": i} for r, i in todas_as_vozes().items()],
-                "sons": list(armazenamento.SONS), "visuais": list(armazenamento.VISUAIS)}
+        return {"vozes": [{"rotulo": r, "id": i} for r, i in todas_as_vozes().items()]}
 
     def abrir(self, identificador: str) -> dict:
         p = PERSONALIDADES.get(identificador)

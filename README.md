@@ -56,7 +56,7 @@ O projeto também tem um **painel de alertas de focos de calor** (dados da NASA 
 | O quê | Onde |
 |---|---|
 | Código do assistente | `main.py`, `merlin/` |
-| Páginas das janelas, sons de ativação, olho e esfera | `recursos/` |
+| Páginas das janelas, sons de ativação e do alarme, esfera | `recursos/` |
 | O assistente original, Merlin (não pode ser excluído; "Restaurar original" volta para ele) | `recursos/assistentes_padrao/*.json` |
 | **Vozes do Piper** em português (Faber, Cadu, Jeff; ~63 MB cada) | `vozes/*.onnx` |
 | Ferramentas (baixar modelos, avaliar a IA, gerar sons) | `ferramentas/` |
@@ -350,28 +350,82 @@ Hoje a infraestrutura é local (Docker no computador da Defesa Civil, ou no exec
 
 ## 4. Estimativa de custo
 
-Valores mensais de referência, sem impostos. Os preços de nuvem mudam: confira na [AWS Pricing Calculator](https://calculator.aws/) antes de decidir.
+O custo calculado aqui é o da **hospedagem**. Cada parte do sistema fica num lugar:
 
-### Como está hoje (local + GitHub)
-
-| Item | Uso | Custo mensal |
+| Parte | Onde roda | Entra no custo? |
 |---|---|---|
-| Computador da Defesa Civil (Docker Desktop) | Painel + Prometheus + Grafana + cAdvisor: ~0,8% de CPU e ~160 MB de RAM no total | **R$ 0** (o computador já existe; o consumo extra de energia é desprezível) |
-| GitHub (repositório privado, plano Free) | Inclui 2.000 minutos/mês de Actions. Cada execução da esteira gasta ~5 minutos cobrados (4 jobs: ~1 + 1 + 2 + 1 min) | **R$ 0** até ~400 pushes/mês |
-| API NASA FIRMS | Gratuita (limite de 5.000 consultas a cada 10 minutos); a busca automática padrão faz 1 por hora | **R$ 0** |
-| MapTiler | Plano gratuito (100 mil pedidos de imagens/mês); sem a chave, OpenStreetMap | **R$ 0** |
-| Docker Desktop | Gratuito para uso pessoal, educação e organizações pequenas; acima de 250 funcionários ou US$ 10 milhões de receita anual, exige assinatura (alternativa sem custo: Docker Engine num Linux) | **R$ 0** (no caso do projeto) |
-| Prometheus, Grafana OSS, cAdvisor, Terraform, Gitleaks, Semgrep, Trivy | Software livre | **R$ 0** |
-| **Total** | | **R$ 0/mês** |
+| IA (Ollama com `qwen3:8b`) | Servidor hospedado | **Sim** |
+| Painel de alertas + Prometheus, Grafana e cAdvisor | Servidor hospedado | **Sim** |
+| Merlin com reconhecimento de voz (Whisper), voz (Piper) e controle das janelas | Computadores que a Defesa Civil já tem | Não |
 
-### Se for para a nuvem (AWS, região São Paulo, para os dados ficarem no Brasil)
+Os computadores falam com a IA pela variável `OLLAMA_HOST`, que a biblioteca do Ollama já lê. Por exemplo: `setx OLLAMA_HOST http://ia.defesacivil.interno:11434`. Não precisa mudar o código.
 
-| Item | Configuração | Custo mensal aproximado |
+O provedor considerado é a AWS em São Paulo (`sa-east-1`). Assim os dados ficam no Brasil, e a distância até os computadores é menor.
+
+As referências da conta:
+- **Preços:** [API pública de preços da AWS](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/region_index.json), a mesma da [AWS Pricing Calculator](https://calculator.aws/), na tabela de 14/11/2026.
+- **Câmbio:** dólar a **R$ 5,56**, fechamento PTAX de 11/11/2026.
+- **Impostos:** não estão incluídos. Preços e câmbio mudam, então refaça a conta antes de contratar.
+
+### O que cada servidor precisa
+
+| Servidor | Necessidade | Máquina escolhida |
 |---|---|---|
-| EC2 `t3.small` (2 vCPU, 2 GB) sob demanda | 730 h/mês em `sa-east-1` | ~US$ 25 |
-| Disco EBS gp3 | 30 GB | ~US$ 5 |
-| Transferência de dados | Poucos GB/mês (painel + consultas à NASA) | ~US$ 0–1 |
-| **Total** | | **~US$ 30/mês (≈ R$ 165)**. Com instância reservada por 1 ano, cai cerca de 40%. |
+| IA | Uma placa de vídeo com pelo menos 8 GB. O `qwen3:8b` (Q4_K_M) tem 5,2 GB e ocupa ~6 GB da placa com contexto de 4.096 tokens. Só no processador, cada resposta levaria vários segundos | **`g4dn.xlarge`**: 4 vCPU, 16 GB de RAM e NVIDIA T4 de 16 GB. É a máquina com placa de vídeo mais barata em São Paulo |
+| Painel e observabilidade | ~175 MB de RAM e ~0,3% de um núcleo somando os 4 contêineres (medido com `docker stats`). Disco de 1,6 GB para as imagens + ~0,3 GB para 15 dias de métricas. Fica ligado 24 h, porque a busca da NASA roda de hora em hora | **`t3.small`**: 2 vCPU e 2 GB de RAM, com folga |
+
+### Servidor da IA (`g4dn.xlarge`)
+
+| Item | Preço unitário | 24 h, sob demanda | 24 h, reservada por 1 ano | Só no expediente: 12 h × 22 dias úteis = 264 h |
+|---|---|---|---|---|
+| Máquina | US$ 0,894/h (reservada: US$ 0,610/h) | US$ 652,62 | US$ 445,30 | US$ 236,02 |
+| Disco EBS gp3 de 50 GB (sistema, driver NVIDIA e modelo) | US$ 0,152/GB-mês, cobrado mesmo com a máquina desligada | US$ 7,60 | US$ 7,60 | US$ 7,60 |
+| IP fixo (Elastic IP) | US$ 0,005/h, cobrado mesmo com a máquina desligada | US$ 3,65 | US$ 3,65 | US$ 3,65 |
+| Saída de dados | US$ 0,15/GB. Cada resposta tem poucos KB, então o volume cabe nos 100 GB/mês gratuitos | US$ 0,00 | US$ 0,00 | US$ 0,00 |
+| **Total** | | **US$ 663,87 ≈ R$ 3.691** | **US$ 456,55 ≈ R$ 2.538** | **US$ 247,27 ≈ R$ 1.375** |
+
+No modo de expediente, a máquina liga e desliga sozinha por um agendamento (EventBridge Scheduler), sem custo nesse volume. A reserva de 1 ano não compensa nesse modo, porque cobra as 730 h do mês mesmo com a máquina desligada.
+
+### Servidor do painel (`t3.small`, 24 h)
+
+| Item | Preço unitário | Sob demanda | Reservada por 1 ano |
+|---|---|---|---|
+| Máquina | US$ 0,0336/h (reservada: US$ 0,0193/h) | US$ 24,53 | US$ 14,09 |
+| Disco EBS gp3 de 20 GB | US$ 0,152/GB-mês | US$ 3,04 | US$ 3,04 |
+| IP público | US$ 0,005/h | US$ 3,65 | US$ 3,65 |
+| Backup (snapshot de ~2 GB) | US$ 0,068/GB-mês | US$ 0,14 | US$ 0,14 |
+| Saída de dados | ~2 GB/mês (página de 300 KB + resultado de 735 KB por abertura), dentro dos 100 GB gratuitos | US$ 0,00 | US$ 0,00 |
+| **Total** | | **US$ 31,36 ≈ R$ 174** | **US$ 20,92 ≈ R$ 116** |
+
+Se a IA ficar ligada 24 h, o painel pode rodar na própria `g4dn.xlarge`, e a `t3.small` deixa de ser necessária.
+
+### Ligação segura entre os computadores e a IA (opcional, recomendada)
+
+O Ollama não tem senha nem criptografia, e os pedidos levam o que as pessoas falaram. A regra mínima, sem custo, é que o firewall da AWS (security group) só aceite a porta 11434 vindo do IP público da Defesa Civil.
+
+Para criptografar o caminho, use uma VPN entre a rede da Defesa Civil e a AWS (Site-to-Site VPN):
+
+| Item | Preço unitário | Por mês |
+|---|---|---|
+| Conexão VPN | US$ 0,05/h × 730 h | US$ 36,50 ≈ **R$ 203** |
+
+### Resumo
+
+| Cenário | Por mês | Por ano |
+|---|---|---|
+| **Recomendado:** IA só no expediente (sob demanda) + painel 24 h (`t3.small` reservada) | **≈ R$ 1.491** | ≈ R$ 17.894 |
+| Recomendado + VPN | ≈ R$ 1.694 | ≈ R$ 20.329 |
+| Tudo 24 h numa `g4dn.xlarge` reservada por 1 ano | ≈ R$ 2.538 | ≈ R$ 30.461 |
+| Tudo 24 h numa `g4dn.xlarge` sob demanda | ≈ R$ 3.691 | ≈ R$ 44.293 |
+
+Ficam de fora da conta porque custam R$ 0:
+
+| Item | Por que é gratuito |
+|---|---|
+| GitHub Actions | O repositório é público, e repositórios públicos não pagam minutos. Se ficar privado, o plano Free inclui 2.000 min/mês. Cada execução da esteira gasta 4 minutos cobráveis, o que dá ~500 execuções |
+| API NASA FIRMS | Gratuita até 5.000 consultas a cada 10 min. A busca automática faz 1 por hora |
+| MapTiler | Plano gratuito de 100 mil pedidos de imagens/mês. Os mapas vão direto do MapTiler para o navegador. Sem a chave, o painel usa o OpenStreetMap |
+| Ollama, Docker Engine, Prometheus, Grafana OSS, cAdvisor, Terraform, Gitleaks, Semgrep, Trivy | Software livre |
 
 ## 5. Guia de reprodução
 

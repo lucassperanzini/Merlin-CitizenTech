@@ -23,7 +23,6 @@ MODELO_WHISPER_GPU = "large-v3-turbo"  # usado na placa de vídeo
 MODELO_WHISPER_CPU = "small"  # plano B, mais leve, caso a placa de vídeo falhe
 PASTA_VOZES = PASTA_RAIZ / "vozes"
 ARQ_PREFERENCIAS = PASTA_RAIZ / "merlin_config.json"
-ARQ_OLHO = PASTA_RAIZ / "recursos" / "olho.svg"
 ARQ_JANELA = PASTA_RAIZ / "recursos" / "janela.html"
 ARQ_CONFIGURACOES = PASTA_RAIZ / "recursos" / "configuracoes.html"
 ARQ_RACIOCINIO = PASTA_RAIZ / "recursos" / "raciocinio.html"
@@ -43,6 +42,7 @@ DIAS_DE_REGISTRO = 30  # registros mais antigos que isso são apagados ao abrir 
 ARQ_THREE = PASTA_RAIZ / "recursos" / "vendor" / "three.min.js"
 ARQ_ESFERA = PASTA_RAIZ / "recursos" / "esfera.js"
 VOLUME_SOM_ATIVACAO = 0.7  # de 0 (mudo) a 1
+ARQ_SOM_ATIVACAO = PASTA_RAIZ / "recursos" / "ativacao_jarvis.wav"  # o mesmo para todos os assistentes
 # Alarme dos focos em alerta: toca em ciclos até a pessoa abrir os alertas (ferramentas/gerar_som_alarme.py)
 ARQ_ALARME = PASTA_RAIZ / "recursos" / "alarme.wav"
 VOLUME_ALARME = 0.8  # de 0 (mudo) a 1

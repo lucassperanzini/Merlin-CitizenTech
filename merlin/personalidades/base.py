@@ -36,7 +36,6 @@ class Personalidade:
     nome: str
     palavras_ativacao: tuple[str, ...]  # inclui as variações que o Whisper costuma ouvir
     voz_padrao: str  # id de uma voz do Piper (config.VOZES_PIPER) ou de uma das vozes_proprias
-    visual: str  # "olho" ou "esfera"
     som_ativacao: Path
     apresentacao: str  # dita ao trocar para esta personalidade
     dica_vocabulario: str  # ajuda o Whisper a reconhecer o nome
@@ -44,7 +43,7 @@ class Personalidade:
     saudacao: ConjuntoFrases
     despedida: ConjuntoFrases
     vozes_proprias: tuple[VozPropria, ...] = ()
-    cor: str = ""  # cor de destaque na janela (ex.: "#d9ac5a"); vazio = a cor padrão do visual
+    cor: str = ""  # cor de destaque na janela (ex.: "#35d6ff"); vazio = a cor padrão
     descricao: str = ""  # como a pessoa descreveu o assistente no configurador (antes de existir o contexto)
     # Quem ele é: história, profissão, relação com a pessoa. Pano de fundo da conversa, sem ser recitado.
     # O jeito de falar fica em prompt_conversa ("Como ele fala", no configurador).

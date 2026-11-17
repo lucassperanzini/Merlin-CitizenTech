@@ -89,7 +89,7 @@ def novo_assistente(nome: str = "", jeito: str = "") -> dict:
     return {
         "id": "", "nome": nome, "descricao": "", "contexto": "", "jeito": jeito,
         "palavras_ativacao": [nome.lower()] if nome else [],
-        "voz_padrao": "pt_BR-faber-medium", "visual": "esfera", "cor": "", "som": "Digital",
+        "voz_padrao": "pt_BR-faber-medium", "cor": "",
         "apresentacao": f"{nome} às suas ordens." if nome else "", "dica_vocabulario": "",
         "prompt_conversa": prompt_conversa(nome, jeito) if nome else "",  # vazio: montado ao salvar
         "saudacao": {"prompt": prompt_saudacao(nome, jeito), "temas": [], "reservas": [], "exemplos": []},

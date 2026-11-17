@@ -73,8 +73,6 @@
         <label>Nome<input id="nome" maxlength="30" placeholder="Ex.: Sexta-feira"></label>
         <label>Palavras de chamada (separe por vírgula)<input id="palavras" placeholder="sexta-feira, sexta feira"></label>
         <label>Voz<select id="voz"></select></label>
-        <label>Som de ativação<select id="som"></select></label>
-        <label>Aparência<select id="visual"><option value="olho">Olho</option><option value="esfera">Esfera</option></select></label>
         <label>Cor de destaque
           <span class="linha"><input id="cor" type="color" value="#35d6ff" style="width:60px">
           <label class="linha" style="color:var(--texto)"><input id="cor-padrao" type="checkbox" style="width:auto"> cor padrão</label></span>
@@ -136,7 +134,7 @@
   const $ = id => document.getElementById(id);
   const api = () => window.pywebview.api;
   let atual = null;      // os dados completos do assistente aberto (campos que a página não mostra vão junto)
-  let opcoes = { vozes: [], sons: [] };
+  let opcoes = { vozes: [] };
 
   function avisar(texto, tipo = "") { $("status").textContent = texto; $("status").className = tipo; }
   const juntar = lista => (lista || []).join("\n");
@@ -153,8 +151,6 @@
     $("nome").value = dados.nome || "";
     $("palavras").value = (dados.palavras_ativacao || []).join(", ");
     preencherSelect($("voz"), opcoes.vozes.map(v => [v.id, v.rotulo]), dados.voz_padrao);
-    preencherSelect($("som"), opcoes.sons.map(s => [s, s]), dados.som);
-    $("visual").value = dados.visual || "esfera";
     $("cor-padrao").checked = !dados.cor;
     $("cor").value = dados.cor || "#35d6ff";
     $("cor").disabled = !dados.cor;
@@ -182,7 +178,7 @@
     Object.assign(d, {
       nome: $("nome").value.trim(),
       palavras_ativacao: $("palavras").value.split(",").map(s => s.trim()).filter(Boolean),
-      voz_padrao: $("voz").value, som: $("som").value, visual: $("visual").value,
+      voz_padrao: $("voz").value,
       cor: $("cor-padrao").checked ? "" : $("cor").value,
       contexto: $("contexto").value.trim(), apresentacao: $("apresentacao").value.trim(),
       prompt_conversa: $("conversa").value.trim(),
@@ -240,10 +236,10 @@
     const r = await api().sugerir($("nome").value, $("contexto").value);
     botao.disabled = false;
     if (r.erro) { avisar(r.erro, "erro"); return; }
-    // fica com as escolhas de voz, som, aparência e cor já feitas; a IA só traz textos e palavras de chamada
+    // fica com as escolhas de voz e cor já feitas; a IA só traz textos e palavras de chamada
     const escolhas = coletar();
     mostrar({ ...r, id: atual.id, embutido: atual.embutido, ajustado: atual.ajustado,
-              voz_padrao: escolhas.voz_padrao, som: escolhas.som, visual: escolhas.visual, cor: escolhas.cor });
+              voz_padrao: escolhas.voz_padrao, cor: escolhas.cor });
     avisar("Sugestão pronta. Revise as palavras de chamada e as frases, e clique em Salvar.", "aviso");
   });
 

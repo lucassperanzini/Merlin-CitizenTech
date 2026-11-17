@@ -1,5 +1,5 @@
 """Janela do assistente: mostra e esconde, e repassa à página tudo o que chega pelo canal.
-A aparência (esfera ou olho) segue a personalidade escolhida.
+A cor de destaque segue a personalidade escolhida.
 Em espera, a janela fica numa bolinha no canto da tela, que cresce até o centro quando o assistente é chamado."""
 import json
 import logging
@@ -8,7 +8,7 @@ import time
 
 import webview
 
-from merlin.config import ARQ_ESFERA, ARQ_JANELA, ARQ_OLHO, ARQ_RACIOCINIO, ARQ_THREE, JANELA_ALTURA, JANELA_LARGURA
+from merlin.config import ARQ_ESFERA, ARQ_JANELA, ARQ_RACIOCINIO, ARQ_THREE, JANELA_ALTURA, JANELA_LARGURA
 from merlin.ia.cliente import listar_modelos
 from merlin.interface.central import quadro
 from merlin.interface.eventos import TipoEvento
@@ -27,7 +27,7 @@ INTERVALO_CHECAR_IA = 20  # segundos entre as verificações do Ollama (o anel d
 def dados_da_personalidade(preferencias) -> dict:
     """O que a página precisa para se ajustar à personalidade escolhida."""
     personalidade = preferencias.personalidade
-    return {"id": personalidade.id, "nome": personalidade.nome, "visual": personalidade.visual, "cor": personalidade.cor}
+    return {"id": personalidade.id, "nome": personalidade.nome, "cor": personalidade.cor}
 
 
 def com_aba(preferencias, tem_raciocinio: bool) -> bool:
@@ -178,8 +178,7 @@ class JanelaMerlin:
                  "debug": com_aba(self._preferencias, self._tem_raciocinio)}
         scripts = "".join(f"<script>{arquivo.read_text(encoding='utf-8')}</script>" for arquivo in (ARQ_THREE, ARQ_ESFERA))
         pagina = ARQ_JANELA.read_text(encoding="utf-8")
-        return (pagina.replace("<!--OLHO-->", ARQ_OLHO.read_text(encoding="utf-8"))
-                .replace("<!--SCRIPTS-->", scripts)
+        return (pagina.replace("<!--SCRIPTS-->", scripts)
                 .replace("<!--QUADRO:raciocinio-->", quadro("raciocinio", ARQ_RACIOCINIO) if self._tem_raciocinio else "")
                 .replace("/*DADOS*/", json.dumps(dados, ensure_ascii=False)))
 
@@ -223,7 +222,7 @@ class JanelaMerlin:
             self._chamar_pagina("definirPersonalidade", dados_da_personalidade(self._preferencias))
             self.janela.set_title(self._preferencias.personalidade.nome)
             if self._compacta:
-                self._compactar_pagina()  # o visual novo também entra no modo da bolinha
+                self._compactar_pagina()  # o nome e a cor novos também entram no modo da bolinha
         elif tipo is TipoEvento.ABRIR_CONFIGURACOES:
             self._central.abrir_aba("assistente")
         elif tipo is TipoEvento.ESTADO and self._visivel:

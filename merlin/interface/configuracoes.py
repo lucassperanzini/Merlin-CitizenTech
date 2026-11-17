@@ -13,8 +13,8 @@ from merlin.voz.catalogo import todas_as_vozes
 
 logger = logging.getLogger(__name__)
 
-# Sem cor escolhida no configurador, vale a cor padrão do visual (a mesma da janela principal)
-COR_PADRAO = {"olho": "#d9ac5a", "esfera": "#35d6ff"}
+# Sem cor escolhida no configurador, vale a cor padrão (a mesma da janela principal)
+COR_PADRAO = "#35d6ff"
 
 
 class ServicoConfiguracoes:
@@ -44,7 +44,7 @@ class ServicoConfiguracoes:
         personalidade = self._preferencias.personalidade
         return {
             "nome": personalidade.nome,
-            "cor": personalidade.cor or COR_PADRAO.get(personalidade.visual, COR_PADRAO["esfera"]),
+            "cor": personalidade.cor or COR_PADRAO,
             "sistema": self.sistema(ollama=not erro_modelos),
             "personalidades": [{"id": p.id, "nome": p.nome} for p in PERSONALIDADES.values()],
             "personalidade": self._preferencias.personalidade.id,

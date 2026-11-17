@@ -6,9 +6,9 @@
 <style>
   :root {
     --fundo: #05070c;
-    --ouro: #d9ac5a;
+    --ouro: #35d6ff;
     --texto: #dbe6ff;
-    /* Cores da íris: mudam conforme o estado (ver body.pensando e body.falando) */
+    /* Cores da onda de voz: mudam conforme o estado (ver body.pensando e body.falando) */
     --brilho: #2bd3f2;
     --fibra: #5fe6ff;
     --medio: #0d7fa6;
@@ -19,9 +19,6 @@
     --nivel: 0; /* volume da voz captada, de 0 a 1 */
     --mudo: #ff6b6b; /* microfone desligado pelo botão */
   }
-  /* Esfera: destaque azul em vez de dourado */
-  html[data-visual="esfera"] { --ouro: #35d6ff; }
-
   /* Voz sendo captada */
   body.ouvindo.voz {
     --brilho: #b18cff; --fibra: #dcc8ff; --medio: #6a3fc4; --base: #4b2a96;
@@ -54,28 +51,7 @@
   #palco { width: 100%; flex: 0 1 auto; min-height: 0; }
   #palco.abrindo { animation: abrir .7s cubic-bezier(.2, .8, .2, 1); }
   @keyframes abrir { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
-  svg { display: block; width: 100%; height: auto; max-height: 42vh; }
-  #esfera { display: none; width: 100%; height: 40vh; }
-  html[data-visual="esfera"] #palco svg { display: none; }
-  html[data-visual="esfera"] #esfera { display: block; }
-
-  /* O fundo do SVG sai para o olho se misturar com a janela */
-  #fundo { display: none; }
-
-  /* Liga as cores fixas do SVG às variáveis acima */
-  stop[stop-color="#2bd3f2"] { stop-color: var(--brilho); }
-  stop[stop-color="#0d7fa6"] { stop-color: var(--medio); }
-  stop[stop-color="#06344f"] { stop-color: var(--escuro); }
-  stop[stop-color="#2fd4ff"] { stop-color: var(--aura); }
-  stop[stop-color="#1b6fa8"] { stop-color: var(--aura2); }
-  line[stroke="#5fe6ff"] { stroke: var(--fibra); }
-  line[stroke="#0b5e78"] { stroke: var(--base); }
-  circle[fill="#25cdf5"] { fill: var(--brilho); }
-  circle[stroke="#66e8ff"] { stroke: var(--fibra); }
-
-  /* O olho só tem duas animações: a piscada (disparada de tempos em tempos, ver piscar()) e a íris se movendo.
-     As outras (aura pulsando, anéis girando, pupila respirando ou dilatando com a voz) saíram: obrigavam a placa de
-     vídeo a redesenhar o olho e os filtros de brilho a cada quadro, mesmo em espera. */
+  #esfera { display: block; width: 100%; height: 40vh; }
 
   #ondas { display: block; width: 100%; height: 64px; flex: none; }
   /* Sem linha de estado: a onda, a legenda e os três pontinhos já mostram o que ele está fazendo.
@@ -192,7 +168,6 @@
   #painel-raciocinio .quadro { display: block; width: 100%; height: 100%; border: 0; }
   html.compacto #palco { flex: none; width: 120px; height: 120px; }
   html.compacto #esfera { height: 100%; }
-  html.compacto #palco svg { height: 100%; max-height: none; }
   #nome-compacto { display: none; }
   /* Modo discreto: a resposta curta num balão à esquerda da bolinha (merlin/interface/moldura.py: LARGURA_BALAO) */
   #balao { display: none; }
@@ -232,7 +207,7 @@
   :root { --alerta: #ff3b3b; }
   /* No cartão também: o destaque e as cores de cada estado (ouvindo, pensando, falando) ficam vermelhos.
      !important: vale até sobre a cor escolhida no configurador, que entra como estilo da página */
-  html.alerta, html.alerta[data-visual] { --ouro: var(--alerta) !important; }
+  html.alerta { --ouro: var(--alerta) !important; }
   html.alerta body, html.alerta body[class] {
     --brilho: #ff5a4a; --fibra: #ffb3a8; --medio: #a8231a; --base: #7a1410;
     --escuro: #3f0806; --aura: #ff4d3d; --aura2: #a81b1b;
@@ -295,7 +270,7 @@
 </head>
 <body>
   <h1 id="titulo"></h1>
-  <div id="palco"><!--OLHO--><canvas id="esfera" aria-label="Esfera do assistente"></canvas>
+  <div id="palco"><canvas id="esfera" aria-label="Esfera do assistente"></canvas>
   </div>
   <div id="nome-compacto" role="button" tabindex="-1" title="Trocar de assistente" aria-haspopup="menu"></div>
   <div id="menu-assistentes" role="menu" aria-label="Trocar de assistente"></div>
@@ -365,7 +340,6 @@
 
   const titulo = document.getElementById("titulo");
   const canvasEsfera = document.getElementById("esfera");
-  let visual = "olho";
   let janelaVisivel = false;
 
   document.getElementById("engrenagem").addEventListener("click", () => window.pywebview.api.abrir_configuracoes());
@@ -479,20 +453,18 @@
 
   function definirPersonalidade(p) {
     personalidadeAtual = p.id;
-    visual = p.visual;
-    document.documentElement.dataset.visual = p.visual;
-    // Cor de destaque escolhida no configurador; sem ela, vale a cor padrão do visual
+    // Cor de destaque escolhida no configurador; sem ela, vale o azul padrão
     if (p.cor) document.documentElement.style.setProperty("--ouro", p.cor);
     else document.documentElement.style.removeProperty("--ouro");
     titulo.textContent = p.nome.toUpperCase();
     document.getElementById("nome-compacto").textContent = p.nome.toUpperCase();
     document.title = p.nome;
-    if (visual === "esfera" && !window.Esfera.ok) window.Esfera.iniciar(canvasEsfera);
+    if (!window.Esfera.ok) window.Esfera.iniciar(canvasEsfera);
     atualizarAnimacao();
   }
   // A esfera só é desenhada quando aparece na tela
   function atualizarAnimacao() {
-    if (visual === "esfera" && janelaVisivel) window.Esfera.ligar();
+    if (janelaVisivel) window.Esfera.ligar();
     else window.Esfera.desligar();
   }
   function falarComVolume(volumes, passo) {
@@ -888,7 +860,7 @@
     janelaVisivel = true;
     window.Esfera.limitarQuadros(30);
     window.Esfera.definirEstado("espera");
-    document.body.className = "espera";  // o olho volta às cores calmas
+    document.body.className = "espera";  // a onda volta às cores calmas
     atualizarAnimacao();
   }
   function aoMostrar() {
@@ -903,20 +875,10 @@
     definirEstado("ouvindo");
     janelaVisivel = true;
     atualizarAnimacao();
-    // Reinicia a animação da íris do começo, com o olho aberto
-    palco.querySelector("svg").setCurrentTime(0);
     palco.classList.remove("abrindo");
     void palco.offsetWidth;
     palco.classList.add("abrindo");
   }
-  // Piscada: disparada a cada 5 a 8 segundos, só quando o olho está na tela. Fora dela, nada se anima.
-  function piscar() {
-    if (visual === "olho" && janelaVisivel && !document.hidden) {
-      palco.querySelectorAll("svg .piscada").forEach(a => a.beginElement());
-    }
-    setTimeout(piscar, 5000 + Math.random() * 3000);
-  }
-  setTimeout(piscar, 3000);
 
   function aoEsconder() {
     raiz.classList.remove("compacto");

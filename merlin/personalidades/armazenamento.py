@@ -13,17 +13,12 @@ import unicodedata
 from dataclasses import replace
 from pathlib import Path
 
-from merlin.config import PASTA_ASSISTENTES, PASTA_RAIZ
+from merlin.config import ARQ_SOM_ATIVACAO, PASTA_ASSISTENTES
 from merlin.personalidades.base import ConjuntoFrases, Personalidade, VozPropria
 from merlin.voz.efeitos import EfeitoVoz
 
 logger = logging.getLogger(__name__)
 
-SONS = {  # rótulo mostrado -> arquivo em recursos/
-    "Mágico": "ativacao.wav",
-    "Digital": "ativacao_jarvis.wav",
-}
-VISUAIS = ("olho", "esfera")
 MINIMO_RESERVAS = 4  # o gerador de frases guarda as 3 últimas e precisa de mais uma de reserva para escolher
 TAMANHO_MINIMO_PALAVRA = 3  # "ana" acharia "banana": palavras de chamada curtas demais disparam por engano
 COR = re.compile(r"^#[0-9a-fA-F]{6}$")
@@ -46,13 +41,12 @@ def linhas(texto) -> list[str]:
 
 def para_dados(p: Personalidade) -> dict:
     """Uma personalidade em dados simples, prontos para o configurador e para o arquivo."""
-    som = next((rotulo for rotulo, arquivo in SONS.items() if p.som_ativacao.name == arquivo), "Mágico")
     dados = {
         "id": p.id, "nome": p.nome, "descricao": p.descricao, "contexto": p.contexto, "jeito": p.jeito,
         "expressoes": list(p.expressoes),
         "frequencia_expressoes": p.frequencia_expressoes, "nao_comentar_instrucoes": p.nao_comentar_instrucoes,
         "palavras_ativacao": list(p.palavras_ativacao), "voz_padrao": p.voz_padrao,
-        "visual": p.visual, "cor": p.cor, "som": som,
+        "cor": p.cor,
         "apresentacao": p.apresentacao, "dica_vocabulario": p.dica_vocabulario, "prompt_conversa": p.prompt_conversa,
         # Vozes criadas para o assistente: uma voz do Piper com efeitos (aparecem no seletor de vozes)
         "vozes_proprias": [{"rotulo": v.rotulo, "id": v.id, "efeito": {
@@ -83,13 +77,9 @@ def de_dados(dados: dict, base: Personalidade | None = None) -> Personalidade:
     curtas = [p for p in palavras if len(p) < TAMANHO_MINIMO_PALAVRA]
     if curtas:
         raise DadosInvalidos(f"Palavras de chamada muito curtas disparam por engano: {', '.join(curtas)}.")
-    visual = dados.get("visual", "olho")
-    if visual not in VISUAIS:
-        raise DadosInvalidos("Escolha a aparência: olho ou esfera.")
     cor = str(dados.get("cor") or "").strip()
     if cor and not COR.match(cor):
         raise DadosInvalidos("A cor precisa estar no formato #RRGGBB.")
-    som = SONS.get(dados.get("som"), SONS["Mágico"])
     # Sem pontuação solta no fim ("mano," vira "mano"): ela atrapalha a IA a encaixar a expressão na frase
     expressoes = tuple(dict.fromkeys(e.rstrip(",;. ") for e in linhas(dados.get("expressoes"))
                                      if "{" not in e and "}" not in e and e.rstrip(",;. ")))
@@ -108,8 +98,7 @@ def de_dados(dados: dict, base: Personalidade | None = None) -> Personalidade:
         nome=nome,
         palavras_ativacao=palavras,
         voz_padrao=str(dados.get("voz_padrao") or (base.voz_padrao if base else "pt_BR-faber-medium")),
-        visual=visual,
-        som_ativacao=PASTA_RAIZ / "recursos" / som,
+        som_ativacao=ARQ_SOM_ATIVACAO,
         apresentacao=str(dados.get("apresentacao") or f"{nome} às suas ordens.").strip(),
         dica_vocabulario=str(dados.get("dica_vocabulario") or f"{nome}, abra o navegador. {nome}, feche o programa."),
         prompt_conversa=str(dados["prompt_conversa"]).strip(),

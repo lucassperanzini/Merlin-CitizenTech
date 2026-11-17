@@ -35,7 +35,6 @@ class TestArmazenamento(PastaTemporaria):
             ({"nome": " "}, "nome"),
             ({"palavras_ativacao": []}, "palavra de chamada"),
             ({"palavras_ativacao": ["oi"]}, "muito curtas"),
-            ({"visual": "cubo"}, "aparência"),
             ({"cor": "azul"}, "#RRGGBB"),
             ({"prompt_conversa": ""}, "conversa"),
         ]
