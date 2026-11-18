@@ -22,6 +22,17 @@ class Grupo:
 
 
 @dataclass(frozen=True)
+class Cartao:
+    """Só para o painel: skills com o mesmo cartão aparecem juntas na aba Skills (ex.: abrir e fechar programa).
+    Para a IA, as regras e a avaliação, continuam separadas, e cada uma ainda liga e desliga sozinha."""
+
+    id: str
+    titulo: str
+    resumo: str
+    icone: str
+
+
+@dataclass(frozen=True)
 class Campo:
     """Um dado a mais que a IA preenche só para esta habilidade (ex.: "busca" na pesquisa)."""
 
@@ -96,6 +107,7 @@ class Habilidade:
     resumo: str = ""  # uma frase simples para a pessoa, na aba Skills (a descricao é escrita para a IA)
     icone: str = "✨"  # o ícone do cartão da skill
     regras_resumo: tuple[str, ...] = ()  # o que a regra faz, em português simples, para o painel
+    cartao: Cartao | None = None  # aparece junto com outras skills num cartão só, na aba Skills
 
     @property
     def titulo_legivel(self) -> str:

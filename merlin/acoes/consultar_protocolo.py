@@ -11,4 +11,4 @@ class ConsultarProtocolo:
         r = self._especialista.responder(intencao.comando)
         fontes = "; ".join(f"{f.documento} {f.para_falar()}" for f in r.fontes)
         registro = f"Protocolos: {fontes}" if fontes else "Protocolos: a resposta não está nos documentos"
-        return Resultado(r.para_falar(), registro=registro, frase_completa=True)
+        return Resultado(r.para_falar(), registro=registro, frase_completa=True, fontes=r.fontes)

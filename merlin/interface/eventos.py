@@ -27,6 +27,7 @@ class TipoEvento(Enum):
     AVISO = "aviso"  # modo discreto: uma resposta curta num balão ao lado da bolinha, sem abrir o cartão
     ALERTA = "alerta"  # focos de incêndio em alerta: a bolinha fica vermelha até a pessoa ver os alertas
     ATALHO_ALERTAS = "atalho_alertas"  # a próxima resposta é a fala do alerta: ganha o atalho para a aba Alertas
+    FONTES = "fontes"  # a próxima resposta cita protocolos: ganha um botão por fonte, que abre o PDF na página
 
 
 class CanalInterface:
@@ -73,6 +74,10 @@ class CanalInterface:
     def alerta(self, dados: dict | None) -> None:
         """{"quantidade": focos em alerta, "texto": a frase falada}; None: os alertas foram vistos (cores normais)."""
         self._fila.put((TipoEvento.ALERTA, dados))
+
+    def fontes(self, fontes: list[dict]) -> None:
+        """Logo antes da resposta do especialista: o cartão põe, embaixo dela, um botão por documento citado."""
+        self._fila.put((TipoEvento.FONTES, fontes))
 
     def atalho_alertas(self) -> None:
         """Logo antes da fala do alerta: o cartão põe, embaixo dela, o atalho para a aba Alertas."""

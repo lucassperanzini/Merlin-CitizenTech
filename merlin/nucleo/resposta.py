@@ -10,6 +10,7 @@ class Resultado:
     frase_completa: bool = False  # respostas da IA e perguntas não se juntam com "e" às demais
     depois: Callable[[], None] | None = None  # roda depois de falar, como esconder a janela
     finaliza: bool = False  # as tarefas seguintes da frase não devem ser executadas
+    fontes: tuple = ()  # documentos citados (Fonte do especialista): viram botões embaixo da resposta, no cartão
 
 
 def montar_resposta(resultados: list[Resultado]) -> str:

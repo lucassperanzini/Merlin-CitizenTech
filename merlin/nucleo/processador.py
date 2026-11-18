@@ -143,7 +143,20 @@ class ProcessadorComandos:
         if self._memoria:
             self._memoria.registrar(comando, resposta)
         self._raciocinio.registrar(TipoPasso.FALA, resposta)
+        self._mostrar_fontes(r.fontes)
         self._locutor.falar(resposta)
+
+    def _mostrar_fontes(self, fontes) -> None:
+        """Antes de falar: o cartão põe, embaixo da resposta, um botão por documento citado (abre o PDF na página).
+        A mesma página do mesmo documento aparece uma vez só."""
+        botoes, vistos = [], set()
+        for fonte in fontes:
+            chave = (fonte.documento, fonte.paginas[0])
+            if chave not in vistos:
+                vistos.add(chave)
+                botoes.append(fonte.para_cartao())
+        if botoes:
+            self._canal.fontes(botoes)
 
     def _abrir_cartao(self, legenda: str) -> None:
         """O pedido discreto precisou do cartão: ele abre já mostrando o que a pessoa disse."""
@@ -282,6 +295,7 @@ class ProcessadorComandos:
         if self._memoria:
             self._memoria.registrar(comando, resposta)
         self._raciocinio.registrar(TipoPasso.FALA, resposta)
+        self._mostrar_fontes([f for resultado in resultados for f in resultado.fontes])
         self._locutor.falar(resposta)
         for resultado in resultados:
             if resultado.depois:

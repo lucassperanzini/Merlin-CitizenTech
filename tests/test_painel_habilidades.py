@@ -24,6 +24,16 @@ class TestPainelHabilidades(unittest.TestCase):
         self.assertEqual((onde_age["fechar_programa"], onde_age["abrir_configuracoes"], onde_age["conversar"]),
                          ("computador", "assistente", "fala"))
 
+    def test_abrir_e_fechar_programa_aparecem_num_cartao_so(self):
+        """Na aba Skills, um cartão "Programas". Para a IA continuam separadas, e cada uma liga e desliga sozinha."""
+        habilidades = {h["nome"]: h for g in self._servico().listar()["grupos"] for h in g["habilidades"]}
+        abrir, fechar = habilidades["abrir_programa"], habilidades["fechar_programa"]
+        self.assertEqual(abrir["cartao"], fechar["cartao"])
+        self.assertEqual(abrir["cartao"]["titulo"], "Programas")
+        self.assertTrue(abrir["pode_desligar"] and fechar["pode_desligar"])
+        self.assertIsNone(habilidades["abrir_pasta"]["cartao"])
+        self.assertEqual(sum(1 for h in habilidades.values() if h["cartao"]), 2)
+
     def test_separa_exemplos_e_contraexemplos(self):
         dados = self._servico().listar()
         fechar = next(h for g in dados["grupos"] for h in g["habilidades"] if h["nome"] == "fechar_programa")

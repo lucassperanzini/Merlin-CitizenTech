@@ -214,6 +214,20 @@
   }
   html.alerta:not(.compacto) body { border-color: color-mix(in srgb, var(--alerta) 70%, transparent);
                                      box-shadow: inset 0 0 40px color-mix(in srgb, var(--alerta) 18%, transparent); }
+  /* As fontes da resposta do especialista: um botão por documento citado, que abre o PDF na página */
+  .troca:has(.fontes) .resposta { flex: 0 1 auto; }
+  .fontes { flex: none; display: flex; flex-direction: column; gap: 5px; margin-top: 4px; animation: aparecer .4s ease-out both; }
+  .fonte {
+    display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 10px; border-radius: 8px; cursor: pointer;
+    border: 1px solid color-mix(in srgb, var(--ouro) 35%, transparent); background: color-mix(in srgb, var(--ouro) 8%, #0b0f18);
+    color: var(--texto); font: 12.5px "Segoe UI", sans-serif; text-align: left;
+  }
+  .fonte svg { flex: none; width: 15px; height: 15px; color: var(--ouro); }
+  .fonte .doc { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fonte .pag { flex: none; color: var(--ouro); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .fonte:hover:not(:disabled) { border-color: var(--ouro); background: color-mix(in srgb, var(--ouro) 18%, #0b0f18); }
+  .fonte:focus-visible { outline: 2px solid var(--ouro); outline-offset: 1px; }
+  .fonte:disabled { cursor: default; opacity: .6; }
   /* O atalho embaixo da fala do alerta, no cartão: logo abaixo do texto, e não no pé do cartão */
   .troca:has(.atalho-alertas) .resposta { flex: 0 1 auto; }
   .atalho-alertas {
@@ -362,6 +376,40 @@
     window.pywebview.api.abrir_alertas();
   }
   botaoAlerta.addEventListener("click", irParaAlertas);
+  // A resposta do especialista avisa logo antes de começar: as fontes entram embaixo dela (e só dela)
+  let fontesPendentes = null;
+  function prepararFontes(fontes) { fontesPendentes = fontes; }
+  function colocarFontes() {
+    const fontes = fontesPendentes;
+    fontesPendentes = null;
+    if (!trocaAtual || !fontes || !fontes.length) return;
+    const lista = document.createElement("div");
+    lista.className = "fontes";
+    lista.setAttribute("aria-label", "Fontes da resposta");
+    for (const f of fontes) {
+      const botao = document.createElement("button");
+      botao.type = "button";
+      botao.className = "fonte";
+      botao.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+        'stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>' +
+        '<path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span class="doc"></span><span class="pag"></span>';
+      botao.querySelector(".doc").textContent = f.titulo;  // texto, nunca HTML
+      botao.querySelector(".pag").textContent = f.paginas;
+      if (f.disponivel) {
+        botao.title = `Abrir ${f.titulo} na página ${f.pagina}`;
+        botao.addEventListener("click", async () => {
+          const r = await window.pywebview.api.abrir_fonte(f.documento, f.pagina, f.titulo);
+          if (r && r.erro) botao.title = r.erro;
+        });
+      } else {
+        botao.disabled = true;
+        botao.title = "O PDF deste protocolo não foi baixado. Rode ferramentas\\baixar_modelos.py.";
+      }
+      lista.append(botao);
+    }
+    trocaAtual.append(lista);
+  }
+
   // A fala do alerta avisa logo antes de começar: o atalho entra embaixo dessa resposta (e só dela)
   let atalhoPendente = false;
   function prepararAtalhoAlertas() { atalhoPendente = true; }
@@ -680,6 +728,7 @@
     tirarDigitando();
     respostaAtual = areaDaResposta();
     if (atalhoPendente) colocarAtalhoAlertas();
+    if (fontesPendentes) colocarFontes();
   }
   function escrever(palavra) {
     if (!respostaAtual) return;

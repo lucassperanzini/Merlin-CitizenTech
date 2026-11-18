@@ -8,6 +8,8 @@ Uso:  .venv\\Scripts\\python.exe ferramentas\\baixar_modelos.py
   adaptador LoRA do pacote defesacivil_llm.
 - Exemplos da aba Visão (~30 MB, em modelos/exemplos_visao/): 3 vídeos e 2 imagens de incêndio do repositório
   do FireWatch AI, para testar a detecção de fogo com um clique.
+- PDFs dos protocolos (~45 MB, em modelos/protocolos/): os 9 documentos que o especialista consulta, para a fonte
+  citada abrir na página certa.
 Depois de baixados, o Merlin funciona sem internet.
 """
 import hashlib
@@ -26,8 +28,9 @@ os.environ["HF_HUB_DISABLE_XET"] = "1"  # o download pelo Xet chegou a travar no
 from faster_whisper import download_model  # noqa: E402
 from huggingface_hub import snapshot_download  # noqa: E402
 
-from merlin.config import MODELO_WHISPER_CPU, MODELO_WHISPER_GPU, PASTA_EXEMPLOS_VISAO, PASTA_MODELOS  # noqa: E402
-from merlin.ia.especialista import MODELOS_HF  # noqa: E402
+from merlin.config import (MODELO_WHISPER_CPU, MODELO_WHISPER_GPU, PASTA_EXEMPLOS_VISAO, PASTA_MODELOS,  # noqa: E402
+                           PASTA_PROTOCOLOS)
+from merlin.ia.especialista import DOCUMENTOS, MODELOS_HF, ORIGEM_PROTOCOLOS  # noqa: E402
 from merlin.interface.painel_visao import EXEMPLOS, ORIGEM_EXEMPLOS  # noqa: E402
 
 CACHE_HF = PASTA_MODELOS / "huggingface" / "hub"  # onde o Merlin procura (HF_HOME em merlin/__init__.py)
@@ -52,26 +55,31 @@ def main():
         print(f"{repositorio}: pronto")
     PASTA_EXEMPLOS_VISAO.mkdir(parents=True, exist_ok=True)
     for exemplo in EXEMPLOS:
-        baixar_exemplo(exemplo)
+        baixar_conferido(ORIGEM_EXEMPLOS + urllib.parse.quote(exemplo.arquivo), PASTA_EXEMPLOS_VISAO / exemplo.arquivo,
+                         exemplo.sha256, f"exemplo {exemplo.arquivo}")
+    PASTA_PROTOCOLOS.mkdir(parents=True, exist_ok=True)
+    for documento, (caminho, conferencia) in DOCUMENTOS.items():
+        baixar_conferido(ORIGEM_PROTOCOLOS + urllib.parse.quote(caminho), PASTA_PROTOCOLOS / f"{documento}.pdf",
+                         conferencia, f"protocolo {documento}")
 
 
 def sha256(caminho: Path) -> str:
     return hashlib.sha256(caminho.read_bytes()).hexdigest()
 
 
-def baixar_exemplo(exemplo) -> None:
-    destino = PASTA_EXEMPLOS_VISAO / exemplo.arquivo
-    if destino.is_file() and sha256(destino) == exemplo.sha256:
-        print(f"exemplo {exemplo.arquivo}: já baixado")
+def baixar_conferido(url: str, destino: Path, conferencia: str, nome: str) -> None:
+    """Baixa só se faltar ou estiver diferente, e só salva se o sha256 bater com o conferido."""
+    if destino.is_file() and sha256(destino) == conferencia:
+        print(f"{nome}: já baixado")
         return
-    print(f"exemplo {exemplo.arquivo}: baixando...", flush=True)
+    print(f"{nome}: baixando...", flush=True)
     parcial = destino.with_name(destino.name + ".parcial")
-    urllib.request.urlretrieve(ORIGEM_EXEMPLOS + urllib.parse.quote(exemplo.arquivo), parcial)
-    if sha256(parcial) != exemplo.sha256:  # o arquivo no repositório não é o que foi conferido
+    urllib.request.urlretrieve(url, parcial)
+    if sha256(parcial) != conferencia:  # o arquivo no repositório não é o que foi conferido
         parcial.unlink()
-        raise RuntimeError(f"exemplo {exemplo.arquivo}: o arquivo baixado não confere (sha256); nada foi salvo")
+        raise RuntimeError(f"{nome}: o arquivo baixado não confere (sha256); nada foi salvo")
     parcial.replace(destino)
-    print(f"exemplo {exemplo.arquivo}: pronto ({destino.stat().st_size / 1e6:.1f} MB)")
+    print(f"{nome}: pronto ({destino.stat().st_size / 1e6:.1f} MB)")
 
 
 if __name__ == "__main__":

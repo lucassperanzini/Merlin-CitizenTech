@@ -104,6 +104,9 @@ class ServicoPainelHabilidades:
             "age": "computador" if h.mexe_no_computador else ("fala" if h.nome == NOME_CONVERSAR else "assistente"),
             "campos": [{"nome": c.nome, "descricao": c.descricao} for c in h.campos],
             "exemplos": exemplos, "contraexemplos": contraexemplos, "regras": list(h.regras_resumo),
+            # Skills com o mesmo cartão aparecem juntas na galeria (a página agrupa pelo id)
+            "cartao": {"id": h.cartao.id, "titulo": h.cartao.titulo, "resumo": h.cartao.resumo,
+                       "icone": h.cartao.icone} if h.cartao else None,
         }
 
 

@@ -42,6 +42,8 @@ ARQ_VISAO = PASTA_RAIZ / "recursos" / "visao.html"  # aba Visão da Central: det
 PASTA_VISAO = PASTA_RAIZ / "dados" / "visao"  # os vídeos analisados, com as caixas desenhadas (fora do Git)
 # Vídeos e imagens de exemplo da aba Visão, baixados do repositório do FireWatch por ferramentas/baixar_modelos.py
 PASTA_EXEMPLOS_VISAO = PASTA_MODELOS / "exemplos_visao"
+# Os 9 PDFs dos protocolos que o especialista consulta (DOC001.pdf...), para abrir a fonte na página citada
+PASTA_PROTOCOLOS = PASTA_MODELOS / "protocolos"
 PASTA_LEAFLET = PASTA_RAIZ / "recursos" / "vendor" / "leaflet"  # biblioteca do mapa, guardada aqui para funcionar offline
 ARQ_CONTORNO_BRASIL = PASTA_RAIZ / "recursos" / "mapas" / "brasil_uf.geojson"  # estados do Brasil (IBGE)
 ARQ_ENV = PASTA_RAIZ / ".env"  # configuração do robô FIRMS Monitor, com a chave da NASA (fora do Git)

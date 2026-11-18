@@ -21,7 +21,7 @@ O projeto também tem um **painel de alertas de focos de calor** (dados da NASA 
 - **Modo discreto:** um pedido rápido junto com o nome ("Merlin, abre o spotify") é resolvido sem abrir o cartão: a resposta aparece num balão ao lado da bolinha e ele volta a esperar. Conversas, perguntas de confirmação, erros e respostas longas abrem o cartão.
 - **Tarefas no computador:** abrir e fechar programas e abrir pastas ("abre o spotify", "fecha o word", "abre a pasta downloads"). Se o programa pedido não estiver instalado, ele avisa e pesquisa o nome no navegador.
 - **Várias tarefas numa frase:** "abre o chrome e fecha o telegram" vira uma resposta só ("Abri o chrome e fechei o telegram").
-- **Protocolos da Defesa Civil:** "o que é o sistema de comando de incidentes?", "quais equipamentos o brigadista usa?". Quem responde é um modelo especialista (RAG + LoRA sobre 9 manuais e normas de incêndio), que cita a fonte ("Fonte: Apostila do Brigadista, página 49") e diz "não consta" quando a resposta não está nos documentos, em vez de inventar.
+- **Protocolos da Defesa Civil:** "o que é o sistema de comando de incidentes?", "quais equipamentos o brigadista usa?". Quem responde é um modelo especialista (RAG + LoRA sobre 9 manuais e normas de incêndio), que cita a fonte ("Fonte: Apostila do Brigadista, página 49") e diz "não consta" quando a resposta não está nos documentos, em vez de inventar. Embaixo da resposta, no cartão, cada fonte vira um botão que abre o PDF do protocolo **já na página citada**, numa janela do próprio Merlin.
 - **Conversa:** responde perguntas no jeito da personalidade e lembra o que foi dito na conversa atual.
 - **Interrupção:** fale por cima e ele para de falar.
 - **Janelas:**
@@ -91,6 +91,7 @@ O Merlin abre e funciona em qualquer PC com Windows. O que depende do computador
 | Modelos de reconhecimento de voz (Whisper) | ~2,1 GB | `ferramentas\baixar_modelos.py` → pasta `modelos/` |
 | Modelo especialista da Defesa Civil (Qwen2.5-3B, modelo de busca e adaptador LoRA) | ~7 GB | `ferramentas\baixar_modelos.py` → pasta `modelos/huggingface/` |
 | Exemplos da aba Visão (3 vídeos e 2 imagens de incêndio do repositório do FireWatch AI) | ~30 MB | `ferramentas\baixar_modelos.py` → pasta `modelos/exemplos_visao/` |
+| PDFs dos 9 protocolos consultados pelo especialista (para a fonte abrir na página citada) | ~45 MB | `ferramentas\baixar_modelos.py` → pasta `modelos/protocolos/` |
 
 ### Criado no seu PC durante o uso (fora do git)
 
@@ -113,7 +114,7 @@ git config --global core.longpaths true
 py -3.13 -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 
-# 2. Modelos de voz, o especialista da Defesa Civil e os exemplos da aba Visão (~9 GB, vão para modelos\)
+# 2. Modelos de voz, o especialista da Defesa Civil, os PDFs dos protocolos e os exemplos da aba Visão (~9 GB, vão para modelos\)
 .venv\Scripts\python.exe ferramentas\baixar_modelos.py
 
 # 3. IA local: instale o Ollama (ollama.com) e baixe o modelo padrão

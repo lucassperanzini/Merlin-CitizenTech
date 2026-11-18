@@ -39,7 +39,8 @@ class ApiJanela:
     """Funções que a página pode chamar. O pywebview expõe tudo o que é público, por isso os atributos são privados."""
 
     def __init__(self, central, sessao, estado=None, mostrar_botoes=None, abrir_menu=None, trocar_assistente=None,
-                 raciocinio=None, painel=None, debug=None, balao=None, ver_alertas=None):
+                 raciocinio=None, painel=None, debug=None, balao=None, ver_alertas=None, leitor=None):
+        self._leitor = leitor
         self._ver_alertas = ver_alertas
         self._balao = balao
         self.raciocinio = raciocinio  # a API da página do raciocínio, no painel à esquerda do cartão
@@ -54,6 +55,12 @@ class ApiJanela:
 
     def abrir_configuracoes(self):
         self._central.abrir_aba("assistente")
+
+    def abrir_fonte(self, documento, pagina, titulo=""):
+        """Botão da fonte, embaixo da resposta do especialista: abre o PDF do protocolo na página citada."""
+        if not self._leitor:
+            return {"erro": "O leitor de protocolos não está disponível."}
+        return self._leitor.abrir(documento, pagina, titulo)
 
     def abrir_alertas(self):
         """Sino da órbita ou atalho do cartão: abre a aba Alertas da Central, desliga o alarme e tira o vermelho."""
@@ -140,9 +147,10 @@ def _ollama_responde() -> bool:
 
 class JanelaMerlin:
     def __init__(self, estado, canal, sessao, preferencias, central, trocar_assistente=None, raciocinio=None,
-                 ver_alertas=None, ia_disponivel=None):
+                 ver_alertas=None, ia_disponivel=None, leitor=None):
         """ia_disponivel: diz se a IA responde (o anel da bolinha avisa quando não). Sem ela, pergunta ao Ollama."""
         self._ia_disponivel = ia_disponivel or _ollama_responde
+        self._leitor = leitor  # abre a fonte citada pelo especialista (merlin/interface/leitor_protocolos.py)
         self._estado = estado
         self._canal = canal
         self._sessao = sessao
@@ -168,7 +176,7 @@ class JanelaMerlin:
             preferencias.personalidade.nome, html=self._montar_pagina(),
             js_api=ApiJanela(central, sessao, estado, self._mostrar_botoes_compactos, self._abrir_menu_compacto,
                              trocar_assistente, raciocinio, self._abrir_painel, self._alternar_debug,
-                             self._mostrar_balao, ver_alertas),
+                             self._mostrar_balao, ver_alertas, leitor),
             width=largura, height=altura, x=x, y=y,
             resizable=False, on_top=True, hidden=True, background_color="#05070C",
             min_size=(100, 100),  # o padrão (200 de largura) não deixaria a bolinha do canto ficar redonda
@@ -244,6 +252,8 @@ class JanelaMerlin:
             self._chamar_pagina("definirAlerta", dado)
         elif tipo is TipoEvento.ATALHO_ALERTAS:
             self._chamar_pagina("prepararAtalhoAlertas")
+        elif tipo is TipoEvento.FONTES:  # a próxima resposta ganha um botão por documento citado
+            self._chamar_pagina("prepararFontes", dado)
         elif tipo is TipoEvento.LEGENDA and self._visivel:
             self._chamar_pagina("definirLegenda", dado)
         elif tipo is TipoEvento.RESPOSTA and self._visivel:
@@ -396,4 +406,6 @@ class JanelaMerlin:
             except Exception as erro:
                 logger.error("[JANELA] %s", erro)
         self._central.fechar()  # se ela ficasse aberta, o programa não terminaria
+        if self._leitor:
+            self._leitor.fechar()
         self.janela.destroy()

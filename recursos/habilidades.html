@@ -77,6 +77,10 @@
   #detalhe { flex: 1; min-width: 0; overflow-y: auto; padding: 18px 22px 24px; scrollbar-width: thin; scrollbar-color: var(--borda) transparent; }
   .topo { display: flex; align-items: center; gap: 10px; }
   .topo h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  /* Uma parte de um cartão com várias skills (ex.: Abrir e Fechar, dentro de Programas) */
+  .parte { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--borda); }
+  .parte .topo h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--texto); }
+  .parte .quando { margin-bottom: 8px; }
   .topo button { margin-left: auto; }
   .selo { font-size: 11px; color: var(--aviso); border: 1px solid #7a5a22; border-radius: 99px; padding: 0 7px; }
   .quando { margin: 8px 0 18px; color: #c3cde6; }
@@ -132,14 +136,33 @@
     return b;
   }
   const todas = () => dados.grupos.flatMap(g => g.habilidades);
+  // Skills com o mesmo cartão (abrir e fechar programa) aparecem juntas. Cada uma continua com o seu interruptor
+  // e a sua edição, dentro do cartão. O cartão aberto fica em `atual` como "cartao:<id>"
+  const PREFIXO = "cartao:";
+  const doCartao = id => todas().filter(h => h.cartao && h.cartao.id === id)
+    .sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR"));
+  const ehCartao = nome => typeof nome === "string" && nome.startsWith(PREFIXO);
+  function itensDaGaleria() {
+    const itens = [], vistos = new Set();
+    for (const h of todas()) {
+      if (!h.cartao) { itens.push(h); continue; }
+      if (vistos.has(h.cartao.id)) continue;
+      vistos.add(h.cartao.id);
+      itens.push({ ...h.cartao, nome: PREFIXO + h.cartao.id, partes: doCartao(h.cartao.id) });
+    }
+    return itens;
+  }
+  const existe = nome => ehCartao(nome) ? doCartao(nome.slice(PREFIXO.length)).length > 0
+                                         : todas().some(h => h.nome === nome);
 
   async function carregar(nome = atual) {
     dados = await api().listar();
-    atual = todas().some(h => h.nome === nome) ? nome : null;
+    atual = existe(nome) ? nome : null;
     if (atual) mostrarSkill(); else mostrarGaleria();
   }
   function abrir(nome) {
-    atual = nome;
+    const h = todas().find(s => s.nome === nome);
+    atual = h && h.cartao ? PREFIXO + h.cartao.id : nome;  // uma skill de cartão abre o cartão inteiro
     mostrarSkill();
   }
   function interruptor(h) {
@@ -157,7 +180,8 @@
   function mostrarGaleria() {
     atual = null;
     const galeria = el("div", "galeria");
-    for (const h of todas()) {
+    for (const h of itensDaGaleria()) {
+      if (h.partes) { galeria.append(cartaoDeVarias(h)); continue; }
       const c = botao("", "cartao-skill", () => abrir(h.nome));
       c.dataset.nome = h.nome;
       const titulo = el("strong", "", h.titulo);
@@ -173,6 +197,23 @@
     $("detalhe").replaceChildren(galeria);
     $("detalhe").scrollTop = 0;
   }
+  // Um cartão com várias skills: o interruptor de cada uma fica lá dentro; aqui só o resumo do que está desligado
+  function cartaoDeVarias(item) {
+    const c = botao("", "cartao-skill", () => { atual = item.nome; mostrarSkill(); });
+    c.dataset.nome = item.nome;
+    const titulo = el("strong", "", item.titulo);
+    if (item.partes.some(p => p.ajustada)) titulo.append(el("span", "ajuste", "ajustada"));
+    const desligadas = item.partes.filter(p => !p.ligada);
+    if (desligadas.length === item.partes.length) titulo.append(el("span", "ajuste", "desligada"));
+    // Só o verbo ("fechar: desligado"): o nome inteiro não cabe ao lado do título
+    else for (const p of desligadas) titulo.append(el("span", "ajuste", `${p.titulo.split(" ")[0].toLowerCase()}: desligado`));
+    c.append(el("span", "figura", item.icone), titulo, el("span", "faz", item.resumo));
+    const exemplo = item.partes.find(p => p.ligada && p.exemplos.length) || item.partes.find(p => p.exemplos.length);
+    if (exemplo) c.append(el("em", "", `“${exemplo.exemplos[0].frase}”`));
+    const caixa = el("div", desligadas.length === item.partes.length ? "caixa-skill desligada" : "caixa-skill");
+    caixa.append(c);
+    return caixa;
+  }
   const skill = () => todas().find(h => h.nome === atual);
 
   // Leitura: o que a skill faz e as frases que a ativam. O resto fica recolhido.
@@ -182,21 +223,39 @@
     return d;
   }
   function mostrarSkill() {
-    const h = skill();
+    if (ehCartao(atual)) { mostrarCartao(); return; }
+    $("detalhe").replaceChildren(botao("← Todas as skills", "voltar", mostrarGaleria), ...conteudoSkill(skill(), true));
+    $("detalhe").scrollTop = 0;
+  }
+  function mostrarCartao() {
+    const partes = doCartao(atual.slice(PREFIXO.length)), cartao = partes[0].cartao;
     const topo = el("div", "topo");
-    topo.append(el("span", "figura-grande", h.icone), el("h1", "", h.titulo));
+    topo.append(el("span", "figura-grande", cartao.icone), el("h1", "", cartao.titulo));
+    const nos = [botao("← Todas as skills", "voltar", mostrarGaleria), topo, el("p", "quando", cartao.resumo)];
+    for (const h of partes) {
+      const secao = el("section", "parte");
+      secao.append(...conteudoSkill(h, false));
+      nos.push(secao);
+    }
+    $("detalhe").replaceChildren(...nos);
+    $("detalhe").scrollTop = 0;
+  }
+  // sozinha: a skill ocupa a tela (ícone e título grandes); senão, é uma parte dentro de um cartão
+  function conteudoSkill(h, sozinha) {
+    const topo = el("div", "topo");
+    if (sozinha) topo.append(el("span", "figura-grande", h.icone), el("h1", "", h.titulo));
+    else topo.append(el("h2", "", h.titulo));
     if (h.ajustada) topo.append(el("span", "selo", "ajustada"));
     if (!h.ligada) topo.append(el("span", "selo", "desligada"));
     const editar = botao("Editar", "", () => editarSkill(h));
-    editar.id = "editar";
+    if (sozinha) editar.id = "editar";
     topo.append(editar);
     if (h.pode_desligar) {
       const alternar = botao(h.ligada ? "Desligar" : "Ligar", "", async () => { await api().ligar(h.nome, !h.ligada); carregar(); });
       alternar.style.marginLeft = "0";
       topo.append(alternar);
     }
-    const partes = [botao("← Todas as skills", "voltar", mostrarGaleria), topo, el("p", "quando", h.resumo),
-                    el("h2", "", "Diga, por exemplo")];
+    const partes = [topo, el("p", "quando", h.resumo), el("h2", "", "Diga, por exemplo")];
     const frases = el("ul", "frases");
     for (const e of h.exemplos) frases.append(el("li", "", `“${e.frase}”`));
     partes.push(frases);
@@ -215,8 +274,7 @@
       for (const r of h.regras) ul.append(el("li", "", r));
       partes.push(recolhido(`Regras do código (${h.regras.length})`, ul));
     }
-    $("detalhe").replaceChildren(...partes);
-    $("detalhe").scrollTop = 0;
+    return partes;
   }
 
   // Edição: as frases que ativam e, recolhidas, as parecidas. Regras e ação ficam no código.

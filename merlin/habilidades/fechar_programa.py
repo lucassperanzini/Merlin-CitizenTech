@@ -29,6 +29,7 @@ def criar_acao(recursos):
 HABILIDADE = Habilidade(
     nome="fechar_programa",
     titulo='Fechar programa',
+    cartao=grupos.CARTAO_PROGRAMAS,
     resumo="Fecha um programa aberto.",
     icone="❌",
     regras_resumo=(

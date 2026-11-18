@@ -8,7 +8,7 @@ import threading
 from dataclasses import dataclass
 from typing import Callable
 
-from merlin.config import ESPECIALISTA_4_BITS, PASTA_MODELOS
+from merlin.config import ESPECIALISTA_4_BITS, PASTA_MODELOS, PASTA_PROTOCOLOS
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,41 @@ CACHE_EMBEDDINGS = PASTA_MODELOS / "defesacivil"  # os vetores dos trechos, calc
 # O que o pacote baixa da Hugging Face (ferramentas/baixar_modelos.py): modelo base, busca e adaptador LoRA
 MODELOS_HF = ("Qwen/Qwen2.5-3B-Instruct", "intfloat/multilingual-e5-base", "JPSV/jarvis-rescue-lora")
 
+# Os PDFs da base de conhecimento do especialista, do repositório do autor (Base_Conhecimento/), fixados no commit
+# instalado. Ficam em modelos/protocolos/DOC00x.pdf (ferramentas/baixar_modelos.py), para a fonte citada abrir na
+# página certa. As páginas dos trechos do RAG são as físicas do PDF (a 1ª folha é a página 1).
+ORIGEM_PROTOCOLOS = ("https://raw.githubusercontent.com/JBVJoaoV/GS2-GENIA/"
+                     "20b521c104512c6fd2e3209906c39f72eb91b77c/Base_Conhecimento/")
+DOCUMENTOS = {  # código: (caminho no repositório, sha256)
+    "DOC001": ("01_prevencao_manejo/20250428_roteiro_metodologico.pdf",
+               "2417e5faf878edd677d96532caf0b4ea87315211c067661d61a18d5dd2e0e2b5"),
+    "DOC002": ("01_prevencao_manejo/GUIA-PRATICO-PMIF.pdf",
+               "418ac8967f82c6b11438d03d166b135d5ce5d07339f27de87d09f99c2801831a"),
+    "DOC003": ("01_prevencao_manejo/cartilhaPNMIF.pdf",
+               "33c07373093d3f8a9a0781720f6190ee85095c868fac35b0e9502d8e56e1d74a"),
+    "DOC004": ("01_prevencao_manejo/E-possivel-controlar-fogo-vs-site.pdf",
+               "b99114c7db8947bd497cd0cbe774a6a3a5a2864f5ca58af5cad4a48273123ca0"),
+    "DOC005": ("02_brigadistas_seguranca/2010_ICMBIO_ApostilaBrigadistaPrevencaoIncendios_MMA_DE3os.pdf",
+               "11b13ee7dd581ef61302b97fa0f569da01b227ae6627b7f62b64c5adebcf9984"),
+    "DOC006": ("03_comando_incidentes/20250311_Manual_22661453_Manual_SCI_100_Introducao_ao_Sistema_de_Comando_de_"
+               "Incidente_marco2025.pdf", "b2885af7174dd408d3e59edd641358f3e144fc0a5ff829bf203b3d5784a670c7"),
+    "DOC007": ("03_comando_incidentes/20250311_Manual_22661456_Manual_SCI_200_Basico_do_Sistema_de_Comando_de_"
+               "Incidentes_para_Resposta_Inicial_marco2025.pdf",
+               "04f82cf222f99c2b7a02c79f34b712ee355241d9872786488a16c86e957331b0"),
+    "DOC008": ("03_comando_incidentes/20250311_Manual_22661458_Manual_do_Curso_Intermediario_SCI_300_para_incidentes_"
+               "em_expansao_marco2025.pdf", "1a2cc61d02dac8fd48a8121acc9ed79ee6f9bdc866c947865e34a4979d3eade1"),
+    "DOC009": ("04_incendios_edificacoes/instrucao_tecnica_16_2015_plano_de_emergencia_contra_incendio.pdf",
+               "f382e82529d4ee5a6b28b0e709b7fa3c09f225f36bd343548077e27c7603e056"),
+}
+
+
+def pdf_do_documento(documento: str):
+    """O PDF baixado de um documento da base, ou None (código desconhecido ou ainda não baixado)."""
+    if documento not in DOCUMENTOS:
+        return None
+    caminho = PASTA_PROTOCOLOS / f"{documento}.pdf"
+    return caminho if caminho.is_file() else None
+
 
 @dataclass(frozen=True)
 class Fonte:
@@ -31,6 +66,13 @@ class Fonte:
     def para_falar(self) -> str:
         ini, fim = self.paginas
         return f"{self.titulo}, página {ini}" if ini == fim else f"{self.titulo}, páginas {ini} a {fim}"
+
+    def para_cartao(self) -> dict:
+        """O botão da fonte, embaixo da resposta: abre o PDF na primeira página do trecho citado."""
+        ini, fim = self.paginas
+        return {"documento": self.documento, "titulo": self.titulo, "pagina": ini,
+                "paginas": f"p. {ini}" if ini == fim else f"pp. {ini}-{fim}",
+                "disponivel": pdf_do_documento(self.documento) is not None}
 
 
 @dataclass(frozen=True)

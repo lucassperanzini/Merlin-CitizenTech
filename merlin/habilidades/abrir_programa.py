@@ -30,6 +30,7 @@ def criar_acao(recursos):
 HABILIDADE = Habilidade(
     nome="abrir_programa",
     titulo='Abrir programa',
+    cartao=grupos.CARTAO_PROGRAMAS,
     resumo="Abre um programa instalado no computador.",
     icone="🚀",
     regras_resumo=(

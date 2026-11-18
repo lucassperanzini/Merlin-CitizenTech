@@ -29,6 +29,7 @@ from merlin.interface.perfil import so_administrador
 from merlin.interface.moldura import usar_botao_debug
 from merlin.interface.eventos import CanalInterface
 from merlin.interface.janela import JanelaMerlin
+from merlin.interface.leitor_protocolos import LeitorProtocolos
 from merlin.interface.janela_raciocinio import ApiRaciocinio
 from merlin.nucleo.memoria_conversa import MemoriaConversa
 from merlin.nucleo.processador import ProcessadorComandos
@@ -135,7 +136,8 @@ def construir_aplicacao() -> Aplicacao:
         janela=JanelaMerlin(estado, canal, sessao, preferencias, central,
                             trocar_assistente=servico_configuracoes.trocar_personalidade,
                             raciocinio=ApiRaciocinio(raciocinio, gravador.pasta), ver_alertas=aviso_alertas.visto,
-                            ia_disponivel=especialista.disponivel if MODO_ESPECIALISTA else None),
+                            ia_disponivel=especialista.disponivel if MODO_ESPECIALISTA else None,
+                            leitor=LeitorProtocolos()),  # a fonte citada abre o PDF do protocolo na página
         especialista=especialista,
     )
 

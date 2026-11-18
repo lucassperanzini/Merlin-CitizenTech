@@ -32,6 +32,9 @@ class CanalFalso:
     def aviso(self, texto):
         self.eventos.append(f"aviso: {texto}")
 
+    def fontes(self, fontes):
+        self.eventos.append(("fontes", fontes))
+
 
 class ClienteFalso:
     """Devolve sempre a resposta configurada e guarda o que recebeu."""
