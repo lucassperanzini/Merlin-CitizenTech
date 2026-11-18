@@ -166,12 +166,13 @@ class TestFrasesComRegras(unittest.TestCase):
 
 
 class TestFrasesDoMerlin(unittest.TestCase):
-    def test_merlin_pode_chamar_de_senhor(self):
-        texto = "Reduzindo a energia por ora, senhor. É só me chamar."
-        self.assertEqual(gerador(MERLIN.despedida, texto).gerar(), texto)
+    def test_merlin_nao_chama_de_senhor(self):
+        """O Merlin atende agentes públicos: tratamento neutro. Uma frase da IA com "senhor" é trocada por uma pronta."""
+        texto = "Em modo de espera, senhor. É só me chamar."
+        self.assertIn(gerador(MERLIN.despedida, texto).gerar(), MERLIN.despedida.reservas)
 
     def test_saudacao_do_merlin_nao_exige_o_nome(self):
-        texto = "Sistemas prontos e a rede estável, senhor. Em que posso ajudar?"
+        texto = "Pronto para o plantão, com os alertas em dia. Em que posso ajudar?"
         self.assertEqual(gerador(MERLIN.saudacao, texto).gerar(), texto)
 
     def test_reservas_sao_validas(self):

@@ -3,10 +3,13 @@ import re
 
 from merlin.habilidades import grupos
 from merlin.habilidades.base import Correcao, Exemplo, Habilidade
+from merlin.habilidades.frases import PERGUNTA
 from merlin.personalidades import NOMES_DO_ASSISTENTE
 
 
 def regra(leitura):
+    if PERGUNTA.match(leitura.comando):
+        return Correcao("conversar", "a frase é uma pergunta, não uma ordem")  # "como abro as configurações do celular?"
     if re.search(r"\bpastas?\b", leitura.comando, re.IGNORECASE):
         alvo = re.sub(r"\bpastas?\b", "", leitura.alvo, flags=re.IGNORECASE).strip() or leitura.alvo
         return Correcao("abrir_pasta", "a frase pede uma pasta, não um programa", alvo=alvo)
@@ -30,6 +33,7 @@ HABILIDADE = Habilidade(
     resumo="Abre um programa instalado no computador.",
     icone="🚀",
     regras_resumo=(
+        'Perguntas (“como abro…?”) viram conversa.',
         'Sem programa citado, ou citando o próprio assistente, vira conversa.',
         'Se a frase fala em “pasta”, ou o nome é um atalho de pasta (aba Pastas ou Acesso Rápido), vira abrir pasta.',
     ),

@@ -12,10 +12,16 @@ PAUSA_FIM_FRASE = 1.0  # segundos sem voz humana que encerram a frase: mais curt
                        # mais longo deixa pausar para pensar no meio do pedido
 MAX_TROCAS_LEMBRADAS = 6  # quantas perguntas e respostas da conversa atual o Merlin lembra
 
-MODELO_IA = "qwen3:8b"  # padrão; a escolha feita nas configurações fica salva nas preferências
-# Por enquanto, o cérebro principal é o modelo especialista da Defesa Civil (merlin/ia/especialista.py): toda
-# pergunta vai para ele, e as skills (intenções) e o Ollama ficam desligados. False volta ao funcionamento normal.
-MODO_ESPECIALISTA = True
+# Padrão; a escolha feita nas configurações fica salva nas preferências. O 4B entende os pedidos quase tão bem
+# quanto o qwen3:8b e cabe na placa de vídeo junto com o especialista da Defesa Civil (o 8B ficava pela metade nela).
+# A versão Instruct, e não a tag qwen3:4b: essa baixa o Qwen3-4B-Thinking, que sempre pensa antes de falar
+# (11 a 24 s por resposta de conversa) e ignora o pedido para não pensar.
+MODELO_IA = "qwen3:4b-instruct"
+# O especialista da Defesa Civil (merlin/ia/especialista.py) responde às perguntas sobre protocolos, pela skill
+# consultar_protocolo. True: ele vira o cérebro único (toda frase vai para ele, sem skills nem Ollama).
+MODO_ESPECIALISTA = False
+# 4 bits: ocupa ~3,7 GB da placa em vez de ~7,8 GB, com ~2 s a mais por resposta (precisa do bitsandbytes)
+ESPECIALISTA_4_BITS = True
 # Até este número de habilidades, a IA escolhe a intenção de uma vez; acima, em duas etapas (grupo e depois
 # intenção), para cada pergunta continuar curta. Veja ferramentas/avaliar_classificador.py.
 LIMITE_UMA_ETAPA = 12

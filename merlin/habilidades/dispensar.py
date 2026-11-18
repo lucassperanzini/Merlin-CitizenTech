@@ -1,11 +1,22 @@
 """Dispensar: o assistente se despede e volta a esperar ser chamado."""
+import re
+
 from merlin.habilidades import grupos
 from merlin.habilidades.base import ALVO_ASSISTENTE, Correcao, Exemplo, Habilidade
 from merlin.personalidades import NOMES_DO_ASSISTENTE
 
+# "Tudo bem com você?" puxa conversa: modelos pequenos confundem com despedida ("tudo bem, pode ir")
+PUXA_CONVERSA = re.compile(r"^(?:e\s+)?(?:tudo\s+(?:bem|bom|certo|tranquilo|em\s+paz)|como\s+(?:vai|voc[eê]\s+est[aá]|est[aá])|"
+                           r"beleza|suave|fala\s+a[ií])\b", re.IGNORECASE)
+DESPEDIDA = re.compile(r"\b(?:tchau|valeu|obrigad[oa]|brigad[oa]|at[eé]\s+(?:mais|logo|depois)|adeus|pode\s+(?:ir|sair|"
+                       r"descansar|desligar)|boa\s+noite|terminamos|terminei|j[aá]\s+(?:resolvi|deu)|desliga|some|cai\s+fora)\b",
+                       re.IGNORECASE)
+
 
 def so_sobre_o_assistente(leitura):
     """Sair só vale quando o alvo é o próprio assistente: "encerra o discord" não é desligar o assistente."""
+    if PUXA_CONVERSA.match(leitura.comando) and not DESPEDIDA.search(leitura.comando):
+        return Correcao("conversar", "a frase puxa conversa (“tudo bem?”), sem nenhuma despedida")
     if leitura.alvo.lower() not in NOMES_DO_ASSISTENTE:
         return Correcao("conversar", f"sair só vale quando o alvo é o assistente, e o alvo era '{leitura.alvo}'")
     return None
@@ -24,6 +35,7 @@ HABILIDADE = Habilidade(
     icone="👋",
     regras_resumo=(
         'Só vale se a frase for para o próprio assistente: “encerra o discord” vira conversa.',
+        '“Tudo bem com você?” sem nenhuma despedida vira conversa.',
     ),
     grupo=grupos.ASSISTENTE,
     ordem=10,

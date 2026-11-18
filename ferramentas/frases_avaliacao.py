@@ -36,6 +36,15 @@ FRASES = [
     ("abre suas configurações", "abrir_configuracoes", None),
     ("quero mudar seus ajustes", "abrir_configuracoes", None),
     ("mostra as configurações do assistente", "abrir_configuracoes", None),
+    # consultar_protocolo: perguntas dos protocolos da Defesa Civil
+    ("o que é um aceiro negro", "consultar_protocolo", None),
+    ("quais equipamentos de proteção o brigadista usa", "consultar_protocolo", None),
+    ("quem assume quando chega alguém mais qualificado no incidente", "consultar_protocolo", None),
+    ("para que serve a instrução técnica 16", "consultar_protocolo", None),
+    ("como funciona uma queima prescrita", "consultar_protocolo", None),
+    ("o que fazer se o vento mudar a direção do fogo", "consultar_protocolo", None),
+    ("me conta uma curiosidade sobre bombeiros", "conversar", None),
+    ("qual a temperatura de hoje", "conversar", None),
     # conversar: perguntas e pedidos que lembram ações, mas não são
     ("qual a capital da frança", "conversar", None),
     ("quanto é sete vezes oito", "conversar", None),

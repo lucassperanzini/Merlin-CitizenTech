@@ -3,4 +3,6 @@ from merlin.habilidades.base import Grupo
 
 ASSISTENTE = Grupo("assistente", "falar com o próprio assistente: despedir-se ou abrir os ajustes dele", 10)
 PROGRAMAS = Grupo("programas", "abrir ou fechar um programa do computador, ou abrir uma pasta", 20)
+DEFESA_CIVIL = Grupo("defesa_civil", "perguntas sobre protocolos e procedimentos da Defesa Civil e do combate a "
+                     "incêndios", 30)
 CONVERSA = Grupo("conversa", "qualquer outra coisa: perguntas, conversa, pedidos de texto e coisas fora do computador", 99)

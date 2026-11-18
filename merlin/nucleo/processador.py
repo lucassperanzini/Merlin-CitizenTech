@@ -1,15 +1,18 @@
 """Decide o que fazer com cada frase: ativar, resolver uma confirmação ou executar as tarefas pedidas.
 Cada etapa fica anotada no raciocínio, que a janela de raciocínio mostra."""
 import logging
+import re
 import time
+from dataclasses import replace
 from typing import Callable, Mapping
 
+from merlin import habilidades
 from merlin.ia.confirmacao import RespostaConfirmacao
 from merlin.ia.intencoes import ACOES_NO_COMPUTADOR, PEDIDOS_DE_FRASE_INTEIRA, Intencao, TipoIntencao
 from merlin.interface.eventos import EstadoVisual
 from merlin.nucleo.raciocinio import Raciocinio, TipoPasso
 from merlin.nucleo.resposta import Resultado, montar_resposta
-from merlin.personalidades import personalidade_padrao
+from merlin.personalidades import NOMES_DO_ASSISTENTE, personalidade_padrao
 from merlin.texto import remover_palavra_ativacao, tem_palavra_ativacao
 
 logger = logging.getLogger(__name__)
@@ -17,6 +20,9 @@ logger = logging.getLogger(__name__)
 Acao = Callable[[Intencao], Resultado]
 
 AVISO_SEM_IA = "Não consegui falar com o meu cérebro. Verifique se o Ollama está rodando."
+# "Quais as suas capacidades?" é sobre o assistente, não sobre os manuais, mas a busca dá nota alta a ela
+# (0,837 para um limite de 0,836): quem fala com o assistente não é desviado para os protocolos
+FALA_COM_O_ASSISTENTE = re.compile(r"\b(?:voc[eê]s?|vc|te|tu|contigo|seus?|suas?)\b", re.IGNORECASE)
 LIMITE_DO_BALAO = 90  # modo discreto: respostas até este tamanho cabem no balão ao lado da bolinha
 
 
@@ -35,10 +41,12 @@ def duracao(inicio: float) -> float | None:
 class ProcessadorComandos:
     def __init__(self, estado, sessao, canal, locutor, divisor, classificador, confirmador, saudacao,
                  acoes: Mapping[TipoIntencao, Acao], memoria=None, preferencias=None, raciocinio=None,
-                 especialista=None):
-        """especialista: com ele, toda pergunta vai direto ao modelo da Defesa Civil, sem dividir a frase nem
-        procurar uma skill (config.MODO_ESPECIALISTA)."""
+                 especialista=None, so_especialista=False):
+        """especialista: o modelo da Defesa Civil. Confere as frases que a IA entendeu como conversa: se forem
+        perguntas dos protocolos, vão para consultar_protocolo. so_especialista: toda pergunta vai direto a ele,
+        sem dividir a frase nem procurar uma skill (config.MODO_ESPECIALISTA)."""
         self._especialista = especialista
+        self._so_especialista = so_especialista and especialista is not None
         self._raciocinio = raciocinio or Raciocinio()
         self._preferencias = preferencias
         self._memoria = memoria
@@ -83,7 +91,7 @@ class ProcessadorComandos:
             self._locutor.falar(resposta)
             return
 
-        if self._especialista:
+        if self._so_especialista:
             if discreto:  # a resposta é longa demais para o balão: abre o cartão
                 self._abrir_cartao(legenda)
             self._consultar_especialista(comando)
@@ -113,7 +121,7 @@ class ProcessadorComandos:
         self._responder(resultados, comando)
 
     def _nome_do_modelo(self) -> str:
-        if self._especialista:
+        if self._so_especialista:
             return self._especialista.nome
         return self._preferencias.modelo_ia if self._preferencias else ""
 
@@ -236,7 +244,29 @@ class ProcessadorComandos:
         if intencao.motivo_regra:
             self._raciocinio.registrar(TipoPasso.REGRA, f"O código mudou a decisão do modelo para {intencao.tipo.value}",
                                        motivo=intencao.motivo_regra)
-        return intencao
+        return self._confirmar_protocolo(intencao)
+
+    def _confirmar_protocolo(self, intencao: Intencao) -> Intencao:
+        """A IA de conversa pode não reconhecer uma pergunta dos protocolos ("e se o vento virar?"). A busca nos
+        documentos confere: se ela acha um trecho parecido o bastante, quem responde é o especialista, que cita a
+        fonte, e não a conversa livre, que poderia inventar um procedimento."""
+        protocolo = getattr(TipoIntencao, "CONSULTAR_PROTOCOLO", None)
+        if (intencao.tipo is not TipoIntencao.CONVERSAR or protocolo is None or not self._especialista
+                or not habilidades.esta_ligada(protocolo.value)):
+            return intencao
+        if FALA_COM_O_ASSISTENTE.search(intencao.comando) or intencao.alvo.lower() in NOMES_DO_ASSISTENTE:
+            return intencao  # pergunta sobre o próprio assistente: a conversa sabe o que ele faz
+        try:
+            achou = self._especialista.parece_protocolo(intencao.comando)
+        except Exception as erro:  # sem a busca, a conversa segue normalmente
+            logger.warning("[ESPECIALISTA] Não consegui conferir nos protocolos: %s", erro)
+            return intencao
+        if not achou:
+            return intencao
+        motivo = "a busca encontrou um trecho dos protocolos parecido com a pergunta"
+        self._raciocinio.registrar(TipoPasso.REGRA, f"O código mudou a decisão do modelo para {protocolo.value}",
+                                   motivo=motivo)
+        return replace(intencao, tipo=protocolo, motivo_regra=motivo)
 
     def _executar_intencao(self, intencao: Intencao) -> Resultado:
         return self._registrar_acao(self._acoes[intencao.tipo](intencao))

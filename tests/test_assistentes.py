@@ -339,7 +339,7 @@ class TestQuemEleE(unittest.TestCase):
         self.assertIn("Um mago de mil anos que mora numa torre", texto)
         self.assertIn("sem recitar", texto)
         self.assertLess(texto.index(MERLIN.prompt_conversa), texto.index("Um mago de mil anos"))
-        self.assertNotIn("pano de fundo", instrucoes_da_conversa(MERLIN))  # sem contexto, nada é acrescentado
+        self.assertNotIn("pano de fundo", instrucoes_da_conversa(replace(MERLIN, contexto="")))  # sem contexto, nada
 
     def test_contexto_e_salvo_e_lido_de_volta(self):
         dados = assistente_valido()
@@ -349,8 +349,9 @@ class TestQuemEleE(unittest.TestCase):
         self.assertEqual(p.contexto, "Assistente de uma empresa de café.")
         self.assertEqual(armazenamento.para_dados(p)["contexto"], "Assistente de uma empresa de café.")
 
-    def test_assistentes_atuais_comecam_sem_contexto(self):
-        self.assertEqual(MERLIN.contexto, "")
+    def test_merlin_original_e_o_assistente_dos_agentes_publicos(self):
+        self.assertIn("agentes públicos da Defesa Civil", MERLIN.contexto)
+        self.assertTrue(MERLIN.saudacao.proibir_tratamentos and MERLIN.despedida.proibir_tratamentos)
 
 
 class TestOriginaisEmJson(unittest.TestCase):

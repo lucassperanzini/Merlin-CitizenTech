@@ -1,8 +1,8 @@
 # Merlin
 
-Assistente pessoal por voz para Windows, **100% local**: ouve, entende e responde em voz alta e executa tarefas no computador (abrir e fechar programas, abrir pastas). Nada do que você fala sai do seu PC.
+Assistente pessoal por voz para Windows, **100% local**: ouve, entende e responde em voz alta, executa tarefas no computador (abrir e fechar programas, abrir pastas) e responde a perguntas sobre os **protocolos de incêndio da Defesa Civil**, citando o documento e a página. Nada do que você fala sai do seu PC.
 
-Vem com um assistente pronto, o **Merlin**.
+Vem com um assistente pronto, o **Merlin**, com tom profissional e tratamento neutro para atender os agentes públicos da Defesa Civil.
 
 O projeto também tem um **painel de alertas de focos de calor** (dados da NASA FIRMS para a Defesa Civil), que roda em contêiner com esteira DevSecOps, infraestrutura como código e observabilidade.
 
@@ -10,7 +10,7 @@ O projeto também tem um **painel de alertas de focos de calor** (dados da NASA 
 
 | Parte | Seções |
 |---|---|
-| **Merlin (assistente por voz no Windows)** | [O que ele faz](#o-que-ele-faz) · [Requisitos](#requisitos) · [Instalação](#instalação) · [Como usar](#como-usar) · [Como funciona](#como-funciona) · [Privacidade](#privacidade) · [Desenvolvimento](#desenvolvimento) · [Problemas comuns](#problemas-comuns) |
+| **Merlin (assistente por voz no Windows)** | [O que ele faz](#o-que-ele-faz) · [Requisitos](#requisitos) · [Requisitos para testar](#requisitos-para-testar) · [Instalação](#instalação) · [Como usar](#como-usar) · [Como funciona](#como-funciona) · [Privacidade](#privacidade) · [Desenvolvimento](#desenvolvimento) · [Problemas comuns](#problemas-comuns) |
 | **Infraestrutura, DevSecOps e Observabilidade** | [Visão geral](#infraestrutura-devsecops-e-observabilidade) · [1. Diagrama da arquitetura](#1-diagrama-da-arquitetura) · [2. Matriz de responsabilidade compartilhada](#2-matriz-de-responsabilidade-compartilhada) · [3. Mapeamento LGPD](#3-mapeamento-lgpd) · [4. Estimativa de custo](#4-estimativa-de-custo) · [5. Guia de reprodução](#5-guia-de-reprodução) |
 
 ---
@@ -21,6 +21,7 @@ O projeto também tem um **painel de alertas de focos de calor** (dados da NASA 
 - **Modo discreto:** um pedido rápido junto com o nome ("Merlin, abre o spotify") é resolvido sem abrir o cartão: a resposta aparece num balão ao lado da bolinha e ele volta a esperar. Conversas, perguntas de confirmação, erros e respostas longas abrem o cartão.
 - **Tarefas no computador:** abrir e fechar programas e abrir pastas ("abre o spotify", "fecha o word", "abre a pasta downloads"). Se o programa pedido não estiver instalado, ele avisa e pesquisa o nome no navegador.
 - **Várias tarefas numa frase:** "abre o chrome e fecha o telegram" vira uma resposta só ("Abri o chrome e fechei o telegram").
+- **Protocolos da Defesa Civil:** "o que é o sistema de comando de incidentes?", "quais equipamentos o brigadista usa?". Quem responde é um modelo especialista (RAG + LoRA sobre 9 manuais e normas de incêndio), que cita a fonte ("Fonte: Apostila do Brigadista, página 49") e diz "não consta" quando a resposta não está nos documentos, em vez de inventar.
 - **Conversa:** responde perguntas no jeito da personalidade e lembra o que foi dito na conversa atual.
 - **Interrupção:** fale por cima e ele para de falar.
 - **Janelas:**
@@ -42,10 +43,24 @@ O projeto também tem um **painel de alertas de focos de calor** (dados da NASA 
 | **Python 3.13** | De [python.org](https://www.python.org/downloads/). |
 | **Ollama** | O programa que roda a IA localmente: [ollama.com](https://ollama.com/download). |
 | **Microfone** | Qualquer um. |
-| **Placa de vídeo NVIDIA** (recomendada, com o driver atualizado) | O reconhecimento de voz e a IA ficam mais rápidos nela. Sem placa NVIDIA, tudo roda no processador, com um modelo de voz menor e respostas mais lentas. |
+| **Placa de vídeo NVIDIA** (recomendada, com o driver atualizado) | Necessária para as perguntas sobre os protocolos da Defesa Civil (veja a tabela abaixo). Sem ela, a voz, os comandos e a conversa funcionam pelo processador, mais devagar. |
 | **WebView2 Runtime** | Já vem no Windows 11 e com o Edge. No Windows 10, se a janela não abrir, instale-o pelo site da Microsoft. |
 
-**Espaço em disco:** ~6 GB na instalação básica.
+**Espaço em disco:** ~18 GB: bibliotecas Python ~6 GB (o torch com CUDA é a maior parte), modelos do Merlin ~9 GB e modelo do Ollama ~2,5 GB.
+
+### Requisitos para testar
+
+O Merlin abre e funciona em qualquer PC com Windows. O que depende do computador é **o que funciona e com que rapidez**:
+
+| PC de quem testa | Voz (Whisper) | Comandos e conversa (`qwen3:4b-instruct`) | Perguntas sobre os protocolos (especialista) |
+|---|---|---|---|
+| **Sem placa NVIDIA** (escritório, notebook comum) | ✅ Usa sozinho o modelo `small` no processador | ✅ Funciona, mais devagar: 1,4 s por pedido e 1 a 3 s por resposta, medidos num processador rápido (num de escritório, deve levar de 2 a 4 vezes mais) | ❌ **Não carrega.** Ele responde "Não consegui carregar o modelo da Defesa Civil", sem travar o resto |
+| **NVIDIA com 6 a 8 GB** | ✅ Na placa | ✅ Se faltar espaço na placa, o Ollama põe parte do modelo no processador | ⚠️ Deve carregar (ocupa ~3,7 GB em 4 bits), mas a placa fica no limite. Não foi testado |
+| **NVIDIA com 12 GB ou mais** | ✅ | ✅ 0,4 s por pedido | ✅ 3 a 12 s por resposta (a primeira, ~14 s). Tudo junto ocupa 10,3 GB da placa |
+
+- **O especialista exige:** placa NVIDIA a partir da série RTX 20, com o driver atualizado (CUDA 13.2 ou mais novo). As GTX 10xx e mais antigas não servem. Num processador sem placa, cada resposta levou ~2 minutos, o que não serve para conversa por voz.
+- **A parte de infraestrutura não depende de nada disso.** O painel de alertas com Prometheus e Grafana ([Guia de reprodução](#5-guia-de-reprodução)) roda em qualquer PC com Docker, sem placa de vídeo.
+- **Na Defesa Civil, a ideia é a IA ficar num servidor interno.** Os computadores das pessoas só rodam o Merlin e o reconhecimento de voz no processador. Veja a [Estimativa de custo](#4-estimativa-de-custo).
 
 ---
 
@@ -70,16 +85,17 @@ O projeto também tem um **painel de alertas de focos de calor** (dados da NASA 
 | O quê | Tamanho | Como |
 |---|---|---|
 | Python 3.13 | – | instalador do python.org |
-| Bibliotecas Python | ~2,5 GB | `pip install -r requirements.txt` |
-| Ollama + um modelo de IA | ~5 GB | instalador do Ollama + `ollama pull` |
+| Bibliotecas Python (inclui o torch com CUDA e o pacote do especialista) | ~6 GB | `pip install -r requirements.txt` |
+| Ollama + o modelo `qwen3:4b-instruct` | ~2,5 GB | instalador do Ollama + `ollama pull` |
 | Modelos de reconhecimento de voz (Whisper) | ~2,1 GB | `ferramentas\baixar_modelos.py` → pasta `modelos/` |
+| Modelo especialista da Defesa Civil (Qwen2.5-3B, modelo de busca e adaptador LoRA) | ~7 GB | `ferramentas\baixar_modelos.py` → pasta `modelos/huggingface/` |
 
 ### Criado no seu PC durante o uso (fora do git)
 
 | Pasta | Conteúdo |
 |---|---|
 | `.venv/` | o ambiente Python com as bibliotecas |
-| `modelos/` | modelos do Whisper |
+| `modelos/` | modelos do Whisper e do especialista da Defesa Civil |
 | `registros/` | o raciocínio da IA, um arquivo por dia, apagado após 30 dias |
 | `merlin_config.json` | suas preferências (assistente, voz, modelo e apelidos de pastas) |
 
@@ -90,31 +106,31 @@ O projeto também tem um **painel de alertas de focos de calor** (dados da NASA 
 Num terminal (PowerShell), na pasta do projeto:
 
 ```powershell
-# 1. Ambiente Python e bibliotecas
+# 1. Ambiente Python e bibliotecas (o pacote do especialista vem de um repositório com nomes de arquivo longos)
+git config --global core.longpaths true
 py -3.13 -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 
-# 2. Modelos de reconhecimento de voz (~2,1 GB, vão para modelos\)
+# 2. Modelos de reconhecimento de voz e o especialista da Defesa Civil (~9 GB, vão para modelos\)
 .venv\Scripts\python.exe ferramentas\baixar_modelos.py
 
 # 3. IA local: instale o Ollama (ollama.com) e baixe o modelo padrão
-ollama pull qwen3:8b
+ollama pull qwen3:4b-instruct
 ```
 
-O modelo padrão é o `qwen3:8b`. Deixe o Ollama aberto enquanto usa o assistente.
+O modelo padrão é o `qwen3:4b-instruct`. Deixe o Ollama aberto enquanto usa o assistente.
 
-### Se o modelo ficar lento no seu PC
+### Trocar o modelo de IA
 
-Baixe outro modelo com `ollama pull` e selecione-o em **Central → Inteligência**. Sem essa escolha, o assistente continua procurando o `qwen3:8b`.
+Baixe outro modelo com `ollama pull` e selecione-o em **Central → Inteligência**. Medidos com as 52 frases de `ferramentas/frases_avaliacao.py`:
 
-| Sua máquina | Modelo | Observação |
-|---|---|---|
-| Placa com 8 GB ou mais | `qwen3:8b` | O padrão e o mais testado |
-| Placa com cerca de 6 GB | `qwen2.5:7b` | Bom para entender pedidos |
-| Placa fraca ou só processador | `qwen3:4b` | Menor e mais rápido; não foi testado |
-| Muito limitada | `llama3.2` | O mais leve; deve errar mais |
+| Modelo | Acertos | Por pedido | Observação |
+|---|---|---|---|
+| `qwen3:4b-instruct` | 47/52 | 0,5 s | **O padrão.** Cabe na placa junto com o especialista (10,3 GB no total) |
+| `qwen3:8b` | 41/44 (avaliação anterior, sem a skill de protocolos) | 0,6 s sozinho; 1,4 s ao lado do especialista | Ao lado do especialista, metade dele vai para o processador numa placa de 16 GB |
+| `qwen3:4b` | 49/52 | 0,4 s | **Não use.** Essa tag baixa o Qwen3-4B-Thinking, que pensa antes de cada resposta: 11 a 24 s por resposta de conversa |
 
-Quanto menor o modelo, maior a chance de errar ao entender pedidos. As memórias indicadas são aproximadas.
+Quanto menor o modelo, maior a chance de errar ao entender pedidos.
 
 ---
 
@@ -133,6 +149,7 @@ Ao abrir, ele calibra o microfone (2 s), carrega os modelos e fica em espera: um
 | "fecha o chrome e abre o spotify" | faz as duas tarefas |
 | "abre a pasta downloads" | abre a pasta |
 | "qual a capital da França?" | responde |
+| "o que é um aceiro?" | responde pelos protocolos da Defesa Civil, citando a fonte |
 | "abre as suas configurações" | abre a Central |
 | "valeu, pode ir" / "pode desligar" | volta para a espera (a bolinha) |
 
@@ -152,7 +169,9 @@ microfone
   → tem o nome do assistente?         se não tiver e ele estiver em espera, a frase é descartada
   → IA (Ollama): divide as tarefas    "abre o chrome e fecha o telegram" → duas tarefas
   → IA (Ollama): entende cada uma     qual habilidade e qual alvo; regras do código corrigem a IA
-  → habilidades executam              abrir e fechar programa, abrir pasta, conversar...
+  → busca nos protocolos              se a IA achou que é conversa, mas a pergunta é parecida com um trecho dos
+                                      manuais, quem responde é o especialista da Defesa Civil
+  → habilidades executam              abrir e fechar programa, abrir pasta, consultar protocolo, conversar...
   → resposta única                    "Abri o chrome e fechei o telegram"
   → voz (Piper)                       toca enquanto o texto aparece na janela
 ```
@@ -162,7 +181,7 @@ microfone
 | Pasta | Responsabilidade |
 |---|---|
 | `merlin/audio/` | microfone, detector de voz, segmentação das frases, transcrição (Whisper) |
-| `merlin/ia/` | conversa com o Ollama: intenções, divisão de tarefas, confirmações, conversa, sugestão de assistentes |
+| `merlin/ia/` | conversa com o Ollama: intenções, divisão de tarefas, confirmações, conversa, sugestão de assistentes; e o especialista da Defesa Civil (`especialista.py`) |
 | `merlin/habilidades/` | **uma habilidade por arquivo**: descrição e exemplos para a IA, regras, e qual ação executar |
 | `merlin/acoes/` | o que é feito no Windows: janelas, programas, pastas, navegador |
 | `merlin/personalidades/` | carrega os assistentes (todos em .json): os originais de `recursos/assistentes_padrao/` e os da pasta `assistentes_citizentech/` |
@@ -197,7 +216,7 @@ microfone
 .venv\Scripts\python.exe -m unittest discover -s tests -t .
 
 # Precisão da IA ao entender pedidos (usa o Ollama de verdade)
-.venv\Scripts\python.exe ferramentas\avaliar_classificador.py qwen3:8b
+.venv\Scripts\python.exe ferramentas\avaliar_classificador.py qwen3:4b-instruct
 ```
 
 Ao criar uma habilidade, acrescente frases dela em `ferramentas/frases_avaliacao.py` e rode a avaliação antes e depois.
@@ -209,6 +228,10 @@ Ao criar uma habilidade, acrescente frases dela em `ferramentas/frases_avaliacao
 | Sintoma | O que verificar |
 |---|---|
 | "Não consegui falar com o meu cérebro" | O Ollama está aberto? O modelo escolhido foi baixado (`ollama list`)? |
+| "Não consegui carregar o modelo da Defesa Civil" | Tem placa NVIDIA da série RTX 20 ou mais nova, com o driver atualizado? Veja [Requisitos para testar](#requisitos-para-testar). O motivo exato aparece no terminal, na linha `[ESPECIALISTA]`. |
+| "Ainda estou carregando os protocolos" | Normal logo depois de abrir: o especialista carrega em segundo plano por 10 a 25 s. |
+| A resposta demora muito ou vem com um texto em inglês antes | O modelo escolhido é o `qwen3:4b`, a versão que pensa antes de responder. Troque para o `qwen3:4b-instruct` em Central → Inteligência. |
+| `pip install` falha com "Filename too long" | Rode `git config --global core.longpaths true` e repita. |
 | A janela não abre | WebView2 Runtime instalado? |
 | Reconhecimento lento | Sem placa NVIDIA, ele usa o modelo `small` no processador. Confira se `modelos\large-v3-turbo` existe. |
 | Não reage ao nome | O anel da bolinha está vermelho? É o mudo: passe o mouse e clique no microfone. Senão, fale o nome do assistente escolhido na Central e veja as palavras de chamada no Editor. |
@@ -354,11 +377,13 @@ O custo calculado aqui é o da **hospedagem**. Cada parte do sistema fica num lu
 
 | Parte | Onde roda | Entra no custo? |
 |---|---|---|
-| IA (Ollama com `qwen3:8b`) | Servidor hospedado | **Sim** |
+| IA: Ollama com `qwen3:4b-instruct` e o especialista da Defesa Civil | Servidor hospedado | **Sim** |
 | Painel de alertas + Prometheus, Grafana e cAdvisor | Servidor hospedado | **Sim** |
 | Merlin com reconhecimento de voz (Whisper), voz (Piper) e controle das janelas | Computadores que a Defesa Civil já tem | Não |
 
-Os computadores falam com a IA pela variável `OLLAMA_HOST`, que a biblioteca do Ollama já lê. Por exemplo: `setx OLLAMA_HOST http://ia.defesacivil.interno:11434`. Não precisa mudar o código.
+Os computadores falam com o Ollama pela variável `OLLAMA_HOST`, que a biblioteca do Ollama já lê. Por exemplo: `setx OLLAMA_HOST http://ia.defesacivil.interno:11434`. Para essa parte, não precisa mudar o código.
+
+**Ainda falta para o especialista:** hoje ele roda dentro do Merlin, em cada computador. Para ir para o servidor, falta subir a API que o próprio pacote traz (`defesacivil_llm/api.py`, rotas `/perguntar` e `/saude`) e fazer o Merlin chamá-la em vez de carregar o modelo.
 
 O provedor considerado é a AWS em São Paulo (`sa-east-1`). Assim os dados ficam no Brasil, e a distância até os computadores é menor.
 
@@ -371,7 +396,7 @@ As referências da conta:
 
 | Servidor | Necessidade | Máquina escolhida |
 |---|---|---|
-| IA | Uma placa de vídeo com pelo menos 8 GB. O `qwen3:8b` (Q4_K_M) tem 5,2 GB e ocupa ~6 GB da placa com contexto de 4.096 tokens. Só no processador, cada resposta levaria vários segundos | **`g4dn.xlarge`**: 4 vCPU, 16 GB de RAM e NVIDIA T4 de 16 GB. É a máquina com placa de vídeo mais barata em São Paulo |
+| IA | Uma placa de vídeo com pelo menos 8 GB, de preferência 12 GB ou mais. Medido: o `qwen3:4b-instruct` ocupa 3,5 GB da placa, e o especialista em 4 bits, 3,7 GB; os dois juntos dão ~7,2 GB. Só no processador, o especialista levou ~2 minutos por resposta | **`g4dn.xlarge`**: 4 vCPU, 16 GB de RAM e NVIDIA T4 de 16 GB. É a máquina com placa de vídeo mais barata em São Paulo |
 | Painel e observabilidade | ~175 MB de RAM e ~0,3% de um núcleo somando os 4 contêineres (medido com `docker stats`). Disco de 1,6 GB para as imagens + ~0,3 GB para 15 dias de métricas. Fica ligado 24 h, porque a busca da NASA roda de hora em hora | **`t3.small`**: 2 vCPU e 2 GB de RAM, com folga |
 
 ### Servidor da IA (`g4dn.xlarge`)

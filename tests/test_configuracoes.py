@@ -11,7 +11,8 @@ from merlin.nucleo.memoria_conversa import MemoriaConversa
 from merlin.preferencias import Preferencias
 from tests.falsos import LocutorFalso, com_segundo_assistente
 
-INSTALADOS = [ModeloInstalado("llama3.2:latest", 2.0, "3.2B"), ModeloInstalado("qwen3:8b", 5.2, "8.2B")]
+INSTALADOS = [ModeloInstalado("llama3.2:latest", 2.0, "3.2B"), ModeloInstalado("qwen3:4b-instruct", 2.5, "4.0B"),
+              ModeloInstalado("qwen3:8b", 5.2, "8.2B")]
 
 
 class CanalFalso:
@@ -51,8 +52,8 @@ class TestConfiguracoes(unittest.TestCase):
         dados = self.servico.estado_atual()
         self.assertEqual(dados["personalidade"], "merlin")
         self.assertEqual(dados["modelo"], MODELO_IA)
-        self.assertEqual([m["nome"] for m in dados["modelos"]], ["llama3.2:latest", "qwen3:8b"])
-        self.assertIn("8.2B", dados["modelos"][1]["detalhe"])
+        self.assertEqual([m["nome"] for m in dados["modelos"]], ["llama3.2:latest", "qwen3:4b-instruct", "qwen3:8b"])
+        self.assertIn("4.0B", dados["modelos"][1]["detalhe"])
         self.assertEqual(dados["erro_modelos"], "")
 
     def test_trocar_modelo_salva_e_preaquece(self):

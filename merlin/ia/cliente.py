@@ -24,6 +24,19 @@ def listar_modelos() -> list[ModeloInstalado]:
     return sorted(modelos, key=lambda m: m.nome)
 
 
+FIM_DO_RACIOCINIO = "</think>"
+
+
+def sem_raciocinio(texto: str) -> str:
+    """Modelos que só sabem pensar (como o Qwen3-4B-Thinking, que a tag qwen3:4b do Ollama baixa) ignoram o
+    think=False e põem o raciocínio no meio da resposta, terminado por </think>. Ele seria lido em voz alta:
+    só o que vem depois é a resposta."""
+    if FIM_DO_RACIOCINIO in texto:
+        logger.warning("[IA] O modelo mandou o raciocínio junto com a resposta; ele foi descartado")
+        texto = texto.rsplit(FIM_DO_RACIOCINIO, 1)[1]
+    return texto.strip()
+
+
 class ClienteIA:
     def __init__(self, modelo: Callable[[], str]):
         """Recebe uma função que diz o modelo atual, para a troca nas configurações valer na próxima pergunta."""
@@ -39,7 +52,7 @@ class ClienteIA:
         # think=False: modelos que "pensam em voz alta" (qwen3, deepseek-r1) levariam de 7 a 15 s por resposta.
         # Os outros modelos ignoram a opção.
         resposta = ollama.chat(model=self._modelo(), messages=mensagens, think=False, **parametros)
-        return resposta["message"]["content"] or ""
+        return sem_raciocinio(resposta["message"]["content"] or "")
 
     def preaquecer(self) -> None:
         """Carrega o modelo na memória antes da primeira pergunta; a primeira resposta de um modelo novo é lenta."""

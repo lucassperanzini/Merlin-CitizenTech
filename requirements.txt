@@ -28,13 +28,15 @@ pywin32==312
 AppOpener==1.7
 psutil==7.2.2
 
-# Modelo especialista da Defesa Civil (config.MODO_ESPECIALISTA): RAG + LoRA sobre os protocolos de incêndio,
+# Modelo especialista da Defesa Civil (skill consultar_protocolo): RAG + LoRA sobre os protocolos de incêndio,
 # fixado no commit testado. Os pesos (~7 GB) vêm com ferramentas\baixar_modelos.py.
 # No Windows, o repositório tem nomes de arquivo longos: antes do pip, rode  git config --global core.longpaths true
 defesacivil-llm @ git+https://github.com/JBVJoaoV/GS2-GENIA.git@20b521c104512c6fd2e3209906c39f72eb91b77c
 # torch com CUDA, para o modelo rodar na placa de vídeo (no processador, cada resposta leva ~2 minutos)
 --extra-index-url https://download.pytorch.org/whl/cu132
 torch==2.15.0+cu132
+# Carrega o especialista em 4 bits (config.ESPECIALISTA_4_BITS): ~3,7 GB da placa em vez de ~7,8 GB
+bitsandbytes==0.50.2
 
 # Robô FIRMS Monitor (focos de calor da NASA), usado pela aba Alertas. Vem pronto na pasta vendor/;
 # o caminho é relativo à pasta do projeto, então rode o pip a partir dela.

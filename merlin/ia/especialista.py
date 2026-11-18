@@ -1,14 +1,14 @@
 """O modelo especialista da Defesa Civil (pacote defesacivil_llm): RAG + LoRA sobre os protocolos de incêndio.
 
-Responde só com base nos documentos da base. A carga leva alguns segundos e ocupa ~8 GB da placa de vídeo, então
-ela é feita em segundo plano: o Merlin abre e ouve normalmente enquanto o modelo carrega.
+Responde só com base nos documentos da base. A carga leva alguns segundos e ocupa ~3,7 GB da placa de vídeo em
+4 bits (~7,8 GB em 16 bits), então ela é feita em segundo plano: o Merlin abre e ouve enquanto o modelo carrega.
 """
 import logging
 import threading
 from dataclasses import dataclass
 from typing import Callable
 
-from merlin.config import PASTA_MODELOS
+from merlin.config import ESPECIALISTA_4_BITS, PASTA_MODELOS
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +50,38 @@ class RespostaEspecialista:
         return " ".join(partes)
 
 
+class Gerador4Bits:
+    """O mesmo gerador do pacote (rag.Generator), com o modelo base quantizado em 4 bits pelo bitsandbytes.
+    O pacote só carrega em 16 bits; ele aceita um gerador pronto, então a troca fica do lado do Merlin."""
+
+    def __init__(self):
+        import torch
+        from defesacivil_llm import config
+        from defesacivil_llm.llm import ADAPTER_PADRAO
+        from peft import PeftModel
+        from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+        quantizacao = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True,
+                                         bnb_4bit_compute_dtype=torch.float16)
+        self._torch = torch
+        self._max_tokens = config.MAX_NEW_TOKENS
+        self.tok = AutoTokenizer.from_pretrained(config.MODEL_NAME)
+        base = AutoModelForCausalLM.from_pretrained(config.MODEL_NAME, quantization_config=quantizacao,
+                                                    device_map="cuda:0")
+        self.model = PeftModel.from_pretrained(base, ADAPTER_PADRAO).eval()
+        self.adapter_path = ADAPTER_PADRAO
+
+    def generate(self, messages, max_new_tokens=None):
+        prompt = self.tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        entrada = self.tok(prompt, return_tensors="pt").to(self.model.device)
+        with self._torch.no_grad():
+            saida = self.model.generate(**entrada, max_new_tokens=max_new_tokens or self._max_tokens, do_sample=False,
+                                        temperature=None, top_p=None, top_k=None, pad_token_id=self.tok.eos_token_id)
+        return self.tok.decode(saida[0][entrada["input_ids"].shape[1]:], skip_special_tokens=True)
+
+
 def _carregar_modelo():
-    from defesacivil_llm import DefesaCivilLLM  # importa o torch: só quando o modo especialista é usado
-    return DefesaCivilLLM(cache_dir=CACHE_EMBEDDINGS)
+    from defesacivil_llm import DefesaCivilLLM  # importa o torch: só quando o especialista é carregado
+    return DefesaCivilLLM(cache_dir=CACHE_EMBEDDINGS, gerador=Gerador4Bits() if ESPECIALISTA_4_BITS else None)
 
 
 class EspecialistaDefesaCivil:
@@ -84,6 +113,15 @@ class EspecialistaDefesaCivil:
     def disponivel(self) -> bool:
         """Para o anel da bolinha: só fica "fora" se a carga falhou. Carregando ainda conta como disponível."""
         return self._erro is None
+
+    def parece_protocolo(self, pergunta: str) -> bool:
+        """A busca acha um trecho dos protocolos parecido o bastante para responder? Só a busca, sem gerar texto
+        (milissegundos): confirma a escolha da IA de conversa. Falso enquanto o modelo não está pronto."""
+        if self._modelo is None:
+            return False
+        with self._trava:
+            melhor = self._modelo._buscador.search(pergunta, k=1)[0]["score"]
+        return melhor >= self._modelo.limiar
 
     def responder(self, pergunta: str) -> RespostaEspecialista:
         if not self._pronto.is_set():

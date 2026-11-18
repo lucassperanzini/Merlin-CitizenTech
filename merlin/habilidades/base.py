@@ -70,6 +70,7 @@ class Recursos:
     memoria: object
     preferencias: object
     raciocinio: object
+    especialista: object = None  # o modelo da Defesa Civil (merlin/ia/especialista.py), para consultar_protocolo
     compartilhados: dict = field(default_factory=dict)  # objetos usados por mais de uma ação
 
     def compartilhado(self, nome: str, criar: Callable[[], object]) -> object:

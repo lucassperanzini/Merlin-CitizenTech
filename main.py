@@ -103,19 +103,22 @@ def construir_aplicacao() -> Aplicacao:
         alertas=ApiAlertas(servico_alertas),
     ), administrador=administrador)
 
-    # Modo especialista: toda pergunta vai ao modelo da Defesa Civil; as skills e o Ollama ficam de fora
-    especialista = EspecialistaDefesaCivil() if MODO_ESPECIALISTA else None
+    # O especialista da Defesa Civil responde aos protocolos (skill consultar_protocolo). No MODO_ESPECIALISTA,
+    # ele responde a tudo, e as skills e o Ollama ficam de fora
+    especialista = EspecialistaDefesaCivil()
     processador = ProcessadorComandos(
         estado, sessao, canal, locutor,
         divisor=DivisorTarefas(cliente_ia),
         classificador=ClassificadorIntencao(cliente_ia),
         confirmador=ClassificadorConfirmacao(cliente_ia),
-        saudacao=GeradorFrases(None if especialista else cliente_ia, lambda: preferencias.personalidade.saudacao),
-        acoes=construir_acoes(Recursos(estado, sessao, canal, cliente_ia, memoria, preferencias, raciocinio)),
+        saudacao=GeradorFrases(None if MODO_ESPECIALISTA else cliente_ia, lambda: preferencias.personalidade.saudacao),
+        acoes=construir_acoes(Recursos(estado, sessao, canal, cliente_ia, memoria, preferencias, raciocinio,
+                                       especialista=especialista)),
         memoria=memoria,
         preferencias=preferencias,
         raciocinio=raciocinio,
         especialista=especialista,
+        so_especialista=MODO_ESPECIALISTA,
     )
     return Aplicacao(
         estado=estado,
@@ -130,7 +133,7 @@ def construir_aplicacao() -> Aplicacao:
         janela=JanelaMerlin(estado, canal, sessao, preferencias, central,
                             trocar_assistente=servico_configuracoes.trocar_personalidade,
                             raciocinio=ApiRaciocinio(raciocinio, gravador.pasta), ver_alertas=aviso_alertas.visto,
-                            ia_disponivel=especialista.disponivel if especialista else None),
+                            ia_disponivel=especialista.disponivel if MODO_ESPECIALISTA else None),
         especialista=especialista,
     )
 
