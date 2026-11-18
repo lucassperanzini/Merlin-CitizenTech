@@ -24,6 +24,7 @@ from merlin.interface.central import ApiCentral, JanelaCentral
 from merlin.interface.configuracoes import ApiConfiguracoes, ServicoConfiguracoes
 from merlin.interface.painel_alertas import ApiAlertas, ServicoAlertas
 from merlin.interface.painel_habilidades import ApiPainelHabilidades, ServicoPainelHabilidades
+from merlin.interface.painel_visao import ApiVisao, ServicoVisao
 from merlin.interface.perfil import so_administrador
 from merlin.interface.moldura import usar_botao_debug
 from merlin.interface.eventos import CanalInterface
@@ -101,6 +102,7 @@ def construir_aplicacao() -> Aplicacao:
             ServicoAssistentes(preferencias, canal, cliente_ia, servico_configuracoes.trocar_personalidade)), administrador),
         habilidades=so_administrador(ApiPainelHabilidades(ServicoPainelHabilidades(cliente_ia)), administrador),
         alertas=ApiAlertas(servico_alertas),
+        visao=ApiVisao(ServicoVisao()),  # detecção de fogo: o modelo só carrega quando a aba é aberta
     ), administrador=administrador)
 
     # O especialista da Defesa Civil responde aos protocolos (skill consultar_protocolo). No MODO_ESPECIALISTA,

@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Visão</title>
+<style>
+  :root {
+    --fundo: #05070c; --painel: #0b1019; --campo: #0e1522; --borda: #1b2638; --texto: #dbe6ff;
+    --suave: #8a97b3; --destaque: #35d6ff; --nao: #ff8a7a; --baixo: #3ec46d; --medio: #ffd23f; --critico: #ff4d4d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { display: flex; flex-direction: column; overflow: hidden; padding: 18px 22px 16px; background: var(--fundo); color: var(--texto);
+         font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+  [hidden] { display: none !important; }
+  h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  p { margin: 0; color: var(--suave); font-size: 13px; }
+  button { font: inherit; color: var(--texto); padding: 7px 14px; border-radius: 7px; border: 1px solid var(--borda); background: var(--campo);
+           cursor: pointer; white-space: nowrap; }
+  button:hover:not(:disabled) { border-color: var(--destaque); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.principal { background: var(--destaque); border-color: var(--destaque); color: #05070c; font-weight: 600; }
+  button:focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
+
+  .topo { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  .topo p { flex-basis: 100%; }
+  .modelo { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; padding: 4px 10px; border-radius: 999px;
+            background: var(--painel); border: 1px solid var(--borda); font-size: 12px; color: var(--suave); white-space: nowrap; }
+  .modelo::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--medio); }
+  .modelo.pronto::before { background: var(--baixo); }
+  .modelo.erro { color: var(--nao); }
+  .modelo.erro::before { background: var(--critico); }
+
+  .acoes { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 6px; }
+  .acoes .dica { font-size: 12.5px; color: var(--suave); margin-left: 4px; }
+  /* Exemplos do repositório do FireWatch: um clique analisa */
+  .exemplos { flex: none; display: flex; align-items: center; gap: 8px; margin: 2px 0 6px; overflow-x: auto; padding-bottom: 2px; }
+  .exemplos .titulo { flex: none; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); margin-right: 2px; }
+  .exemplo { flex: none; display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; text-align: left; white-space: nowrap; }
+  .exemplo img, .exemplo .sem-foto { width: 52px; height: 34px; border-radius: 5px; object-fit: cover; background: var(--painel); flex: none; }
+  .exemplo span { display: flex; flex-direction: column; line-height: 1.25; }
+  .exemplo b { font-weight: 600; font-size: 13px; }
+  .exemplo small { font-size: 11.5px; color: var(--suave); }
+  .exemplo .tipo { display: inline-block; margin-right: 4px; padding: 0 5px; border-radius: 4px; font-size: 10px; letter-spacing: .05em;
+                   text-transform: uppercase; background: var(--campo); border: 1px solid var(--borda); color: var(--suave); }
+  .sem-exemplos { font-size: 12.5px; color: var(--suave); }
+  .sem-exemplos code { color: var(--texto); }
+  #mensagem { flex: none; min-height: 0; font-size: 13px; color: var(--suave); overflow-wrap: anywhere; }
+  #mensagem:empty { display: none; }
+  #mensagem.erro { color: var(--nao); }
+
+  .conteudo { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; margin-top: 8px; }
+  @media (max-width: 820px) { .conteudo { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; } }
+
+  /* A imagem analisada (com as caixas já desenhadas pelo modelo), ou o lugar para soltar uma */
+  .palco { position: relative; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden;
+           background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; }
+  /* Ocupa o quadro todo, sem distorcer: uma foto de 200 px não fica minúscula no meio */
+  .palco img, .palco video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+  .vazio { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px; text-align: center; color: var(--suave); }
+  .vazio svg { width: 44px; height: 44px; color: var(--borda); }
+  .vazio b { color: var(--texto); font-weight: 600; }
+  .palco.soltando { border-color: var(--destaque); border-style: dashed; }
+  .palco.soltando::after { content: "Solte a imagem para analisar"; position: absolute; inset: 0; display: flex; align-items: center;
+                           justify-content: center; background: rgba(5, 7, 12, .78); color: var(--destaque); font-weight: 600; }
+  .analisando { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 10px;
+                background: rgba(5, 7, 12, .7); color: var(--texto); }
+  .giro { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--borda); border-top-color: var(--destaque);
+          animation: girar .8s linear infinite; }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .giro { animation: none; } }
+
+  aside { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .cartao { padding: 12px 14px; background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; }
+  .cartao .rotulo { display: block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); }
+  .veredito b { display: block; margin: 2px 0; font-size: 20px; line-height: 1.2; font-weight: 600; }
+  .veredito small { display: block; font-size: 12.5px; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .veredito.fogo { border-color: color-mix(in srgb, var(--critico) 55%, var(--borda)); background: color-mix(in srgb, var(--critico) 10%, var(--painel)); }
+  .veredito.fogo b { color: var(--critico); }
+  .veredito.limpo b { color: var(--baixo); }
+  .focos { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .focos li { display: grid; grid-template-columns: 58px 1fr 40px; align-items: center; gap: 8px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .barra { height: 6px; border-radius: 3px; background: var(--campo); overflow: hidden; }
+  .barra span { display: block; height: 100%; background: var(--critico); }
+  .focos .pct { text-align: right; color: var(--suave); }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 6px 0 0; font-size: 12.5px; }
+  dt { color: var(--suave); }
+  dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .aviso { font-size: 12px; color: var(--suave); border-left: 3px solid var(--medio); padding: 8px 10px; background: var(--painel);
+           border-radius: 0 8px 8px 0; }
+
+  .progresso { height: 8px; margin: 8px 0 4px; border-radius: 4px; background: var(--campo); overflow: hidden; }
+  .progresso span { display: block; height: 100%; width: 0; background: var(--destaque); transition: width .3s; }
+  .linha-botoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+</style>
+</head>
+<body>
+  <div class="topo">
+    <h1>Visão</h1>
+    <span class="modelo" id="modelo" role="status">Carregando o modelo…</span>
+    <p>Detecção de fogo em imagens, vídeos e na câmera, com o FireWatch AI (YOLO12n). Tudo é analisado neste computador; as imagens não são guardadas.</p>
+  </div>
+
+  <div class="acoes">
+    <button type="button" class="principal" id="imagem" disabled>Analisar imagem</button>
+    <button type="button" id="video" disabled>Analisar vídeo</button>
+    <button type="button" id="camera" disabled>Foto da câmera</button>
+    <span class="dica">ou arraste uma imagem para o quadro</span>
+  </div>
+  <div class="exemplos" id="exemplos" aria-label="Exemplos para testar" hidden><span class="titulo">Exemplos</span></div>
+  <div id="mensagem" role="alert"></div>
+
+  <div class="conteudo">
+    <div class="palco" id="palco">
+      <div class="vazio" id="vazio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/>
+        </svg>
+        <b id="vazio-titulo">Nenhuma imagem analisada</b>
+        <span id="vazio-texto">Escolha uma imagem ou um vídeo, tire uma foto da câmera, ou arraste uma imagem para cá.</span>
+      </div>
+      <img id="foto" alt="" hidden>
+      <video id="filme" controls playsinline preload="auto" hidden aria-label="Vídeo analisado, com os focos de fogo marcados"></video>
+      <div class="analisando" id="analisando" hidden><span class="giro" aria-hidden="true"></span><span id="analisando-texto">Analisando…</span></div>
+    </div>
+
+    <aside aria-live="polite">
+      <!-- Resultado de uma imagem -->
+      <div id="resultado" hidden>
+        <div class="cartao veredito" id="veredito"><span class="rotulo">Resultado</span><b id="veredito-titulo"></b><small id="veredito-detalhe"></small></div>
+        <div class="cartao" id="cartao-focos" hidden>
+          <span class="rotulo">Focos detectados</span>
+          <ul class="focos" id="focos"></ul>
+        </div>
+        <div class="cartao">
+          <span class="rotulo">Detalhes</span>
+          <dl>
+            <dt>Origem</dt><dd id="d-origem"></dd>
+            <dt>Tamanho</dt><dd id="d-tamanho"></dd>
+            <dt>Análise</dt><dd id="d-tempo"></dd>
+            <dt>Limiar</dt><dd id="d-limiar"></dd>
+          </dl>
+        </div>
+      </div>
+
+      <!-- Vídeo: progresso e resumo -->
+      <div class="cartao" id="cartao-video" hidden>
+        <span class="rotulo">Vídeo</span>
+        <b id="video-titulo" style="display:block;margin-top:2px;overflow-wrap:anywhere"></b>
+        <div id="video-andamento">
+          <div class="progresso" aria-hidden="true"><span id="video-barra"></span></div>
+          <small id="video-quadros" style="color:var(--suave);font-variant-numeric:tabular-nums"></small>
+          <div class="linha-botoes"><button type="button" id="video-cancelar">Cancelar</button></div>
+        </div>
+        <div id="video-fim" hidden>
+          <div class="cartao veredito" id="video-veredito" style="margin-top:8px"><b id="video-veredito-titulo"></b><small id="video-veredito-detalhe"></small></div>
+          <dl id="video-detalhes"></dl>
+          <div class="linha-botoes">
+            <button type="button" class="principal" id="video-abrir">Abrir no player do Windows</button>
+            <button type="button" id="video-pasta">Abrir a pasta</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="aviso" id="aviso">Detecção automática de apoio à triagem. Pode haver falsos positivos (tons quentes, como
+        madeira, pele ou lareira) e falsos negativos: confirme visualmente antes de registrar a ocorrência ou mobilizar equipes.</p>
+    </aside>
+  </div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const api = () => window.pywebview.api;
+  const pct = v => `${Math.round(v * 100)}%`;
+  const botoes = ["imagem", "video", "camera"].map($);
+  let ocupado = false, pronto = false, acompanhando = null;
+
+  function avisar(texto = "", erro = false) { $("mensagem").textContent = texto; $("mensagem").className = erro ? "erro" : ""; }
+  function liberar() { botoes.forEach(b => b.disabled = !pronto || ocupado); }
+  function analisando(sim, texto = "Analisando…") {
+    ocupado = sim; $("analisando").hidden = !sim; $("analisando-texto").textContent = texto; liberar();
+  }
+
+  // --- modelo: carrega ao abrir a aba
+  async function verificarModelo() {
+    const e = await api().preparar();
+    const chip = $("modelo");
+    if (e.erro) { chip.className = "modelo erro"; chip.textContent = "Modelo indisponível"; avisar(e.erro, true); return; }
+    if (!e.pronto) { setTimeout(verificarModelo, 700); return; }
+    pronto = true; chip.className = "modelo pronto"; chip.textContent = `Modelo pronto · limiar ${pct(e.limiar)}`;
+    liberar();
+  }
+
+  // --- resultado de uma imagem
+  function mostrar(r) {
+    if (r.cancelado) return;
+    if (r.erro) { avisar(r.erro, true); return; }
+    avisar();
+    $("vazio").hidden = true;
+    tirarFilme();
+    $("foto").src = r.imagem; $("foto").hidden = false;
+    $("foto").alt = r.fogo ? `Imagem com ${r.focos} foco(s) de fogo marcados` : "Imagem sem fogo detectado";
+    $("cartao-video").hidden = true;
+    $("resultado").hidden = false;
+    $("veredito").className = "cartao veredito " + (r.fogo ? "fogo" : "limpo");
+    $("veredito-titulo").textContent = r.fogo ? "Fogo detectado" : "Nenhum fogo detectado";
+    $("veredito-detalhe").textContent = r.fogo
+      ? `${r.focos} ${r.focos === 1 ? "foco" : "focos"} · maior confiança ${pct(r.maior_confianca)}`
+      : `Nada acima do limiar de ${pct(r.limiar)}`;
+    $("cartao-focos").hidden = !r.fogo;
+    $("focos").replaceChildren(...r.deteccoes.map((d, i) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<span>Foco ${i + 1}</span><span class="barra"><span style="width:${pct(d.confianca)}"></span></span><span class="pct">${pct(d.confianca)}</span>`;
+      return li;
+    }));
+    $("d-origem").textContent = r.origem;
+    $("d-tamanho").textContent = `${r.largura} × ${r.altura} px`;
+    $("d-tempo").textContent = `${r.milissegundos} ms`;
+    $("d-limiar").textContent = pct(r.limiar);
+    $("aviso").textContent = r.aviso;
+  }
+
+  async function executar(acao, texto) {
+    if (ocupado) return;
+    avisar(); analisando(true, texto);
+    try { mostrar(await acao()); }
+    catch (erro) { avisar(String(erro), true); }
+    finally { analisando(false); }
+  }
+  $("imagem").addEventListener("click", () => executar(() => api().escolher_imagem(), "Analisando a imagem…"));
+  $("camera").addEventListener("click", () => executar(() => api().foto_camera(), "Tirando a foto e analisando…"));
+
+  // --- arrastar e soltar
+  const palco = $("palco");
+  ["dragenter", "dragover"].forEach(t => palco.addEventListener(t, e => {
+    e.preventDefault(); if (pronto && !ocupado) palco.classList.add("soltando");
+  }));
+  ["dragleave", "drop"].forEach(t => palco.addEventListener(t, () => palco.classList.remove("soltando")));
+  document.addEventListener("dragover", e => e.preventDefault());  // fora do quadro, não deixa o navegador abrir o arquivo
+  document.addEventListener("drop", e => e.preventDefault());
+  palco.addEventListener("drop", e => {
+    e.preventDefault();
+    const arquivo = [...(e.dataTransfer?.files || [])].find(f => f.type.startsWith("image/"));
+    if (!pronto || ocupado) return;
+    if (!arquivo) { avisar("Solte um arquivo de imagem (JPG, PNG, WEBP ou BMP).", true); return; }
+    const leitor = new FileReader();
+    leitor.onload = () => executar(() => api().analisar_dados(leitor.result, arquivo.name), "Analisando a imagem…");
+    leitor.onerror = () => avisar("Não consegui ler o arquivo solto.", true);
+    leitor.readAsDataURL(arquivo);
+  });
+
+  // --- vídeo
+  function mostrarVideo(v) {
+    $("resultado").hidden = true;
+    $("cartao-video").hidden = false;
+    $("video-titulo").textContent = v.origem || "";
+    const andamento = v.estado === "analisando";
+    $("video-andamento").hidden = !andamento;
+    $("video-fim").hidden = v.estado !== "pronto";
+    if (andamento) {
+      const parte = v.total ? v.feitos / v.total : 0;
+      $("video-barra").style.width = `${Math.round(parte * 100)}%`;
+      $("video-quadros").textContent = v.total ? `${v.feitos} de ${v.total} quadros (${Math.round(parte * 100)}%)` : "Preparando…";
+      return;
+    }
+    if (v.estado === "pronto") {
+      $("video-veredito").className = "cartao veredito " + (v.fogo ? "fogo" : "limpo");
+      $("video-veredito-titulo").textContent = v.fogo ? "Fogo detectado no vídeo" : "Nenhum fogo detectado";
+      $("video-veredito-detalhe").textContent = v.fogo
+        ? `Aparece aos ${String(v.primeiro_segundo).replace(".", ",")} s · maior confiança ${pct(v.maior_confianca)}` : "";
+      const tempo = `${String(v.segundos).replace(".", ",")} s`;
+      const linhas = [["Quadros com fogo", `${v.quadros_com_fogo} de ${v.quadros}`],
+                      ["Análise", v.reaproveitado ? `já feita antes (levou ${tempo}); resultado reaproveitado` : tempo],
+                      ["Salvo em", v.saida]];
+      $("video-detalhes").replaceChildren(...linhas.flatMap(([t, d]) => {
+        const dt = document.createElement("dt"), dd = document.createElement("dd");
+        dt.textContent = t; dd.textContent = d; return [dt, dd];
+      }));
+      $("aviso").textContent = v.aviso;
+      $("vazio-titulo").textContent = v.fogo ? "Fogo detectado no vídeo" : "Nenhum fogo detectado no vídeo";
+      $("vazio-texto").textContent = v.tocavel ? "Carregando o vídeo analisado…"
+        : "Este computador não grava vídeo em H.264: abra o vídeo analisado no player do Windows.";
+    }
+    if (v.estado === "cancelado") { $("cartao-video").hidden = true; avisar("Análise do vídeo cancelada."); }
+    if (v.estado === "erro") { $("cartao-video").hidden = true; avisar(v.erro, true); }
+  }
+  async function acompanharVideo() {
+    const v = await api().progresso_video();
+    mostrarVideo(v);
+    if (v.estado === "analisando") { acompanhando = setTimeout(acompanharVideo, 500); return; }
+    acompanhando = null; analisando(false);
+    if (v.estado === "pronto" && v.tocavel) tocarVideo(v);
+  }
+  // --- o vídeo analisado toca no próprio quadro. Ele chega em pedaços pela ponte da Central (sem abrir porta de
+  // rede) e vira um arquivo na memória da página
+  let enderecoFilme = null;
+  function tirarFilme() {
+    const filme = $("filme");
+    filme.pause(); filme.removeAttribute("src"); filme.load(); filme.hidden = true;
+    if (enderecoFilme) { URL.revokeObjectURL(enderecoFilme); enderecoFilme = null; }
+  }
+  async function tocarVideo(v) {
+    tirarFilme();
+    const partes = [];
+    let inicio = 0;
+    analisando(true, "Carregando o vídeo…");
+    try {
+      while (true) {
+        const p = await api().parte_do_video(inicio);
+        if (p.erro) { avisar(p.erro, true); return; }
+        const binario = atob(p.dados), bytes = new Uint8Array(binario.length);
+        for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+        partes.push(bytes);
+        inicio = p.inicio + bytes.length;
+        $("analisando-texto").textContent = `Carregando o vídeo… ${Math.round(inicio / p.total * 100)}%`;
+        if (p.fim) break;
+      }
+    } finally { analisando(false); }
+    enderecoFilme = URL.createObjectURL(new Blob(partes, { type: "video/mp4" }));
+    const filme = $("filme");
+    filme.src = enderecoFilme;
+    $("vazio").hidden = true; $("foto").hidden = true; filme.hidden = false;
+    filme.play().catch(() => {});  // sem permissão para tocar sozinho, fica pausado com os controles à vista
+  }
+
+  // Um vídeo começou (escolhido no disco ou um exemplo): o andamento aparece no cartão ao lado
+  function comecarVideo(v) {
+    if (v.cancelado || v.erro) { analisando(false); if (v.erro) avisar(v.erro, true); return; }
+    $("analisando").hidden = true;
+    // A imagem analisada antes sai do quadro: ao lado do resumo do vídeo, ela pareceria ser dele
+    tirarFilme(); $("foto").hidden = true; $("vazio").hidden = false;
+    $("vazio-titulo").textContent = "Analisando o vídeo";
+    $("vazio-texto").textContent = "O vídeo com os focos marcados fica salvo em dados\\visao e abre pelo botão ao lado quando terminar.";
+    acompanharVideo();
+  }
+  $("video").addEventListener("click", async () => {
+    if (ocupado) return;
+    avisar(); analisando(true, "Escolha o vídeo…");
+    comecarVideo(await api().escolher_video());
+  });
+
+  // --- exemplos do repositório do FireWatch (baixados por ferramentas\baixar_modelos.py)
+  async function carregarExemplos() {
+    const lista = await api().exemplos(), faixa = $("exemplos");
+    faixa.hidden = false;
+    if (!lista.length) {
+      const dica = document.createElement("span");
+      dica.className = "sem-exemplos";
+      dica.innerHTML = "Para ter vídeos e imagens de exemplo, rode <code>ferramentas\\baixar_modelos.py</code>.";
+      faixa.append(dica);
+      return;
+    }
+    for (const e of lista) {
+      const botao = document.createElement("button");
+      // Compacto, para os cinco caberem numa linha: a descrição completa fica na dica do mouse
+      botao.type = "button"; botao.className = "exemplo"; botao.title = `${e.titulo}: ${e.descricao}`;
+      const foto = e.miniatura ? Object.assign(document.createElement("img"), { src: e.miniatura, alt: "" })
+                               : Object.assign(document.createElement("span"), { className: "sem-foto" });
+      const texto = document.createElement("span");
+      const titulo = document.createElement("b"); titulo.textContent = e.titulo;
+      const detalhe = document.createElement("small");
+      const tipo = document.createElement("span"); tipo.className = "tipo"; tipo.textContent = e.tipo === "video" ? "vídeo" : "imagem";
+      detalhe.append(tipo, e.descricao.match(/\d+\s*s\b/)?.[0] || "");
+      texto.append(titulo, detalhe);
+      botao.append(foto, texto);
+      botao.addEventListener("click", async () => {
+        if (ocupado || !pronto) return;
+        avisar();
+        if (e.tipo === "video") { analisando(true, "Abrindo o vídeo…"); comecarVideo(await api().analisar_exemplo(e.arquivo)); }
+        else executar(() => api().analisar_exemplo(e.arquivo), "Analisando a imagem…");
+      });
+      botoes.push(botao);
+      faixa.append(botao);
+    }
+    liberar();
+  }
+  $("video-cancelar").addEventListener("click", () => api().cancelar_video());
+  $("video-abrir").addEventListener("click", async () => { const r = await api().abrir_video(); if (r.erro) avisar(r.erro, true); });
+  $("video-pasta").addEventListener("click", () => api().abrir_pasta());
+
+  // A Central monta todas as abas ao abrir: o modelo só carrega quando esta aparece na tela (o quadro ganha tamanho)
+  let ponte = false, iniciado = false;
+  async function iniciar() {
+    if (iniciado || !ponte || palco.offsetWidth === 0) return;
+    iniciado = true;
+    carregarExemplos();
+    await verificarModelo();
+    const v = await api().progresso_video();  // a Central foi reaberta com um vídeo em andamento
+    if (v.estado === "analisando") { analisando(true); $("analisando").hidden = true; acompanharVideo(); }
+  }
+  new ResizeObserver(iniciar).observe(palco);
+  window.addEventListener("pywebviewready", () => { ponte = true; iniciar(); });
+</script>
+</body>
+</html>

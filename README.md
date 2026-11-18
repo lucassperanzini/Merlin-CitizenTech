@@ -1,8 +1,8 @@
 # Merlin
 
-Assistente pessoal por voz para Windows, **100% local**: ouve, entende e responde em voz alta, executa tarefas no computador (abrir e fechar programas, abrir pastas) e responde a perguntas sobre os **protocolos de incêndio da Defesa Civil**, citando o documento e a página. Nada do que você fala sai do seu PC.
+Assistente por voz para Windows, **100% local**, feito para os **agentes públicos da Defesa Civil**, e não para o cidadão comum. Ele ouve, entende e responde em voz alta, executa tarefas no computador (abrir e fechar programas, abrir pastas), responde a perguntas sobre os **protocolos de incêndio**, citando o documento e a página, e ajuda na triagem com a **detecção de fogo** em imagens e vídeos. Nada do que é falado sai do computador.
 
-Vem com um assistente pronto, o **Merlin**, com tom profissional e tratamento neutro para atender os agentes públicos da Defesa Civil.
+Vem com um assistente pronto, o **Merlin**, com tom profissional, tratamento neutro e a linguagem técnica da área (ocorrência, comando do incidente, SCI). Ele apoia a decisão do agente com os protocolos, sem dar orientações de leigo, como "ligue para a Defesa Civil".
 
 O projeto também tem um **painel de alertas de focos de calor** (dados da NASA FIRMS para a Defesa Civil), que roda em contêiner com esteira DevSecOps, infraestrutura como código e observabilidade.
 
@@ -31,6 +31,7 @@ O projeto também tem um **painel de alertas de focos de calor** (dados da NASA 
     - *Pastas:* apelidos para as suas pastas ("abre o trabalho"), além das do Acesso Rápido do Windows.
     - *Ajustes:* assistente e voz, modelo de IA.
     - *Ferramentas:* editor de assistentes (cria e edita personalidades sem mexer em código) e skills (tudo o que ele sabe fazer, com um teste de frases; título, descrição e exemplos podem ser editados).
+    - *Visão:* detecção de fogo em imagens, vídeos e na câmera com o FireWatch AI (YOLO12n), com 5 exemplos de incêndio para testar com um clique. O vídeo analisado, com os focos marcados, toca na própria aba (H.264 em 640 px, salvo em `dados/visao/`). É uma detecção de apoio: pode marcar tons quentes (madeira, pele, lareira) como fogo, então confirme visualmente.
     - Embaixo, o status do sistema ao vivo.
 
 ---
@@ -89,6 +90,7 @@ O Merlin abre e funciona em qualquer PC com Windows. O que depende do computador
 | Ollama + o modelo `qwen3:4b-instruct` | ~2,5 GB | instalador do Ollama + `ollama pull` |
 | Modelos de reconhecimento de voz (Whisper) | ~2,1 GB | `ferramentas\baixar_modelos.py` → pasta `modelos/` |
 | Modelo especialista da Defesa Civil (Qwen2.5-3B, modelo de busca e adaptador LoRA) | ~7 GB | `ferramentas\baixar_modelos.py` → pasta `modelos/huggingface/` |
+| Exemplos da aba Visão (3 vídeos e 2 imagens de incêndio do repositório do FireWatch AI) | ~30 MB | `ferramentas\baixar_modelos.py` → pasta `modelos/exemplos_visao/` |
 
 ### Criado no seu PC durante o uso (fora do git)
 
@@ -111,7 +113,7 @@ git config --global core.longpaths true
 py -3.13 -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 
-# 2. Modelos de reconhecimento de voz e o especialista da Defesa Civil (~9 GB, vão para modelos\)
+# 2. Modelos de voz, o especialista da Defesa Civil e os exemplos da aba Visão (~9 GB, vão para modelos\)
 .venv\Scripts\python.exe ferramentas\baixar_modelos.py
 
 # 3. IA local: instale o Ollama (ollama.com) e baixe o modelo padrão

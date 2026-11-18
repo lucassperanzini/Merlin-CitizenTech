@@ -37,13 +37,13 @@ class TestCentral(unittest.TestCase):
         self.assertIn("window.CONTORNO_BRASIL = {", pagina)
 
     def test_aba_pedida_antes_de_abrir_vale_uma_vez(self):
-        api = ApiCentral(ParteFalsa(), ParteFalsa(), ParteFalsa(), ParteFalsa())
+        api = ApiCentral(*(ParteFalsa() for _ in range(5)))
         api._aba_pendente = "habilidades"
         self.assertEqual(api.aba_inicial(), "habilidades")
         self.assertEqual(api.aba_inicial(), ABA_INICIAL)
 
     def test_janela_chega_a_todas_as_partes(self):
-        partes = [ParteFalsa() for _ in range(4)]
+        partes = [ParteFalsa() for _ in range(5)]
         ApiCentral(*partes)._usar_janela("janela")
         self.assertTrue(all(p.janela == "janela" for p in partes))
 

@@ -38,6 +38,11 @@ torch==2.15.0+cu132
 # Carrega o especialista em 4 bits (config.ESPECIALISTA_4_BITS): ~3,7 GB da placa em vez de ~7,8 GB
 bitsandbytes==0.50.2
 
+# Visão computacional da Central (aba Visão): FireWatch AI, detecção de fogo com YOLO12n (pesos dentro do pacote).
+# O torchvision precisa ser o de CUDA, igual ao torch: o do PyPI não tem o NMS na placa de vídeo e a detecção falha.
+firewatch-ai @ https://github.com/JBVJoaoV/GS2-ACV/releases/download/v0.1.0/firewatch_ai-0.1.0-py3-none-any.whl#sha256=f36a273de3e68f7dcf73ae418b51e7c7666a77019aa202d0c3aeb518d6a8ccb9
+torchvision==0.29.1+cu132
+
 # Robô FIRMS Monitor (focos de calor da NASA), usado pela aba Alertas. Vem pronto na pasta vendor/;
 # o caminho é relativo à pasta do projeto, então rode o pip a partir dela.
 ./vendor/firms_monitor-1.2.0-py3-none-any.whl

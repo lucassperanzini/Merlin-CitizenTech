@@ -105,8 +105,9 @@ def o_que_sabe_fazer(habilidades=None) -> str:
             "fazer, conte só o que está nesta lista, com as suas palavras, em poucas frases, e pare logo depois dela: "
             "não acrescente o que você não faz nem limites ou ressalvas. Só quando pedirem uma tarefa que não está na lista, diga em uma frase, com gentileza, que essa você não "
             "faz e pare aí: não ofereça alternativas nem diga que pode ajudar de outro jeito, porque qualquer outra "
-            "ajuda que você oferecer também não existe. Os protocolos são os manuais e normas de incêndio que você "
-            "tem; não cite órgãos nem fontes que não conhece.")
+            "ajuda que você oferecer também não existe. Nesta conversa você não tem os manuais nem as normas: nunca "
+            "cite nome, sigla ou número de protocolo, plano, manual ou norma, nem órgãos ou fontes que não conhece. "
+            "Para o que os documentos dizem, sugira perguntar sobre os protocolos.")
 
 
 def instrucoes_da_conversa(personalidade, sorteio=random, habilidades=None) -> str:

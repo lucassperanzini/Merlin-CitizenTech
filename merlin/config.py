@@ -38,6 +38,10 @@ ARQ_RACIOCINIO = PASTA_RAIZ / "recursos" / "raciocinio.html"
 ARQ_ASSISTENTES = PASTA_RAIZ / "recursos" / "assistentes.html"
 ARQ_HABILIDADES = PASTA_RAIZ / "recursos" / "habilidades.html"
 ARQ_ALERTAS = PASTA_RAIZ / "recursos" / "alertas.html"
+ARQ_VISAO = PASTA_RAIZ / "recursos" / "visao.html"  # aba Visão da Central: detecção de fogo (FireWatch AI)
+PASTA_VISAO = PASTA_RAIZ / "dados" / "visao"  # os vídeos analisados, com as caixas desenhadas (fora do Git)
+# Vídeos e imagens de exemplo da aba Visão, baixados do repositório do FireWatch por ferramentas/baixar_modelos.py
+PASTA_EXEMPLOS_VISAO = PASTA_MODELOS / "exemplos_visao"
 PASTA_LEAFLET = PASTA_RAIZ / "recursos" / "vendor" / "leaflet"  # biblioteca do mapa, guardada aqui para funcionar offline
 ARQ_CONTORNO_BRASIL = PASTA_RAIZ / "recursos" / "mapas" / "brasil_uf.geojson"  # estados do Brasil (IBGE)
 ARQ_ENV = PASTA_RAIZ / ".env"  # configuração do robô FIRMS Monitor, com a chave da NASA (fora do Git)
