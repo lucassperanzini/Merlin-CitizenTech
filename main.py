@@ -9,13 +9,14 @@ from merlin.alertas.aviso import AvisoDeAlertas
 from merlin.voz.alarme import Alarme
 from merlin.audio.ouvinte import Ouvinte
 from merlin.audio.transcricao import Transcritor
-from merlin.config import ARQ_PREFERENCIAS, ARQ_ULTIMA_CONSULTA, DIAS_DE_REGISTRO, PASTA_REGISTROS
+from merlin.config import ARQ_PREFERENCIAS, ARQ_ULTIMA_CONSULTA, DIAS_DE_REGISTRO, MODO_ESPECIALISTA, PASTA_REGISTROS
 from merlin.estado import EstadoAssistente
 from merlin.habilidades import HABILIDADES
 from merlin.habilidades.base import Recursos
 from merlin.ia.cliente import ClienteIA
 from merlin.ia.confirmacao import ClassificadorConfirmacao
 from merlin.ia.divisao import DivisorTarefas
+from merlin.ia.especialista import EspecialistaDefesaCivil
 from merlin.ia.intencoes import ClassificadorIntencao, TipoIntencao
 from merlin.ia.frases import GeradorFrases
 from merlin.interface.assistentes import ApiAssistentes, ServicoAssistentes
@@ -54,6 +55,7 @@ class Aplicacao:
     processador: ProcessadorComandos
     trabalhador: TrabalhadorComandos
     janela: JanelaMerlin
+    especialista: EspecialistaDefesaCivil | None = None
 
 
 def construir_acoes(recursos: Recursos) -> dict:
@@ -101,16 +103,19 @@ def construir_aplicacao() -> Aplicacao:
         alertas=ApiAlertas(servico_alertas),
     ), administrador=administrador)
 
+    # Modo especialista: toda pergunta vai ao modelo da Defesa Civil; as skills e o Ollama ficam de fora
+    especialista = EspecialistaDefesaCivil() if MODO_ESPECIALISTA else None
     processador = ProcessadorComandos(
         estado, sessao, canal, locutor,
         divisor=DivisorTarefas(cliente_ia),
         classificador=ClassificadorIntencao(cliente_ia),
         confirmador=ClassificadorConfirmacao(cliente_ia),
-        saudacao=GeradorFrases(cliente_ia, lambda: preferencias.personalidade.saudacao),
+        saudacao=GeradorFrases(None if especialista else cliente_ia, lambda: preferencias.personalidade.saudacao),
         acoes=construir_acoes(Recursos(estado, sessao, canal, cliente_ia, memoria, preferencias, raciocinio)),
         memoria=memoria,
         preferencias=preferencias,
         raciocinio=raciocinio,
+        especialista=especialista,
     )
     return Aplicacao(
         estado=estado,
@@ -124,7 +129,9 @@ def construir_aplicacao() -> Aplicacao:
         trabalhador=TrabalhadorComandos(estado, sessao, canal, processador),
         janela=JanelaMerlin(estado, canal, sessao, preferencias, central,
                             trocar_assistente=servico_configuracoes.trocar_personalidade,
-                            raciocinio=ApiRaciocinio(raciocinio, gravador.pasta), ver_alertas=aviso_alertas.visto),
+                            raciocinio=ApiRaciocinio(raciocinio, gravador.pasta), ver_alertas=aviso_alertas.visto,
+                            ia_disponivel=especialista.disponivel if especialista else None),
+        especialista=especialista,
     )
 
 
@@ -133,6 +140,10 @@ def iniciar_escuta(app: Aplicacao) -> None:
     logger.info("Carregando modelos offline...")
     app.transcritor.precarregar()
     app.sintetizador.precarregar(app.preferencias.voz)
+    if app.especialista:
+        # Só depois do Whisper: os dois ligando a placa de vídeo ao mesmo tempo travaram a carga do Whisper.
+        # Em segundo plano, porque leva alguns segundos e a escuta já pode começar.
+        app.especialista.iniciar_carga()
     personalidade = app.preferencias.personalidade
     logger.info("%s em modo de espera. Diga '%s' para ativar.", personalidade.nome, personalidade.palavras_ativacao[0])
     threading.Thread(target=app.trabalhador.executar, daemon=True).start()

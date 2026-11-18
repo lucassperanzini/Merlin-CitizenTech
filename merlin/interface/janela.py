@@ -133,9 +133,16 @@ class ApiJanela:
         self._sessao.desativar()
 
 
+
+def _ollama_responde() -> bool:
+    listar_modelos()  # lança erro se o Ollama não estiver rodando
+    return True
+
 class JanelaMerlin:
     def __init__(self, estado, canal, sessao, preferencias, central, trocar_assistente=None, raciocinio=None,
-                 ver_alertas=None):
+                 ver_alertas=None, ia_disponivel=None):
+        """ia_disponivel: diz se a IA responde (o anel da bolinha avisa quando não). Sem ela, pergunta ao Ollama."""
+        self._ia_disponivel = ia_disponivel or _ollama_responde
         self._estado = estado
         self._canal = canal
         self._sessao = sessao
@@ -345,10 +352,9 @@ class JanelaMerlin:
             m.posicionar_compacta(m.canto(extra), self._botoes_visiveis, self._menu_aberto, self._balao)
 
     def _checar_ia(self):
-        """O Ollama responde? Se cair (ou voltar), o anel da bolinha muda de cor."""
+        """A IA responde? Se cair (ou voltar), o anel da bolinha muda de cor."""
         try:
-            listar_modelos()
-            fora = False
+            fora = not self._ia_disponivel()
         except Exception:
             fora = True
         if fora != self._ia_fora:

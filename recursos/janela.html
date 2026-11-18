@@ -188,7 +188,7 @@
   html.compacto.com-botoes .icone { opacity: 1; pointer-events: auto; }
 
   /* Anel da bolinha: o estado num relance, sem texto. Normal na cor do assistente; vermelho no mudo;
-     laranja piscando se o Ollama (a IA) não responde */
+     laranja piscando se a IA não responde */
   html.compacto { --anel: color-mix(in srgb, var(--ouro) 50%, transparent); }
   html.compacto.ia-fora { --anel: #ff9f43; }
   html.compacto.mudo { --anel: var(--mudo); }
@@ -839,7 +839,7 @@
 
   function definirIaFora(fora) {
     raiz.classList.toggle("ia-fora", fora);
-    palco.title = fora ? "A IA (Ollama) não está respondendo" : "";
+    palco.title = fora ? "A IA não está respondendo" : "";
   }
 
   function aoCompactar(desenho) {

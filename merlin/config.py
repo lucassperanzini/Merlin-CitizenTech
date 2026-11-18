@@ -13,6 +13,9 @@ PAUSA_FIM_FRASE = 1.0  # segundos sem voz humana que encerram a frase: mais curt
 MAX_TROCAS_LEMBRADAS = 6  # quantas perguntas e respostas da conversa atual o Merlin lembra
 
 MODELO_IA = "qwen3:8b"  # padrão; a escolha feita nas configurações fica salva nas preferências
+# Por enquanto, o cérebro principal é o modelo especialista da Defesa Civil (merlin/ia/especialista.py): toda
+# pergunta vai para ele, e as skills (intenções) e o Ollama ficam desligados. False volta ao funcionamento normal.
+MODO_ESPECIALISTA = True
 # Até este número de habilidades, a IA escolhe a intenção de uma vez; acima, em duas etapas (grupo e depois
 # intenção), para cada pergunta continuar curta. Veja ferramentas/avaliar_classificador.py.
 LIMITE_UMA_ETAPA = 12

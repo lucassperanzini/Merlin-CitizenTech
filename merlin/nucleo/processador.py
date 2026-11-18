@@ -34,7 +34,11 @@ def duracao(inicio: float) -> float | None:
 
 class ProcessadorComandos:
     def __init__(self, estado, sessao, canal, locutor, divisor, classificador, confirmador, saudacao,
-                 acoes: Mapping[TipoIntencao, Acao], memoria=None, preferencias=None, raciocinio=None):
+                 acoes: Mapping[TipoIntencao, Acao], memoria=None, preferencias=None, raciocinio=None,
+                 especialista=None):
+        """especialista: com ele, toda pergunta vai direto ao modelo da Defesa Civil, sem dividir a frase nem
+        procurar uma skill (config.MODO_ESPECIALISTA)."""
+        self._especialista = especialista
         self._raciocinio = raciocinio or Raciocinio()
         self._preferencias = preferencias
         self._memoria = memoria
@@ -68,7 +72,7 @@ class ProcessadorComandos:
         self._canal.estado(EstadoVisual.PENSANDO)
         self._raciocinio.registrar(TipoPasso.OUVI, formatar_legenda(frase),
                                    ativou_agora="sim" if ativou_agora else "", comando=comando if comando != frase else "",
-                                   modelo=self._preferencias.modelo_ia if self._preferencias else "")
+                                   modelo=self._nome_do_modelo())
 
         # Qualquer frase depois da pergunta encerra a espera: só um "sim" claro executa a ação
         pendencia = self._sessao.pegar_pendencia()
@@ -77,6 +81,12 @@ class ProcessadorComandos:
             resposta = self._saudacao.gerar() if ativou_agora else "Pois não?"
             self._raciocinio.registrar(TipoPasso.FALA, resposta, motivo="só chamou pelo nome")
             self._locutor.falar(resposta)
+            return
+
+        if self._especialista:
+            if discreto:  # a resposta é longa demais para o balão: abre o cartão
+                self._abrir_cartao(legenda)
+            self._consultar_especialista(comando)
             return
 
         try:
@@ -101,6 +111,31 @@ class ProcessadorComandos:
         if discreto:
             self._abrir_cartao(legenda)
         self._responder(resultados, comando)
+
+    def _nome_do_modelo(self) -> str:
+        if self._especialista:
+            return self._especialista.nome
+        return self._preferencias.modelo_ia if self._preferencias else ""
+
+    def _consultar_especialista(self, comando: str) -> None:
+        inicio = time.perf_counter()
+        try:
+            r = self._especialista.responder(comando)
+        except Exception as erro:
+            logger.error("[ESPECIALISTA] Erro: %s", erro)
+            self._raciocinio.registrar(TipoPasso.ERRO, "O modelo da Defesa Civil falhou", erro=erro)
+            self._locutor.falar("Tive um problema ao consultar os protocolos. Tente de novo.")
+            return
+        self._raciocinio.registrar(
+            TipoPasso.ACAO, "Consultei os protocolos da Defesa Civil" if r.encontrou else "Não está nos protocolos",
+            fontes=[f"{f.documento} · {f.para_falar()}" for f in r.fontes] or "",
+            avisos=list(r.avisos) or "", confianca=f"{r.confianca:.3f}" if r.confianca is not None else "",
+            tempo=duracao(inicio))
+        resposta = r.para_falar()
+        if self._memoria:
+            self._memoria.registrar(comando, resposta)
+        self._raciocinio.registrar(TipoPasso.FALA, resposta)
+        self._locutor.falar(resposta)
 
     def _abrir_cartao(self, legenda: str) -> None:
         """O pedido discreto precisou do cartão: ele abre já mostrando o que a pessoa disse."""

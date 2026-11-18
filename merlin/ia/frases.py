@@ -89,6 +89,8 @@ class GeradorFrases:
         return texto
 
     def _pedir_ao_modelo(self, conjunto) -> str:
+        if self._cliente is None:  # sem IA de conversa (modo especialista): só as frases prontas
+            return ""
         evitar = "\n".join(f"- {f}" for f in self._recentes) or "- nenhuma"
         pedido = conjunto.prompt.format(tema=random.choice(conjunto.temas), evitar=evitar,
                                         exemplo=random.choice(conjunto.exemplos))
