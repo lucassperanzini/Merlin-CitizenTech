@@ -1,38 +1,22 @@
 # Merlin
 
-Assistente por voz para Windows, **100% local**, feito para os **agentes públicos da Defesa Civil**, e não para o cidadão comum. Ele ouve, entende e responde em voz alta, executa tarefas no computador (abrir e fechar programas, abrir pastas), responde a perguntas sobre os **protocolos de incêndio**, citando o documento e a página, e ajuda na triagem com a **detecção de fogo** em imagens e vídeos. Nada do que é falado sai do computador.
+Assistente por voz para Windows, 100% local, feito para os agentes da Defesa Civil no combate a incêndios. Ele ouve e responde em voz alta, executa tarefas no computador, responde sobre os protocolos de incêndio citando documento e página, e ajuda na triagem detectando fogo em imagens e vídeos. Nada do que é falado sai do computador.
 
-Vem com um assistente pronto, o **Merlin**, com tom profissional, tratamento neutro e a linguagem técnica da área (ocorrência, comando do incidente, SCI). Ele apoia a decisão do agente com os protocolos, sem dar orientações de leigo, como "ligue para a Defesa Civil".
+O projeto também tem um painel de focos de calor (dados da NASA FIRMS) que roda em contêiner, com esteira DevSecOps, infraestrutura como código e observabilidade.
 
-O projeto também tem um **painel de alertas de focos de calor** (dados da NASA FIRMS para a Defesa Civil), que roda em contêiner com esteira DevSecOps, infraestrutura como código e observabilidade.
+## Índice
 
-**Índice**
-
-| Parte | Seções |
-|---|---|
-| **Merlin (assistente por voz no Windows)** | [O que ele faz](#o-que-ele-faz) · [Requisitos](#requisitos) · [Requisitos para testar](#requisitos-para-testar) · [Instalação](#instalação) · [Como usar](#como-usar) · [Como funciona](#como-funciona) · [Privacidade](#privacidade) · [Desenvolvimento](#desenvolvimento) · [Problemas comuns](#problemas-comuns) |
-| **Infraestrutura, DevSecOps e Observabilidade** | [Visão geral](#infraestrutura-devsecops-e-observabilidade) · [1. Diagrama da arquitetura](#1-diagrama-da-arquitetura) · [2. Matriz de responsabilidade compartilhada](#2-matriz-de-responsabilidade-compartilhada) · [3. Mapeamento LGPD](#3-mapeamento-lgpd) · [4. Estimativa de custo](#4-estimativa-de-custo) · [5. Guia de reprodução](#5-guia-de-reprodução) |
-
----
+- **Merlin:** [O que ele faz](#o-que-ele-faz) · [Requisitos](#requisitos) · [Instalação](#instalação) · [Como usar](#como-usar) · [Como funciona](#como-funciona) · [Privacidade](#privacidade) · [Desenvolvimento](#desenvolvimento) · [Problemas comuns](#problemas-comuns)
+- **Infraestrutura:** [Visão geral](#infraestrutura-devsecops-e-observabilidade) · [Arquitetura](#1-diagrama-da-arquitetura) · [Responsabilidade compartilhada](#2-matriz-de-responsabilidade-compartilhada) · [LGPD](#3-mapeamento-lgpd) · [Custo](#4-estimativa-de-custo) · [Reprodução](#5-guia-de-reprodução)
 
 ## O que ele faz
 
-- **Ativação por voz:** diga o nome do assistente ("Merlin, abre o chrome").
-- **Modo discreto:** um pedido rápido junto com o nome ("Merlin, abre o spotify") é resolvido sem abrir o cartão: a resposta aparece num balão ao lado da bolinha e ele volta a esperar. Conversas, perguntas de confirmação, erros e respostas longas abrem o cartão.
-- **Tarefas no computador:** abrir e fechar programas e abrir pastas ("abre o spotify", "fecha o word", "abre a pasta downloads"). Se o programa pedido não estiver instalado, ele avisa e pesquisa o nome no navegador.
-- **Várias tarefas numa frase:** "abre o chrome e fecha o telegram" vira uma resposta só ("Abri o chrome e fechei o telegram").
-- **Protocolos da Defesa Civil:** "o que é o sistema de comando de incidentes?", "quais equipamentos o brigadista usa?". Quem responde é um modelo especialista (RAG + LoRA sobre 9 manuais e normas de incêndio), que cita a fonte ("Fonte: Apostila do Brigadista, página 49") e diz "não consta" quando a resposta não está nos documentos, em vez de inventar. Embaixo da resposta, no cartão, cada fonte vira um botão que abre o PDF do protocolo **já na página citada**, numa janela do próprio Merlin.
-- **Conversa:** responde perguntas no jeito da personalidade e lembra o que foi dito na conversa atual.
-- **Interrupção:** fale por cima e ele para de falar.
-- **Janelas:**
-  - **Bolinha (em espera):** fica no canto da tela com o nome do assistente. O anel mostra o estado: cor do assistente normalmente, vermelho com o microfone no mudo, laranja piscando se a IA (Ollama) não responde. Com o mouse por perto, aparecem os botões de configurações, microfone e modo debug (que mostra no cartão uma aba com o raciocínio da IA: o que ela entendeu e decidiu em cada pedido).
-  - **Cartão (ativo):** a bolinha cresce para cima e vira um cartão no canto direito, sem cobrir o programa em uso. A resposta aparece junto com a voz, palavra por palavra.
-  - **Central:** uma janela só, com abas.
-    - *Pastas:* apelidos para as suas pastas ("abre o trabalho"), além das do Acesso Rápido do Windows.
-    - *Ajustes:* assistente e voz, modelo de IA.
-    - *Ferramentas:* editor de assistentes (cria e edita personalidades sem mexer em código) e skills (tudo o que ele sabe fazer, com um teste de frases; título, descrição e exemplos podem ser editados).
-    - *Visão:* detecção de fogo em imagens, vídeos e na câmera com o FireWatch AI (YOLO12n), com 5 exemplos de incêndio para testar com um clique. O vídeo analisado, com os focos marcados, toca na própria aba (H.264 em 640 px, salvo em `dados/visao/`). É uma detecção de apoio: pode marcar tons quentes (madeira, pele, lareira) como fogo, então confirme visualmente.
-    - Embaixo, o status do sistema ao vivo.
+- **Ativação por voz:** diga o nome do assistente ("Merlin, abre o Chrome"). Pedidos rápidos são respondidos num balão; conversas e respostas longas abrem um cartão no canto da tela.
+- **Tarefas no computador:** abre e fecha programas e pastas, inclusive várias numa frase ("abre o Chrome e fecha o Telegram").
+- **Protocolos de incêndio:** responde com base em 9 manuais e normas (RAG + LoRA), com a linguagem técnica da área. Cita a fonte e a página, e diz "não consta" quando a resposta não está nos documentos. Cada fonte abre o PDF já na página citada.
+- **Detecção de fogo:** analisa imagens, vídeos e a câmera com o FireWatch AI (YOLO12n) e marca os focos. É um apoio à triagem: tons quentes como madeira ou lareira podem ser marcados como fogo, então confirme visualmente.
+- **Conversa natural:** lembra o que foi dito na conversa atual e para de falar se você interromper.
+- **Personalizável:** apelidos para pastas, troca de voz e de modelo de IA, e um editor de assistentes e de habilidades que não exige mexer em código.
 
 ---
 
